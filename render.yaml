@@ -86,7 +86,6 @@ services:
   - type: web
     name: pharmaflow-frontend
     runtime: static
-    plan: free
     buildCommand: cd frontend && npm ci --legacy-peer-deps && npm run build
     staticPublishPath: ./frontend/build
     autoDeployTrigger: commit
