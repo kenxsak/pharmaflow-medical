@@ -25,6 +25,9 @@ RUN mkdir -p /app/uploads /app/logs && \
     chown -R appuser:appgroup /app
 
 COPY --from=builder --chown=appuser:appgroup /build/target/*.jar app.jar
+COPY --chown=appuser:appgroup docker-entrypoint.sh /app/docker-entrypoint.sh
+
+RUN chmod +x /app/docker-entrypoint.sh
 
 USER appuser
 
@@ -35,4 +38,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "/app/docker-entrypoint.sh"]
