@@ -37,6 +37,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -75,43 +76,40 @@ public class BillingService {
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (BillingItemRequest item : request.getItems()) {
-            InventoryBatch batch = inventoryBatchRepository.findById(item.getBatchId())
-                    .orElseThrow(() -> new IllegalArgumentException("Inventory batch not found"));
             Medicine medicine = medicineRepository.findById(item.getMedicineId())
                     .orElseThrow(() -> new IllegalArgumentException("Medicine not found"));
-            validateCartItem(currentUser, batch, medicine, item, storeId);
-
-            BigDecimal lineMrp = resolveLineMrp(item, medicine, batch);
-            GSTBreakdown breakdown = gstCalculationService.calculate(
-                    lineMrp,
-                    safe(item.getDiscountPercent()),
-                    item.getGstRate(),
-                    request.getCustomerState() == null || request.getCustomerState().isBlank()
-                            ? defaultCustomerState
-                            : request.getCustomerState()
+            List<BatchAllocationPlan> allocations = planBatchAllocations(
+                    currentUser,
+                    storeId,
+                    item,
+                    medicine,
+                    request.getCustomerState(),
+                    false
             );
 
-            subtotal = subtotal.add(lineMrp);
-            discountAmount = discountAmount.add(breakdown.getDiscountAmount());
-            taxableAmount = taxableAmount.add(breakdown.getTaxableAmount());
-            cgst = cgst.add(breakdown.getCgst());
-            sgst = sgst.add(breakdown.getSgst());
-            igst = igst.add(breakdown.getIgst());
-            totalAmount = totalAmount.add(breakdown.getTotalAmount());
+            for (BatchAllocationPlan allocation : allocations) {
+                subtotal = subtotal.add(allocation.lineMrp());
+                discountAmount = discountAmount.add(allocation.breakdown().getDiscountAmount());
+                taxableAmount = taxableAmount.add(allocation.breakdown().getTaxableAmount());
+                cgst = cgst.add(allocation.breakdown().getCgst());
+                sgst = sgst.add(allocation.breakdown().getSgst());
+                igst = igst.add(allocation.breakdown().getIgst());
+                totalAmount = totalAmount.add(allocation.breakdown().getTotalAmount());
 
-            itemResponses.add(
-                    GstLineItemResponse.builder()
-                            .medicineId(item.getMedicineId())
-                            .batchId(item.getBatchId())
-                            .quantity(item.getQuantity())
-                            .discountAmount(breakdown.getDiscountAmount())
-                            .taxableAmount(breakdown.getTaxableAmount())
-                            .cgst(breakdown.getCgst())
-                            .sgst(breakdown.getSgst())
-                            .igst(breakdown.getIgst())
-                            .totalAmount(breakdown.getTotalAmount())
-                            .build()
-            );
+                itemResponses.add(
+                        GstLineItemResponse.builder()
+                                .medicineId(item.getMedicineId())
+                                .batchId(allocation.batch().getBatchId())
+                                .quantity(allocation.quantity())
+                                .discountAmount(allocation.breakdown().getDiscountAmount())
+                                .taxableAmount(allocation.breakdown().getTaxableAmount())
+                                .cgst(allocation.breakdown().getCgst())
+                                .sgst(allocation.breakdown().getSgst())
+                                .igst(allocation.breakdown().getIgst())
+                                .totalAmount(allocation.breakdown().getTotalAmount())
+                                .build()
+                );
+            }
         }
 
         return GstCalculationResponse.builder()
@@ -169,99 +167,86 @@ public class BillingService {
         for (BillingItemRequest itemRequest : request.getItems()) {
             Medicine medicine = medicineRepository.findById(itemRequest.getMedicineId())
                     .orElseThrow(() -> new IllegalArgumentException("Medicine not found"));
-            InventoryBatch batch = inventoryBatchRepository.findById(itemRequest.getBatchId())
-                    .orElseThrow(() -> new IllegalArgumentException("Inventory batch not found"));
-
-            validateCartItem(currentUser, batch, medicine, itemRequest, storeId);
-
-            BigDecimal lineMrp = resolveLineMrp(itemRequest, medicine, batch);
-            GSTBreakdown breakdown = gstCalculationService.calculate(
-                    lineMrp,
-                    safe(itemRequest.getDiscountPercent()),
-                    itemRequest.getGstRate(),
-                    request.getCustomerState() == null || request.getCustomerState().isBlank()
-                            ? defaultCustomerState
-                            : request.getCustomerState()
+            List<BatchAllocationPlan> allocations = planBatchAllocations(
+                    currentUser,
+                    storeId,
+                    itemRequest,
+                    medicine,
+                    request.getCustomerState(),
+                    true
             );
 
-            deductInventory(batch, medicine, itemRequest.getQuantity(), itemRequest.getUnitType());
-            inventoryBatchRepository.save(batch);
+            for (BatchAllocationPlan allocation : allocations) {
+                InventoryBatch batch = allocation.batch();
+                deductInventory(batch, medicine, allocation.quantity(), itemRequest.getUnitType());
+                inventoryBatchRepository.save(batch);
 
-            InvoiceItem savedItem = invoiceItemRepository.save(
-                    InvoiceItem.builder()
-                            .invoice(invoice)
-                            .medicine(medicine)
-                            .batch(batch)
-                            .quantity(itemRequest.getQuantity())
-                            .unitType(itemRequest.getUnitType())
-                            .mrp(itemRequest.getMrp())
-                            .discountPct(safe(itemRequest.getDiscountPercent()))
-                            .taxableAmount(breakdown.getTaxableAmount())
-                            .gstRate(itemRequest.getGstRate())
-                            .cgst(breakdown.getCgst())
-                            .sgst(breakdown.getSgst())
-                            .igst(breakdown.getIgst())
-                            .total(breakdown.getTotalAmount())
-                            .build()
-            );
-
-            if (scheduleHComplianceService.requiresComplianceRecord(medicine.getScheduleType())) {
-                scheduleHComplianceService.recordScheduleSale(
-                        store,
-                        invoice,
-                        medicine,
-                        medicine.getScheduleType(),
-                        resolvePatientName(request, customer),
-                        request.getPatientAge(),
-                        request.getPatientAddress(),
-                        resolveDoctorName(request, customer),
-                        request.getDoctorRegNo(),
-                        itemRequest.getQuantity(),
-                        batch.getBatchNumber(),
-                        currentUser,
-                        request.getPrescriptionUrl()
+                InvoiceItem savedItem = invoiceItemRepository.save(
+                        InvoiceItem.builder()
+                                .invoice(invoice)
+                                .medicine(medicine)
+                                .batch(batch)
+                                .quantity(allocation.quantity())
+                                .unitType(itemRequest.getUnitType())
+                                .mrp(resolvePackMrp(itemRequest, medicine, batch))
+                                .medicineNameSnapshot(medicine.getBrandName())
+                                .genericNameSnapshot(medicine.getGenericName())
+                                .manufacturerNameSnapshot(medicine.getManufacturer() != null ? medicine.getManufacturer().getName() : null)
+                                .hsnCodeSnapshot(medicine.getHsnCode())
+                                .scheduleTypeSnapshot(medicine.getScheduleType())
+                                .batchNumberSnapshot(batch.getBatchNumber())
+                                .expiryDateSnapshot(batch.getExpiryDate())
+                                .purchaseRateSnapshot(batch.getPurchaseRate())
+                                .packSizeSnapshot(medicine.getPackSize())
+                                .discountPct(safe(itemRequest.getDiscountPercent()))
+                                .taxableAmount(allocation.breakdown().getTaxableAmount())
+                                .gstRate(allocation.gstRate())
+                                .cgst(allocation.breakdown().getCgst())
+                                .sgst(allocation.breakdown().getSgst())
+                                .igst(allocation.breakdown().getIgst())
+                                .total(allocation.breakdown().getTotalAmount())
+                                .build()
                 );
-            }
 
-            subtotal = subtotal.add(lineMrp);
-            discountAmount = discountAmount.add(breakdown.getDiscountAmount());
-            taxableAmount = taxableAmount.add(breakdown.getTaxableAmount());
-            cgst = cgst.add(breakdown.getCgst());
-            sgst = sgst.add(breakdown.getSgst());
-            igst = igst.add(breakdown.getIgst());
-            totalAmount = totalAmount.add(breakdown.getTotalAmount());
+                if (scheduleHComplianceService.requiresComplianceRecord(medicine.getScheduleType())) {
+                    scheduleHComplianceService.recordScheduleSale(
+                            store,
+                            invoice,
+                            medicine,
+                            medicine.getScheduleType(),
+                            resolvePatientName(request, customer),
+                            request.getPatientAge(),
+                            request.getPatientAddress(),
+                            resolveDoctorName(request, customer),
+                            request.getDoctorRegNo(),
+                            allocation.quantity(),
+                            batch.getBatchNumber(),
+                            currentUser,
+                            request.getPrescriptionUrl()
+                    );
+                }
 
-            itemResponses.add(
-                    InvoiceItemResponse.builder()
-                            .itemId(savedItem.getItemId())
-                            .medicineId(medicine.getMedicineId())
-                            .medicineName(medicine.getBrandName())
-                            .batchId(batch.getBatchId())
-                            .batchNumber(batch.getBatchNumber())
-                            .expiryDate(batch.getExpiryDate())
-                            .quantity(savedItem.getQuantity())
-                            .unitType(savedItem.getUnitType())
-                            .mrp(savedItem.getMrp())
-                            .discountPct(savedItem.getDiscountPct())
-                            .taxableAmount(savedItem.getTaxableAmount())
-                            .gstRate(savedItem.getGstRate())
-                            .cgst(savedItem.getCgst())
-                            .sgst(savedItem.getSgst())
-                            .igst(savedItem.getIgst())
-                            .total(savedItem.getTotal())
-                            .build()
-            );
+                subtotal = subtotal.add(allocation.lineMrp());
+                discountAmount = discountAmount.add(allocation.breakdown().getDiscountAmount());
+                taxableAmount = taxableAmount.add(allocation.breakdown().getTaxableAmount());
+                cgst = cgst.add(allocation.breakdown().getCgst());
+                sgst = sgst.add(allocation.breakdown().getSgst());
+                igst = igst.add(allocation.breakdown().getIgst());
+                totalAmount = totalAmount.add(allocation.breakdown().getTotalAmount());
 
-            if (itemRequest.getMrp().compareTo(batch.getMrp()) != 0) {
-                auditLogService.log(
-                        store,
-                        currentUser,
-                        "PRICE_OVERRIDE",
-                        "INVOICE_ITEM",
-                        savedItem.getItemId().toString(),
-                        "{\"batchMrp\":\"" + batch.getMrp() + "\"}",
-                        "{\"invoiceMrp\":\"" + itemRequest.getMrp() + "\"}"
-                );
+                itemResponses.add(toInvoiceItemResponse(savedItem));
+
+                if (itemRequest.getMrp() != null && batch.getMrp() != null && itemRequest.getMrp().compareTo(batch.getMrp()) != 0) {
+                    auditLogService.log(
+                            store,
+                            currentUser,
+                            "PRICE_OVERRIDE",
+                            "INVOICE_ITEM",
+                            savedItem.getItemId().toString(),
+                            "{\"batchMrp\":\"" + batch.getMrp() + "\"}",
+                            "{\"invoiceMrp\":\"" + itemRequest.getMrp() + "\"}"
+                    );
+                }
             }
         }
 
@@ -307,24 +292,7 @@ public class BillingService {
         ensureInvoiceInTenantScope(invoice);
         List<InvoiceItemResponse> items = invoiceItemRepository.findByInvoiceInvoiceId(invoiceId)
                 .stream()
-                .map(item -> InvoiceItemResponse.builder()
-                        .itemId(item.getItemId())
-                        .medicineId(item.getMedicine() != null ? item.getMedicine().getMedicineId() : null)
-                        .medicineName(item.getMedicine() != null ? item.getMedicine().getBrandName() : null)
-                        .batchId(item.getBatch() != null ? item.getBatch().getBatchId() : null)
-                        .batchNumber(item.getBatch() != null ? item.getBatch().getBatchNumber() : null)
-                        .expiryDate(item.getBatch() != null ? item.getBatch().getExpiryDate() : null)
-                        .quantity(item.getQuantity())
-                        .unitType(item.getUnitType())
-                        .mrp(item.getMrp())
-                        .discountPct(item.getDiscountPct())
-                        .taxableAmount(item.getTaxableAmount())
-                        .gstRate(item.getGstRate())
-                        .cgst(item.getCgst())
-                        .sgst(item.getSgst())
-                        .igst(item.getIgst())
-                        .total(item.getTotal())
-                        .build())
+                .map(this::toInvoiceItemResponse)
                 .collect(Collectors.toList());
 
         return toInvoiceResponse(invoice, items);
@@ -438,10 +406,81 @@ public class BillingService {
         return invoiceStoreCode + "/" + financialYear + "/" + String.format("%05d", sequence);
     }
 
+    private List<BatchAllocationPlan> planBatchAllocations(
+            PharmaUser currentUser,
+            UUID storeId,
+            BillingItemRequest itemRequest,
+            Medicine medicine,
+            String customerState,
+            boolean lockBatches
+    ) {
+        if (itemRequest.getQuantity() == null || itemRequest.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Billing quantity must be greater than zero");
+        }
+
+        List<InventoryBatch> candidateBatches = (lockBatches
+                ? inventoryBatchRepository.findSellableBatchesForUpdate(storeId, medicine.getMedicineId(), LocalDate.now())
+                : inventoryBatchRepository.findSellableBatches(storeId, medicine.getMedicineId(), LocalDate.now()))
+                .stream()
+                .sorted(Comparator
+                        .comparing((InventoryBatch batch) -> itemRequest.getBatchId() != null && itemRequest.getBatchId().equals(batch.getBatchId()) ? 0 : 1)
+                        .thenComparing(InventoryBatch::getExpiryDate)
+                        .thenComparing(InventoryBatch::getCreatedAt))
+                .collect(Collectors.toList());
+
+        if (candidateBatches.isEmpty()) {
+            throw new BusinessRuleException("No sellable stock found for " + medicine.getBrandName());
+        }
+
+        int remainingLooseUnits = toLooseUnits(itemRequest.getQuantity(), itemRequest.getUnitType(), medicine);
+        if (remainingLooseUnits <= 0) {
+            throw new IllegalArgumentException("Billing quantity must be greater than zero");
+        }
+
+        BigDecimal resolvedGstRate = resolveGstRate(itemRequest, medicine);
+        String effectiveCustomerState = customerState == null || customerState.isBlank()
+                ? defaultCustomerState
+                : customerState;
+        List<BatchAllocationPlan> allocations = new ArrayList<>();
+
+        for (InventoryBatch batch : candidateBatches) {
+            if (remainingLooseUnits <= 0) {
+                break;
+            }
+
+            validateCartItem(currentUser, batch, medicine, itemRequest, storeId);
+            int availableLooseUnits = calculateAvailableLooseUnits(batch, medicine);
+            if (availableLooseUnits <= 0) {
+                continue;
+            }
+
+            int allocatedLooseUnits = Math.min(remainingLooseUnits, availableLooseUnits);
+            BigDecimal allocatedQuantity = toDisplayQuantity(allocatedLooseUnits, itemRequest.getUnitType(), medicine);
+            BigDecimal lineMrp = resolveLineMrp(itemRequest, medicine, batch, allocatedQuantity);
+            GSTBreakdown breakdown = gstCalculationService.calculate(
+                    lineMrp,
+                    safe(itemRequest.getDiscountPercent()),
+                    resolvedGstRate,
+                    effectiveCustomerState
+            );
+
+            allocations.add(new BatchAllocationPlan(batch, allocatedQuantity, resolvedGstRate, lineMrp, breakdown));
+            remainingLooseUnits -= allocatedLooseUnits;
+        }
+
+        if (remainingLooseUnits > 0) {
+            throw new BusinessRuleException("Insufficient sellable stock for " + medicine.getBrandName());
+        }
+
+        return allocations;
+    }
+
     private BigDecimal resolveLineMrp(BillingItemRequest itemRequest, Medicine medicine, InventoryBatch batch) {
-        BigDecimal packMrp = itemRequest.getMrp() != null
-                ? itemRequest.getMrp()
-                : batch.getMrp() != null ? batch.getMrp() : medicine.getMrp();
+        return resolveLineMrp(itemRequest, medicine, batch, itemRequest.getQuantity());
+    }
+
+    private BigDecimal resolveLineMrp(BillingItemRequest itemRequest, Medicine medicine, InventoryBatch batch, BigDecimal quantity) {
+        BigDecimal packMrp = resolvePackMrp(itemRequest, medicine, batch);
         if (packMrp == null) {
             return BigDecimal.ZERO;
         }
@@ -450,24 +489,22 @@ public class BillingService {
             int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
             return packMrp
                     .divide(BigDecimal.valueOf(packSize), 4, RoundingMode.HALF_UP)
-                    .multiply(itemRequest.getQuantity())
+                    .multiply(quantity)
                     .setScale(2, RoundingMode.HALF_UP);
         }
 
-        return packMrp.multiply(itemRequest.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+        return packMrp.multiply(quantity).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolvePackMrp(BillingItemRequest itemRequest, Medicine medicine, InventoryBatch batch) {
+        return itemRequest.getMrp() != null
+                ? itemRequest.getMrp()
+                : batch.getMrp() != null ? batch.getMrp() : medicine.getMrp();
     }
 
     private void deductInventory(InventoryBatch batch, Medicine medicine, BigDecimal quantity, String unitType) {
         int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
-        int requestedLooseUnits;
-        if ("STRIP".equalsIgnoreCase(unitType)) {
-            requestedLooseUnits = quantity.multiply(BigDecimal.valueOf(packSize))
-                    .setScale(0, RoundingMode.HALF_UP)
-                    .intValueExact();
-        } else {
-            requestedLooseUnits = quantity.setScale(0, RoundingMode.HALF_UP).intValueExact();
-        }
-
+        int requestedLooseUnits = toLooseUnits(quantity, unitType, medicine);
         int availableLooseUnits = safe(batch.getQuantityStrips()) * packSize + safe(batch.getQuantityLoose());
         if (requestedLooseUnits > availableLooseUnits) {
             throw new IllegalArgumentException("Insufficient stock for batch " + batch.getBatchNumber());
@@ -506,6 +543,63 @@ public class BillingService {
                 && !currentUser.canEditPrice()) {
             throw new ForbiddenActionException("Your role is not allowed to edit medicine pricing");
         }
+    }
+
+    private BigDecimal resolveGstRate(BillingItemRequest itemRequest, Medicine medicine) {
+        if (itemRequest.getGstRate() != null) {
+            return itemRequest.getGstRate();
+        }
+        return medicine.getGstRate() != null ? medicine.getGstRate() : BigDecimal.ZERO;
+    }
+
+    private int calculateAvailableLooseUnits(InventoryBatch batch, Medicine medicine) {
+        int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
+        return safe(batch.getQuantityStrips()) * packSize + safe(batch.getQuantityLoose());
+    }
+
+    private int toLooseUnits(BigDecimal quantity, String unitType, Medicine medicine) {
+        int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
+        if ("STRIP".equalsIgnoreCase(unitType)) {
+            return quantity.multiply(BigDecimal.valueOf(packSize))
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .intValueExact();
+        }
+        return quantity.setScale(0, RoundingMode.HALF_UP).intValueExact();
+    }
+
+    private BigDecimal toDisplayQuantity(int looseUnits, String unitType, Medicine medicine) {
+        int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
+        if ("STRIP".equalsIgnoreCase(unitType)) {
+            return BigDecimal.valueOf(looseUnits)
+                    .divide(BigDecimal.valueOf(packSize), 3, RoundingMode.HALF_UP)
+                    .stripTrailingZeros();
+        }
+        return BigDecimal.valueOf(looseUnits);
+    }
+
+    private InvoiceItemResponse toInvoiceItemResponse(InvoiceItem item) {
+        return InvoiceItemResponse.builder()
+                .itemId(item.getItemId())
+                .medicineId(item.getMedicine() != null ? item.getMedicine().getMedicineId() : null)
+                .medicineName(item.getMedicineNameSnapshot() != null ? item.getMedicineNameSnapshot() : item.getMedicine() != null ? item.getMedicine().getBrandName() : null)
+                .genericName(item.getGenericNameSnapshot() != null ? item.getGenericNameSnapshot() : item.getMedicine() != null ? item.getMedicine().getGenericName() : null)
+                .manufacturerName(item.getManufacturerNameSnapshot() != null ? item.getManufacturerNameSnapshot() : item.getMedicine() != null && item.getMedicine().getManufacturer() != null ? item.getMedicine().getManufacturer().getName() : null)
+                .hsnCode(item.getHsnCodeSnapshot() != null ? item.getHsnCodeSnapshot() : item.getMedicine() != null ? item.getMedicine().getHsnCode() : null)
+                .batchId(item.getBatch() != null ? item.getBatch().getBatchId() : null)
+                .batchNumber(item.getBatchNumberSnapshot() != null ? item.getBatchNumberSnapshot() : item.getBatch() != null ? item.getBatch().getBatchNumber() : null)
+                .expiryDate(item.getExpiryDateSnapshot() != null ? item.getExpiryDateSnapshot() : item.getBatch() != null ? item.getBatch().getExpiryDate() : null)
+                .purchaseRate(item.getPurchaseRateSnapshot() != null ? item.getPurchaseRateSnapshot() : item.getBatch() != null ? item.getBatch().getPurchaseRate() : null)
+                .quantity(item.getQuantity())
+                .unitType(item.getUnitType())
+                .mrp(item.getMrp())
+                .discountPct(item.getDiscountPct())
+                .taxableAmount(item.getTaxableAmount())
+                .gstRate(item.getGstRate())
+                .cgst(item.getCgst())
+                .sgst(item.getSgst())
+                .igst(item.getIgst())
+                .total(item.getTotal())
+                .build();
     }
 
     private void validateCreditLimit(Customer customer, String paymentMode, BigDecimal totalAmount) {
@@ -554,5 +648,14 @@ public class BillingService {
 
     private Integer safe(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private record BatchAllocationPlan(
+            InventoryBatch batch,
+            BigDecimal quantity,
+            BigDecimal gstRate,
+            BigDecimal lineMrp,
+            GSTBreakdown breakdown
+    ) {
     }
 }

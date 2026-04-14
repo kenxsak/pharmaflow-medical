@@ -20,9 +20,13 @@ public class InvoiceItemResponse {
     private UUID itemId;
     private UUID medicineId;
     private String medicineName;
+    private String genericName;
+    private String manufacturerName;
+    private String hsnCode;
     private UUID batchId;
     private String batchNumber;
     private LocalDate expiryDate;
+    private BigDecimal purchaseRate;
     private BigDecimal quantity;
     private String unitType;
     private BigDecimal mrp;

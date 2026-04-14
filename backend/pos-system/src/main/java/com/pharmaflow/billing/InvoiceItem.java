@@ -18,6 +18,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -54,6 +55,33 @@ public class InvoiceItem {
 
     @Column(name = "mrp", precision = 10, scale = 2)
     private BigDecimal mrp;
+
+    @Column(name = "medicine_name_snapshot", length = 300)
+    private String medicineNameSnapshot;
+
+    @Column(name = "generic_name_snapshot", length = 300)
+    private String genericNameSnapshot;
+
+    @Column(name = "manufacturer_name_snapshot", length = 300)
+    private String manufacturerNameSnapshot;
+
+    @Column(name = "hsn_code_snapshot", length = 20)
+    private String hsnCodeSnapshot;
+
+    @Column(name = "schedule_type_snapshot", length = 20)
+    private String scheduleTypeSnapshot;
+
+    @Column(name = "batch_number_snapshot", length = 100)
+    private String batchNumberSnapshot;
+
+    @Column(name = "expiry_date_snapshot")
+    private LocalDate expiryDateSnapshot;
+
+    @Column(name = "purchase_rate_snapshot", precision = 10, scale = 2)
+    private BigDecimal purchaseRateSnapshot;
+
+    @Column(name = "pack_size_snapshot")
+    private Integer packSizeSnapshot;
 
     @Column(name = "discount_pct", precision = 5, scale = 2)
     private BigDecimal discountPct;

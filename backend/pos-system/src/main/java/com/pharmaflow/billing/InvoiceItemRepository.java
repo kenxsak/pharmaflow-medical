@@ -24,9 +24,9 @@ public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, UUID> 
             "where i.store.storeId = :storeId and (" +
             ":query is null or :query = '' " +
             "or lower(coalesce(i.invoiceNo, '')) like lower(concat('%', :query, '%')) " +
-            "or lower(coalesce(m.brandName, '')) like lower(concat('%', :query, '%')) " +
-            "or lower(coalesce(m.genericName, '')) like lower(concat('%', :query, '%')) " +
-            "or lower(coalesce(b.batchNumber, '')) like lower(concat('%', :query, '%'))) " +
+            "or lower(coalesce(ii.medicineNameSnapshot, m.brandName, '')) like lower(concat('%', :query, '%')) " +
+            "or lower(coalesce(ii.genericNameSnapshot, m.genericName, '')) like lower(concat('%', :query, '%')) " +
+            "or lower(coalesce(ii.batchNumberSnapshot, b.batchNumber, '')) like lower(concat('%', :query, '%'))) " +
             "order by i.invoiceDate desc")
     Page<InvoiceItem> searchByStoreId(@Param("storeId") UUID storeId,
                                       @Param("query") String query,

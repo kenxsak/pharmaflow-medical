@@ -238,9 +238,18 @@ public class PrintService {
 
         boolean firstItem = true;
         for (InvoiceItem item : items) {
-            String medicineName = item.getMedicine() != null ? safeText(item.getMedicine().getBrandName()) : "Medicine";
-            String batchNumber = item.getBatch() != null ? safeText(item.getBatch().getBatchNumber()) : "—";
-            String expiryDate = item.getBatch() != null ? formatExpiry(item.getBatch().getExpiryDate()) : "—";
+            String medicineName = safeText(item.getMedicineNameSnapshot());
+            if (medicineName.isBlank()) {
+                medicineName = item.getMedicine() != null ? safeText(item.getMedicine().getBrandName()) : "Medicine";
+            }
+            String batchNumber = safeText(item.getBatchNumberSnapshot());
+            if (batchNumber.isBlank()) {
+                batchNumber = item.getBatch() != null ? safeText(item.getBatch().getBatchNumber()) : "—";
+            }
+            LocalDate itemExpiryDate = item.getExpiryDateSnapshot() != null
+                    ? item.getExpiryDateSnapshot()
+                    : item.getBatch() != null ? item.getBatch().getExpiryDate() : null;
+            String expiryDate = itemExpiryDate != null ? formatExpiry(itemExpiryDate) : "—";
 
             html.append("<div class=\"item").append(firstItem ? " first" : "").append("\">");
             html.append("<table class=\"item-header\"><tr><td class=\"item-name\">")

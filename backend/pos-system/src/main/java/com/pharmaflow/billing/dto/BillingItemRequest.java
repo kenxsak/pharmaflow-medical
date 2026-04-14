@@ -14,7 +14,6 @@ public class BillingItemRequest {
     @NotNull
     private UUID medicineId;
 
-    @NotNull
     private UUID batchId;
 
     @NotNull
@@ -23,11 +22,9 @@ public class BillingItemRequest {
     @NotNull
     private String unitType;
 
-    @NotNull
     private BigDecimal mrp;
 
     private BigDecimal discountPercent;
 
-    @NotNull
     private BigDecimal gstRate;
 }

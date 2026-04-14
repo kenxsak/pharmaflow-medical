@@ -285,8 +285,12 @@ public class ReportService {
 
     private BigDecimal estimatedCost(InvoiceItem item) {
         BigDecimal quantity = safe(item.getQuantity());
-        BigDecimal purchaseRatePerStrip = item.getBatch() != null ? safe(item.getBatch().getPurchaseRate()) : BigDecimal.ZERO;
-        int packSize = item.getMedicine() != null && item.getMedicine().getPackSize() != null && item.getMedicine().getPackSize() > 0
+        BigDecimal purchaseRatePerStrip = item.getPurchaseRateSnapshot() != null
+                ? safe(item.getPurchaseRateSnapshot())
+                : item.getBatch() != null ? safe(item.getBatch().getPurchaseRate()) : BigDecimal.ZERO;
+        int packSize = item.getPackSizeSnapshot() != null && item.getPackSizeSnapshot() > 0
+                ? item.getPackSizeSnapshot()
+                : item.getMedicine() != null && item.getMedicine().getPackSize() != null && item.getMedicine().getPackSize() > 0
                 ? item.getMedicine().getPackSize()
                 : 1;
 
@@ -359,11 +363,11 @@ public class ReportService {
 
         return MedicinePerformanceRow.builder()
                 .medicineId(medicineId)
-                .brandName(medicine != null ? medicine.getBrandName() : "Unknown Medicine")
-                .genericName(medicine != null ? medicine.getGenericName() : null)
+                .brandName(medicine != null ? medicine.getBrandName() : defaultLabel(items.isEmpty() ? null : items.get(0).getMedicineNameSnapshot(), "Unknown Medicine"))
+                .genericName(medicine != null ? medicine.getGenericName() : items.isEmpty() ? null : items.get(0).getGenericNameSnapshot())
                 .manufacturerName(medicine != null && medicine.getManufacturer() != null
                         ? medicine.getManufacturer().getName()
-                        : "Unknown Manufacturer")
+                        : defaultLabel(items.isEmpty() ? null : items.get(0).getManufacturerNameSnapshot(), "Unknown Manufacturer"))
                 .soldQuantity(soldQuantity)
                 .salesValue(salesValue)
                 .estimatedProfit(estimatedProfit)

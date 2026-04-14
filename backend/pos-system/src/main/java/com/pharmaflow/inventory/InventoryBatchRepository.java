@@ -2,10 +2,12 @@ package com.pharmaflow.inventory;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import javax.persistence.LockModeType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +36,27 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     );
 
     List<InventoryBatch> findByStoreStoreIdAndMedicineMedicineIdAndIsActiveTrueOrderByExpiryDateAsc(UUID storeId, UUID medicineId);
+
+    @Query("select ib from InventoryBatch ib " +
+            "where ib.store.storeId = :storeId " +
+            "and ib.medicine.medicineId = :medicineId " +
+            "and ib.isActive = true " +
+            "and ib.expiryDate > :today " +
+            "order by ib.expiryDate asc, ib.createdAt asc")
+    List<InventoryBatch> findSellableBatches(@Param("storeId") UUID storeId,
+                                             @Param("medicineId") UUID medicineId,
+                                             @Param("today") LocalDate today);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select ib from InventoryBatch ib " +
+            "where ib.store.storeId = :storeId " +
+            "and ib.medicine.medicineId = :medicineId " +
+            "and ib.isActive = true " +
+            "and ib.expiryDate > :today " +
+            "order by ib.expiryDate asc, ib.createdAt asc")
+    List<InventoryBatch> findSellableBatchesForUpdate(@Param("storeId") UUID storeId,
+                                                      @Param("medicineId") UUID medicineId,
+                                                      @Param("today") LocalDate today);
 
     @Query("select ib from InventoryBatch ib " +
             "join fetch ib.medicine m " +
