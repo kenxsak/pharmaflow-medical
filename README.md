@@ -10,6 +10,8 @@ GitHub repo:
 
 - `https://github.com/kenxsak/pharmaflow-medical`
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kenxsak/pharmaflow-medical)
+
 ## Free Demo Hosting
 
 The fastest zero-cost demo deployment uses Render managed resources:
@@ -28,6 +30,8 @@ The fastest zero-cost demo deployment uses Render managed resources:
 5. Deploy the Blueprint.
 
 Render will provision the frontend, backend, Postgres, and Redis-compatible cache from the single blueprint.
+
+If the repo stays private, Render needs access to it through the Render GitHub App during setup.
 
 ## Local Development
 
