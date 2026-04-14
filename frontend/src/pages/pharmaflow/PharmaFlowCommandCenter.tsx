@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
 import { AuthAPI, StoreAPI, StoreSummary } from '../../services/api';
+import { useUserContext } from '../../context/UserContext';
 import { BrandingSnapshot, resetBranding, saveBranding, useBranding } from '../../utils/branding';
 import {
   announcePharmaFlowContextChange,
@@ -56,6 +57,7 @@ const accessPresets: AccessPreset[] = [
 ];
 
 const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+  const { setCookie, setUser } = useUserContext();
   const context = usePharmaFlowContext();
   const branding = useBranding();
   const navigate = useNavigate();
@@ -75,6 +77,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
     () => accessPresets.find((preset) => preset.mode === accessMode) || accessPresets[0],
     [accessMode]
   );
+  const showAccessPanels = !context.hasToken;
 
   const currentStoreLabel = useMemo(() => {
     const selectedStore = stores.find((store) => store.storeId === selectedStoreId);
@@ -163,6 +166,8 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
 
   const handleLogout = () => {
     clearPharmaFlowSession();
+    setUser(null);
+    setCookie(null);
     setStores([]);
     setSelectedStoreId('');
     setMessage('Session cleared.');
@@ -177,11 +182,15 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
     }));
   };
 
+  if (!context.hasToken && !embedded) {
+    return <Navigate to="/legacy-login" replace />;
+  }
+
   return (
     <PharmaFlowShell
       embedded={embedded}
-      title="Access and Setup"
-      description="Choose the correct account type, sign in, switch the active store, and keep company setup instructions in Help instead of spreading explanatory notes across operational screens."
+      title="Company Setup"
+      description="Manage the active store, company branding, access model, and rollout configuration from inside the same legacy workspace instead of maintaining a second login system."
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
@@ -202,146 +211,196 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
         </div>
       }
     >
-      <section className="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
-        <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-          <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Operational Access</div>
-          <h2 className="mt-3 text-2xl font-semibold text-slate-950">Pick the account that matches the job</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Platform ownership, company management, and daily store work are separated cleanly so the software behaves
-            like a real business system.
-          </p>
+      {showAccessPanels && (
+        <section className="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
+          <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Operational Access</div>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-950">Pick the account that matches the job</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Platform ownership, company management, and daily store work are separated cleanly so the software behaves
+              like a real business system.
+            </p>
 
-          <div className="mt-5 grid gap-3">
-            {accessPresets.map((preset) => (
-              <button
-                key={preset.mode}
-                type="button"
-                onClick={() => setAccessMode(preset.mode)}
-                className={`rounded-[1.75rem] border px-5 py-5 text-left transition ${
-                  accessMode === preset.mode
-                    ? 'border-sky-200 bg-sky-50 shadow-sm'
-                    : 'border-slate-200 bg-slate-50 hover:border-sky-200 hover:bg-white'
-                }`}
-              >
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <div className="text-lg font-semibold text-slate-950">{preset.title}</div>
-                    <div className="mt-2 text-sm leading-6 text-slate-600">{preset.summary}</div>
+            <div className="mt-5 grid gap-3">
+              {accessPresets.map((preset) => (
+                <button
+                  key={preset.mode}
+                  type="button"
+                  onClick={() => setAccessMode(preset.mode)}
+                  className={`rounded-[1.75rem] border px-5 py-5 text-left transition ${
+                    accessMode === preset.mode
+                      ? 'border-sky-200 bg-sky-50 shadow-sm'
+                      : 'border-slate-200 bg-slate-50 hover:border-sky-200 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="text-lg font-semibold text-slate-950">{preset.title}</div>
+                      <div className="mt-2 text-sm leading-6 text-slate-600">{preset.summary}</div>
+                    </div>
+                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                      {preset.routeHint}
+                    </span>
                   </div>
-                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
-                    {preset.routeHint}
-                  </span>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-          <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Ready Accounts</div>
-          <h2 className="mt-3 text-xl font-semibold text-slate-950">Accounts prepared for business rollout</h2>
-          <div className="mt-5 grid gap-3">
-            {accessPresets.map((preset) => (
-              <div key={preset.title} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-slate-950">{preset.title}</div>
-                    <div className="mt-1 text-sm text-slate-500">{preset.summary}</div>
+          <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Ready Accounts</div>
+            <h2 className="mt-3 text-xl font-semibold text-slate-950">Accounts prepared for business rollout</h2>
+            <div className="mt-5 grid gap-3">
+              {accessPresets.map((preset) => (
+                <div key={preset.title} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-slate-950">{preset.title}</div>
+                      <div className="mt-1 text-sm text-slate-500">{preset.summary}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAccessMode(preset.mode)}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700"
+                    >
+                      Use
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setAccessMode(preset.mode)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700"
-                  >
-                    Use
-                  </button>
+                  <div className="mt-3 grid gap-2 text-sm text-slate-700">
+                    <div>Username: <span className="font-semibold text-slate-950">{preset.username}</span></div>
+                    <div>Password: <span className="font-semibold text-slate-950">{preset.password}</span></div>
+                    <div>Tenant slug: <span className="font-semibold text-slate-950">{preset.tenantSlug || 'Leave blank'}</span></div>
+                  </div>
                 </div>
-                <div className="mt-3 grid gap-2 text-sm text-slate-700">
-                  <div>Username: <span className="font-semibold text-slate-950">{preset.username}</span></div>
-                  <div>Password: <span className="font-semibold text-slate-950">{preset.password}</span></div>
-                  <div>Tenant slug: <span className="font-semibold text-slate-950">{preset.tenantSlug || 'Leave blank'}</span></div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-[0.92fr,1.08fr]">
-        <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-          <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Sign In</div>
-          <h2 className="mt-3 text-xl font-semibold text-slate-950">Access portal</h2>
+        {showAccessPanels ? (
+          <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Sign In</div>
+            <h2 className="mt-3 text-xl font-semibold text-slate-950">Access portal</h2>
 
-          <form className="mt-5 grid gap-3 md:grid-cols-2" onSubmit={handleLogin}>
-            <label className="space-y-1 text-sm md:col-span-2">
-              <span className="font-medium text-slate-700">Account type</span>
-              <select
-                value={accessMode}
-                onChange={(event) => setAccessMode(event.target.value as AccessMode)}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+            <form className="mt-5 grid gap-3 md:grid-cols-2" onSubmit={handleLogin}>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span className="font-medium text-slate-700">Account type</span>
+                <select
+                  value={accessMode}
+                  onChange={(event) => setAccessMode(event.target.value as AccessMode)}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                >
+                  {accessPresets.map((preset) => (
+                    <option key={preset.mode} value={preset.mode}>
+                      {preset.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">Username</span>
+                <input
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">Password</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                />
+              </label>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span className="font-medium text-slate-700">Tenant slug</span>
+                <input
+                  value={tenantSlug}
+                  onChange={(event) => setTenantSlug(event.target.value)}
+                  placeholder="Leave blank for SaaS admin"
+                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                />
+              </label>
+              <div className="md:col-span-2 flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isLoggingIn ? 'Signing in...' : `Sign in as ${selectedPreset.title}`}
+                </button>
+                <Link
+                  to="/legacy-login"
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
+                >
+                  Legacy login
+                </Link>
+              </div>
+            </form>
+
+            {(message || error) && (
+              <div
+                className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
+                  error
+                    ? 'border-rose-200 bg-rose-50 text-rose-900'
+                    : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                }`}
               >
-                {accessPresets.map((preset) => (
-                  <option key={preset.mode} value={preset.mode}>
-                    {preset.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="font-medium text-slate-700">Username</span>
-              <input
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="font-medium text-slate-700">Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              />
-            </label>
-            <label className="space-y-1 text-sm md:col-span-2">
-              <span className="font-medium text-slate-700">Tenant slug</span>
-              <input
-                value={tenantSlug}
-                onChange={(event) => setTenantSlug(event.target.value)}
-                placeholder="Leave blank for SaaS admin"
-                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-              />
-            </label>
-            <div className="md:col-span-2 flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                {error || message}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Legacy Access</div>
+            <h2 className="mt-3 text-xl font-semibold text-slate-950">The LifePill login is the main entry now</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Account switching happens from the legacy login screen. This setup page now stays inside the same
+              software for store selection, branding, and operational rollout instead of acting like a second login
+              portal.
+            </p>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Signed in account</div>
+                <div className="mt-2 text-lg font-semibold text-slate-950">
+                  {context.fullName || context.username || 'Active user'}
+                </div>
+                <div className="mt-1 text-sm text-slate-500">
+                  {getPharmaFlowRoleLabel(context.role, context.platformOwner)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Best next step</div>
+                <div className="mt-2 text-lg font-semibold text-slate-950">
+                  {context.platformOwner ? 'Open Platform or Users' : 'Open Billing or Users'}
+                </div>
+                <div className="mt-1 text-sm text-slate-500">
+                  Use Home for the easy launcher and Help for setup notes and FAQs.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                to={getPharmaFlowHomePath(context)}
+                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
-                {isLoggingIn ? 'Signing in...' : `Sign in as ${selectedPreset.title}`}
-              </button>
+                Open legacy workspace
+              </Link>
               <Link
                 to="/legacy-login"
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
               >
-                Legacy login
+                Switch account
               </Link>
             </div>
-          </form>
-
-          {(message || error) && (
-            <div
-              className={`mt-4 rounded-2xl border px-4 py-3 text-sm ${
-                error
-                  ? 'border-rose-200 bg-rose-50 text-rose-900'
-                  : 'border-emerald-200 bg-emerald-50 text-emerald-900'
-              }`}
-            >
-              {error || message}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
           <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Current Session</div>

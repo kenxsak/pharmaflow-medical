@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { useUserContext } from '../../../context/UserContext';
-import { mapEmployeeReponseToIEmployee } from '../utils/mapEmployeeReponseToIEmployee';
 import { IEmployeeInterface } from '../../../interfaces/IEmployeeInterface';
-import useAxiosInstance from './useAxiosInstance';
+import { AuthAPI } from '../../../services/api';
+import { saveBranding } from '../../../utils/branding';
+import {
+  announcePharmaFlowContextChange,
+  savePharmaFlowSession,
+} from '../../../utils/pharmaflowContext';
+import {
+  inferTenantSlugForLegacyLogin,
+  mapPharmaFlowAuthToLegacyEmployee,
+} from '../utils/mapPharmaFlowAuthToLegacyEmployee';
 
 const useSignIn = () => {
   const [loading, setLoading] = useState(false);
-  const { setCookie, setUser } = useUserContext(); // Assuming you have a setUser function in your context for setting user data
-  const http = useAxiosInstance();
+  const { setCookie, setUser } = useUserContext();
 
   const signIn = async (
     username: string,
@@ -15,38 +22,40 @@ const useSignIn = () => {
   ): Promise<IEmployeeInterface | null> => {
     setLoading(true);
     try {
-      const res = await http.post('/auth/authenticate', {
-        employerEmail: username,
-        employerPassword: password,
+      const tenantSlug = inferTenantSlugForLegacyLogin(username);
+      const response = await AuthAPI.login(
+        username.trim(),
+        password.trim(),
+        tenantSlug
+      );
+      const employee = mapPharmaFlowAuthToLegacyEmployee(response);
+
+      savePharmaFlowSession(response);
+      saveBranding({
+        brandName: response.brandName || 'PharmaFlow',
+        tagline:
+          response.brandTagline ||
+          'Retail pharmacy operations, billing, and compliance workspace',
+        supportEmail: response.supportEmail || 'support@pharmaflow.in',
+        supportPhone: response.supportPhone || '+91 44 4000 9000',
+        deploymentMode:
+          response.deploymentMode || 'Hybrid cloud + branch-local operations',
       });
 
-      console.log(res.data);
+      localStorage.removeItem('refreshToken');
+      announcePharmaFlowContextChange();
 
-      if (
-        res.data?.authenticationResponse?.access_token &&
-        res.data?.employerDetails
-      ) {
-        alert('Logged in successfully');
-        const employee = mapEmployeeReponseToIEmployee(
-          res.data.employerDetails
-        );
-
-        console.log(employee);
-
-        // Set user data and access token (both will be persisted to localStorage by context)
+      if (response.token) {
         setUser(employee);
-        setCookie(res.data.authenticationResponse.access_token);
-        
-        // Store refresh token if needed
-        if (res.data.authenticationResponse.refresh_token) {
-          localStorage.setItem('refreshToken', res.data.authenticationResponse.refresh_token);
-        }
+        setCookie(response.token);
 
         return employee;
       }
     } catch (error) {
       console.log(error);
-      alert('Incorrect password. Please try again.');
+      alert(
+        'Unable to sign in. Please check the username, password, and tenant setup.'
+      );
     } finally {
       setLoading(false);
     }

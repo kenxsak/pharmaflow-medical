@@ -150,7 +150,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     answer:
       'This is delivered as an operating SLA, not a screen. The product now exposes a tenant support identity so a branded support package can be attached to each deployment.',
     routePath: '/pharmaflow/setup',
-    routeLabel: 'Setup',
+    routeLabel: 'Company Setup',
   },
   {
     id: 16,
@@ -336,7 +336,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Live',
     answer: 'Role-based access and pharmacy-specific role structure are in place.',
     routePath: '/pharmaflow/setup',
-    routeLabel: 'Setup',
+    routeLabel: 'Company Setup',
   },
   {
     id: 39,
@@ -543,7 +543,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
               to="/pharmaflow/setup"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
             >
-              Open setup
+              Open company setup
             </Link>
           </div>
 

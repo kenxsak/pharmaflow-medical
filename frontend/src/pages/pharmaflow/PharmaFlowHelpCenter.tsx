@@ -114,7 +114,7 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
           to="/pharmaflow/setup"
           className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
         >
-          Open access portal
+          Open company setup
         </Link>
       }
     >

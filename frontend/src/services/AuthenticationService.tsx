@@ -3,6 +3,10 @@ import { useUserContext } from '../context/UserContext';
 import useAxiosInstance from '../features/login/services/useAxiosInstance';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import {
+  announcePharmaFlowContextChange,
+  clearPharmaFlowSession,
+} from '../utils/pharmaflowContext';
 
 const useAuthenticationService = () => {
   const { user, setUser, setCookie } = useUserContext();
@@ -62,20 +66,18 @@ const useAuthenticationService = () => {
     try {
       setLogging(true);
       console.log(user);
-      const res = await http.post('/session/logout/permanent', {
+      await http.post('/session/logout/permanent', {
         username: user?.employerEmail,
       });
-
-      if (res.status === 200 || res.data?.code === 200) {
-        toast.success('Successfully logged out');
-        // Clear user data and token using context (will remove from localStorage)
-        setUser(null);
-        setCookie(null);
-        navigate('/legacy-login');
-      }
     } catch (error) {
       console.log(error);
     } finally {
+      clearPharmaFlowSession();
+      announcePharmaFlowContextChange();
+      toast.success('Successfully logged out');
+      setUser(null);
+      setCookie(null);
+      navigate('/legacy-login');
       setLogging(false);
     }
   };

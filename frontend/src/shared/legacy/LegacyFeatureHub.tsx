@@ -309,7 +309,7 @@ const featureGroups: FeatureGroup[] = [
       {
         title: 'White Label Branding',
         path: '/pharmaflow/setup',
-        summary: 'Set brand name, tagline, support details, and tenant-facing identity from setup.',
+        summary: 'Set brand name, tagline, support details, and tenant-facing identity from company setup.',
         accent: 'border-zinc-200 bg-zinc-50',
         cta: 'Open branding',
       },
@@ -330,9 +330,9 @@ const featureGroups: FeatureGroup[] = [
       {
         title: 'Offline and Branch Control',
         path: '/pharmaflow/setup',
-        summary: 'Use setup and branch context when discussing hybrid rollout and branch operations.',
+        summary: 'Use company setup and branch context when discussing hybrid rollout and branch operations.',
         accent: 'border-stone-200 bg-stone-50',
-        cta: 'Open setup',
+        cta: 'Open company setup',
       },
       {
         title: 'Integrations and API',
@@ -378,7 +378,7 @@ const featureGroups: FeatureGroup[] = [
       {
         title: 'White Label and Branding',
         path: '/pharmaflow/setup',
-        summary: 'Edit tenant branding, tagline, support details, and deployment wording from setup.',
+        summary: 'Edit tenant branding, tagline, support details, and deployment wording from company setup.',
         accent: 'border-zinc-200 bg-zinc-50',
         cta: 'Open branding tools',
       },
@@ -512,7 +512,7 @@ const requirementGroups: RequirementCoverageGroup[] = [
       {
         code: 'Q14',
         title: 'Cloud vs local hybrid',
-        summary: 'Tenant setup, branch context, and deployment positioning live under setup.',
+        summary: 'Tenant setup, branch context, and deployment positioning live under company setup.',
         path: '/pharmaflow/setup',
         workspace: 'Setup',
       },
@@ -743,7 +743,7 @@ const starterModuleTitles: Record<LegacyPersona, string[]> = {
 };
 
 const personaGuides: Record<LegacyPersona, string> = {
-  guest: 'Sign in from the access portal first, then follow billing, stock, compliance, and reports in that order.',
+  guest: 'Sign in from the LifePill legacy login first, then follow billing, stock, compliance, and reports in that order.',
   'saas-admin': 'Lead with company setup and access control, then move into one company’s live operating flow.',
   'company-admin': 'Start with billing, move to stock and purchases, then close with compliance and reports.',
   'store-ops': 'Keep the story practical: billing, customers, stock, compliance, and reports for the active branch.',

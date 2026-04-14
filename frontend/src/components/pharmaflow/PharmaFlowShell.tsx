@@ -107,7 +107,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const visibleNavItems =
     persona === 'guest'
       ? pharmaFlowNavItems.filter((item) =>
-          ['/pharmaflow/legacy-home', '/pharmaflow/setup', '/pharmaflow/help'].includes(item.path)
+          ['/pharmaflow/legacy-home', '/pharmaflow/help'].includes(item.path)
         )
       : pharmaFlowNavItems.filter((item) => item.access.includes(persona));
   const demoRouteItems = visibleNavItems.filter((item) => demoRoutePaths.includes(item.path));
@@ -118,7 +118,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   })).filter(({ items }) => items.length > 0);
 
   const contextWarnings = [
-    !context.hasToken ? 'Sign in from Setup before opening billing, inventory, and reports.' : null,
+    !context.hasToken ? 'Sign in from the LifePill legacy login before opening billing, inventory, and reports.' : null,
     !context.storeId ? 'Choose an active branch so every screen opens the right store data.' : null,
     storeLoadError,
   ].filter(Boolean) as string[];
@@ -231,7 +231,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 to="/pharmaflow/setup"
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700"
               >
-                Setup
+                Company Setup
               </Link>
             </div>
 

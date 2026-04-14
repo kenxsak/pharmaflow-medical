@@ -27,7 +27,7 @@ const PharmaFlowEntry: React.FC = () => {
     return <Navigate to={getPharmaFlowHomePath(context)} replace />;
   }
 
-  return <Navigate to='/pharmaflow/setup' replace />;
+  return <Navigate to='/legacy-login' replace />;
 };
 
 export default PharmaFlowEntry;

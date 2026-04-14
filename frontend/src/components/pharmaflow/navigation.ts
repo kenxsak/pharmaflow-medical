@@ -44,10 +44,10 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
-    title: 'Setup',
+    title: 'Company Setup',
     path: '/pharmaflow/setup',
-    summary: 'Sign in, switch the active branch, and set up the right operating account for the business.',
-    shortSummary: 'Access and branch setup',
+    summary: 'Manage active store selection, branding, rollout configuration, and company setup after signing in through the legacy LifePill login.',
+    shortSummary: 'Store, brand, rollout setup',
     status: 'Live',
     icon: LayoutDashboard,
     group: 'Workspace',

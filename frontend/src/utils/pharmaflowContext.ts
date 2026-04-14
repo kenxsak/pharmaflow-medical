@@ -102,13 +102,13 @@ export const getPharmaFlowHomePath = (
 
   switch (persona) {
     case 'saas-admin':
-      return '/pharmaflow/platform';
+      return '/manager-dashboard/Dashboard';
     case 'company-admin':
-      return '/pharmaflow/legacy-home';
+      return '/manager-dashboard/Dashboard';
     case 'store-ops':
       return '/cashier-dashboard';
     default:
-      return '/pharmaflow/setup';
+      return '/legacy-login';
   }
 };
 

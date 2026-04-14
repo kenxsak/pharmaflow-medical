@@ -33,10 +33,16 @@ import { useUserContext } from './context/UserContext';
 import ViewItem from './features/items-management/layout/ViewItem';
 import AddCompany from './features/seller-management/layouts/AddCompany';
 import UpdateCompany from './features/seller-management/layouts/UpdateCompany';
+import { getPharmaFlowPersona, usePharmaFlowContext } from './utils/pharmaflowContext';
 
 function App() {
   const { user } = useUserContext();
-  const isAdmin = user?.role === 'OWNER'; // Assuming 'OWNER' is the role for admin/owner
+  const pharmaFlowContext = usePharmaFlowContext();
+  const pharmaFlowPersona = getPharmaFlowPersona(pharmaFlowContext);
+  const isAdmin =
+    user?.role === 'OWNER' ||
+    pharmaFlowPersona === 'saas-admin' ||
+    pharmaFlowPersona === 'company-admin';
 
   return (
     <Router>
@@ -51,7 +57,7 @@ function App() {
         <Route path='/pharmaflow/users' element={<UsersAccessDashboard />} />
         <Route path='/pharmaflow/dashboard' element={<Navigate to='/pharmaflow' replace />} />
         <Route path='/pharmaflow/home' element={<Navigate to='/pharmaflow/legacy-home' replace />} />
-        <Route path='/pharmaflow/launchpad' element={<Navigate to='/pharmaflow/setup' replace />} />
+        <Route path='/pharmaflow/launchpad' element={<Navigate to='/legacy-login' replace />} />
         <Route path='/pharmaflow/operations' element={<Navigate to='/pharmaflow/billing' replace />} />
         <Route path='/pharmaflow/stock' element={<Navigate to='/pharmaflow/inventory' replace />} />
         <Route path='/pharmaflow/reports' element={<Navigate to='/pharmaflow/reports/gst' replace />} />

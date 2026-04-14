@@ -34,7 +34,7 @@ const PharmaFlowLegacyHome: React.FC = () => {
                 to='/pharmaflow/setup'
                 className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
               >
-                Access Portal
+                Company Setup
               </Link>
               <Link
                 to='/pharmaflow/help'
@@ -60,7 +60,7 @@ const PharmaFlowLegacyHome: React.FC = () => {
           <div className='rounded-2xl bg-white p-5 shadow-sm'>
             <div className='text-xs uppercase tracking-wide text-slate-400'>Active Store</div>
             <div className='mt-2 text-lg font-semibold text-slate-900'>
-              {context.storeCode || localStorage.getItem('pharmaflow_store_code') || 'Select branch in Setup'}
+              {context.storeCode || localStorage.getItem('pharmaflow_store_code') || 'Select branch in Company Setup'}
             </div>
             <div className='mt-1 text-sm text-slate-500'>Use this as the starting point for daily work and rollout walkthroughs.</div>
           </div>

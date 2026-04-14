@@ -3,6 +3,10 @@ import { useUserContext } from '../../../context/UserContext';
 import useAxiosInstance from '../../login/services/useAxiosInstance';
 import { toast } from 'react-toastify';
 import { useState } from 'react';
+import {
+  announcePharmaFlowContextChange,
+  clearPharmaFlowSession,
+} from '../../../utils/pharmaflowContext';
 
 const useAuthService = () => {
   const http = useAxiosInstance();
@@ -16,20 +20,18 @@ const useAuthService = () => {
     if (confirm) {
       try {
         setLogging(true);
-        const res = await http.post('/session/logout/permanent', {
+        await http.post('/session/logout/permanent', {
           username: user?.employerEmail,
         });
-
-        if (res.status === 200) {
-          toast.success('Logged out successfully');
-          // Clear user data and token using context (will remove from localStorage)
-          setUser(null);
-          setCookie(null);
-          navigate('/legacy-login');
-        }
       } catch (error) {
         console.log(error);
       } finally {
+        clearPharmaFlowSession();
+        announcePharmaFlowContextChange();
+        toast.success('Logged out successfully');
+        setUser(null);
+        setCookie(null);
+        navigate('/legacy-login');
         setLogging(false);
       }
     }
