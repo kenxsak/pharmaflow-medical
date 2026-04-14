@@ -5,10 +5,12 @@ import com.pharmaflow.store.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(1)
 @RequiredArgsConstructor
 public class PharmaFlowBootstrap implements CommandLineRunner {
 
@@ -32,13 +34,15 @@ public class PharmaFlowBootstrap implements CommandLineRunner {
     @Override
     public void run(String... args) {
         for (PharmaRoleName roleName : PharmaRoleName.values()) {
-            roleRepository.findByRoleName(roleName)
-                    .orElseGet(() -> roleRepository.save(
-                            RoleEntity.builder()
-                                    .roleName(roleName)
-                                    .description(descriptionFor(roleName))
-                                    .build()
-                    ));
+            RoleEntity role = roleRepository.findByRoleName(roleName).orElseGet(RoleEntity::new);
+            role.setRoleName(roleName);
+            role.setDescription(descriptionFor(roleName));
+            role.setCanEditPrice(canEditPrice(roleName));
+            role.setCanEditBills(canEditBills(roleName));
+            role.setCanSellScheduleH(canSellScheduleH(roleName));
+            role.setCanViewReports(canViewReports(roleName));
+            role.setCanManageInventory(canManageInventory(roleName));
+            roleRepository.save(role);
         }
 
         Store headOffice = storeRepository.findByStoreCode(defaultStoreCode)
@@ -89,5 +93,32 @@ public class PharmaFlowBootstrap implements CommandLineRunner {
             default:
                 return roleName.name();
         }
+    }
+
+    private boolean canEditPrice(PharmaRoleName roleName) {
+        return roleName == PharmaRoleName.SUPER_ADMIN || roleName == PharmaRoleName.STORE_MANAGER;
+    }
+
+    private boolean canEditBills(PharmaRoleName roleName) {
+        return roleName == PharmaRoleName.SUPER_ADMIN
+                || roleName == PharmaRoleName.STORE_MANAGER
+                || roleName == PharmaRoleName.PHARMACIST;
+    }
+
+    private boolean canSellScheduleH(PharmaRoleName roleName) {
+        return roleName == PharmaRoleName.SUPER_ADMIN
+                || roleName == PharmaRoleName.STORE_MANAGER
+                || roleName == PharmaRoleName.PHARMACIST;
+    }
+
+    private boolean canViewReports(PharmaRoleName roleName) {
+        return roleName != PharmaRoleName.DELIVERY_BOY && roleName != PharmaRoleName.SALES_ASSISTANT;
+    }
+
+    private boolean canManageInventory(PharmaRoleName roleName) {
+        return roleName == PharmaRoleName.SUPER_ADMIN
+                || roleName == PharmaRoleName.STORE_MANAGER
+                || roleName == PharmaRoleName.WAREHOUSE_MGR
+                || roleName == PharmaRoleName.PHARMACIST;
     }
 }

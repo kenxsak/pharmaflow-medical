@@ -5,6 +5,9 @@ import { StoreAPI, StoreSummary } from '../../services/api';
 import { getBrandInitials, useBranding } from '../../utils/branding';
 import {
   announcePharmaFlowContextChange,
+  getPharmaFlowHomePath,
+  getPharmaFlowPersona,
+  getPharmaFlowRoleLabel,
   usePharmaFlowContext,
 } from '../../utils/pharmaflowContext';
 import { PharmaFlowNavItem, pharmaFlowNavGroups, pharmaFlowNavItems } from './navigation';
@@ -57,6 +60,9 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const location = useLocation();
   const [stores, setStores] = useState<StoreSummary[]>([]);
   const [storeLoadError, setStoreLoadError] = useState<string | null>(null);
+  const persona = getPharmaFlowPersona(context);
+  const homePath = getPharmaFlowHomePath(context);
+  const roleLabel = getPharmaFlowRoleLabel(context.role, context.platformOwner);
 
   useEffect(() => {
     if (!context.hasToken) {
@@ -98,15 +104,21 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   );
 
   const currentStoreName = currentStore?.storeName || context.storeCode || 'No active store';
-  const demoRouteItems = pharmaFlowNavItems.filter((item) => demoRoutePaths.includes(item.path));
+  const visibleNavItems =
+    persona === 'guest'
+      ? pharmaFlowNavItems.filter((item) =>
+          ['/pharmaflow/legacy-home', '/pharmaflow/setup', '/pharmaflow/help'].includes(item.path)
+        )
+      : pharmaFlowNavItems.filter((item) => item.access.includes(persona));
+  const demoRouteItems = visibleNavItems.filter((item) => demoRoutePaths.includes(item.path));
   const brandInitials = getBrandInitials(branding.brandName);
   const groupedNavItems = pharmaFlowNavGroups.map((group) => ({
     group,
-    items: pharmaFlowNavItems.filter((item) => item.group === group),
-  }));
+    items: visibleNavItems.filter((item) => item.group === group),
+  })).filter(({ items }) => items.length > 0);
 
   const contextWarnings = [
-    !context.hasToken ? 'Sign in from Setup before demoing billing, inventory, and reports.' : null,
+    !context.hasToken ? 'Sign in from Setup before opening billing, inventory, and reports.' : null,
     !context.storeId ? 'Choose an active branch so every screen opens the right store data.' : null,
     storeLoadError,
   ].filter(Boolean) as string[];
@@ -145,7 +157,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
               {context.role && (
                 <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700">
                   <LayoutDashboard size={16} />
-                  {context.role}
+                  {roleLabel}
                 </div>
               )}
               {actions}
@@ -198,13 +210,13 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
               <div className="text-xs uppercase tracking-wide text-slate-500">Active branch</div>
               <div className="mt-2 text-base font-semibold text-slate-950">{currentStoreName}</div>
               <div className="mt-1 text-xs text-slate-500">
-                {context.role || 'Role not set'} {context.storeCode ? `• ${context.storeCode}` : ''}
+                {roleLabel || 'Role not set'} {context.storeCode ? `• ${context.storeCode}` : ''}
               </div>
             </div>
 
             <div className="mt-4 flex gap-2">
               <Link
-                to="/pharmaflow/legacy-home"
+                to={homePath}
                 className="inline-flex flex-1 items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
               >
                 Home
@@ -275,10 +287,10 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 Legacy login
               </Link>
               <Link
-                to="/pharmaflow/enterprise"
+                to={persona === 'store-ops' ? '/pharmaflow/help' : '/pharmaflow/enterprise'}
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
               >
-                43-point buyer guide
+                {persona === 'store-ops' ? 'Help and FAQ' : 'Rollout and coverage guide'}
               </Link>
             </div>
           </div>
@@ -318,7 +330,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
 
           <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Simple Demo Path
+              Suggested Start Path
             </div>
             <div className="mt-4 space-y-2">
               {demoRouteItems.map((item, index) => {
@@ -344,13 +356,13 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
-                  {context.role || 'No role'}
+                  {roleLabel || 'No role'}
                 </span>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
                   {context.storeCode || 'No store'}
                 </span>
                 <Link
-                  to="/pharmaflow/legacy-home"
+                  to={homePath}
                   className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700"
                 >
                   Home
@@ -380,7 +392,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  <Link to="/pharmaflow/legacy-home" className="hover:text-slate-900">
+                  <Link to={homePath} className="hover:text-slate-900">
                     {branding.brandName}
                   </Link>
                   <span className="text-slate-300">/</span>
@@ -398,7 +410,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 {context.role && (
                   <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700">
                     <LayoutDashboard size={16} />
-                    {context.role}
+                    {roleLabel}
                   </div>
                 )}
                 {actions}
@@ -408,7 +420,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
 
           <section className="rounded-xl border border-slate-300 bg-white p-3 shadow-sm xl:hidden">
             <div className="flex gap-2 overflow-x-auto">
-              {pharmaFlowNavItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink key={item.path} to={item.path} className={({ isActive }) => topTabClasses(isActive)}>
@@ -444,7 +456,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
               <section className="rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900 shadow-sm">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <div className="font-semibold">Counter demo branch recommended</div>
+                    <div className="font-semibold">Preferred counter branch</div>
                     <div className="mt-1">
                       You are on {currentStore.storeName}. Billing, stocked medicines, customers, invoices, and
                       compliance samples are preloaded in {preferredCounterStore.storeName}.

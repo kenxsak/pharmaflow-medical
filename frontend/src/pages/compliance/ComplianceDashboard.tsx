@@ -150,8 +150,8 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                 Use this page to prove that controlled medicines are not just billed, but also tracked with patient,
-                doctor, prescription, and monthly reporting details. This is one of the strongest differentiators in
-                the demo.
+                doctor, prescription, and monthly reporting details. It keeps compliance evidence visible for real
+                operational reviews.
               </p>
             </div>
 

@@ -24,7 +24,7 @@ const tryFormatJson = (value?: string) => {
 const billingHistorySteps = [
   {
     title: 'Search bill history',
-    summary: 'Find invoices by invoice number, customer, or payment mode during the demo.',
+    summary: 'Find invoices by invoice number, customer, or payment mode from one clean history desk.',
     tone: 'border-sky-200 bg-sky-50 text-sky-900',
   },
   {
@@ -190,8 +190,8 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
                 Clear bill history and audit visibility for managers
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                This page is for after the counter demo. Open invoice history to show bill lookup, then switch to the
-                audit trail to prove traceability of invoice creation, stock events, and user actions.
+                Open invoice history to show bill lookup, then switch to the audit trail to prove traceability of
+                invoice creation, stock events, and user actions.
               </p>
             </div>
 
@@ -235,7 +235,7 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
           <div className="rounded-[2rem] bg-white p-5 shadow-sm">
             <div className="text-sm text-slate-500">Outstanding Credit</div>
             <div className="mt-2 text-3xl font-semibold">₹{totalDue.toFixed(2)}</div>
-            <div className="mt-1 text-sm text-slate-500">Useful when demonstrating customer credit tracking</div>
+            <div className="mt-1 text-sm text-slate-500">Useful for reviewing customer credit exposure</div>
           </div>
           <div className="rounded-[2rem] bg-white p-5 shadow-sm">
             <div className="text-sm text-slate-500">Selected Store</div>

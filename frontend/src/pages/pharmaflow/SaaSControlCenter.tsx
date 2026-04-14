@@ -27,6 +27,7 @@ import {
   SaaSAdminState,
   TenantRecord,
 } from '../../utils/saasAdmin';
+import LegacyModal from '../../shared/legacy/LegacyModal';
 
 const badgeClasses = {
   Draft: 'border-slate-200 bg-slate-50 text-slate-700',
@@ -144,6 +145,8 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTenantEditorOpen, setIsTenantEditorOpen] = useState(false);
+  const [isPlanEditorOpen, setIsPlanEditorOpen] = useState(false);
 
   const selectedTenant = useMemo(
     () => {
@@ -302,6 +305,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
         };
       });
       setTenantDraft(mappedTenant);
+      setIsTenantEditorOpen(false);
       setOverview((current) =>
         current
           ? {
@@ -344,6 +348,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
         ),
       }));
       setPlanDraft(mappedPlan);
+      setIsPlanEditorOpen(false);
       setOverview((current) =>
         current
           ? {
@@ -373,6 +378,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
       selectedTenantId: nextTenant.id,
       selectedPlanId: nextTenant.planId || current.selectedPlanId,
     }));
+    setIsTenantEditorOpen(true);
     setMessage('Started a new tenant draft. Save it when ready.');
   };
 
@@ -383,6 +389,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
       ...current,
       selectedPlanId: nextPlan.id,
     }));
+    setIsPlanEditorOpen(true);
     setMessage('Started a new pricing plan draft. Save it when ready.');
   };
 
@@ -463,7 +470,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
     <PharmaFlowShell
       embedded={embedded}
       title="SaaS Super Admin"
-      description="Manage brands, plans, pricing, and feature entitlements from one multi-tenant control center. This is the demo-friendly answer for how the platform scales beyond one pharmacy into a branded SaaS operation."
+      description="Manage brands, plans, pricing, and feature entitlements from one multi-tenant control center so the product scales cleanly from one pharmacy to many branded companies."
       actions={
         <div className="flex flex-wrap gap-2">
           <button
@@ -597,19 +604,277 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
         <div className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-6 shadow-sm">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Tenant Editor</div>
-              <h2 className="mt-3 text-xl font-semibold text-slate-950">Commercial and branding profile</h2>
+              <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Tenant Profile</div>
+              <h2 className="mt-3 text-xl font-semibold text-slate-950">Commercial and branding overview</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Keep the platform roster clean here, then open the guided editor only when you want to create or adjust a company profile.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setIsTenantEditorOpen(true)}
+                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Edit tenant
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyBranding}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+              >
+                Apply branding
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+              <div className="text-sm font-semibold text-slate-950">{tenantDraft.brandName || 'Tenant draft'}</div>
+              <div className="mt-2 text-sm leading-6 text-slate-600">
+                {tenantDraft.planName || tenantDraft.planCode || 'No plan selected'} • {tenantDraft.storeCount} stores • {tenantDraft.activeUsers} users
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Status</div>
+                  <div className="mt-2 text-base font-semibold text-slate-950">{tenantDraft.status}</div>
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Billing</div>
+                  <div className="mt-2 text-base font-semibold text-slate-950">{tenantDraft.billingCycle}</div>
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">MRR</div>
+                  <div className="mt-2 text-base font-semibold text-slate-950">{formatInr(tenantDraft.monthlyRecurringRevenueInr)}</div>
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Renewal</div>
+                  <div className="mt-2 text-base font-semibold text-slate-950">{tenantDraft.renewalDate || 'Not set'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5">
+                <div className="text-sm font-semibold text-slate-950">Support identity</div>
+                <div className="mt-3 grid gap-2 text-sm text-slate-600">
+                  <div>Email: {tenantDraft.supportEmail || 'Not set'}</div>
+                  <div>Phone: {tenantDraft.supportPhone || 'Not set'}</div>
+                  <div>Billing email: {tenantDraft.billingEmail || 'Not set'}</div>
+                  <div>GSTIN: {tenantDraft.gstin || 'Not set'}</div>
+                </div>
+              </div>
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="text-sm font-semibold text-slate-950">Operating note</div>
+                <div className="mt-2 text-sm leading-6 text-slate-600">
+                  {tenantDraft.notes || 'Use notes for rollout commitments, onboarding reminders, support promises, or deployment-specific context.'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-6 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Plan Catalog</div>
+            <h2 className="mt-3 text-xl font-semibold text-slate-950">Pricing, support, and scale boundaries</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={createPlan}
+              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+            >
+              New plan
+            </button>
+            <Link
+              to="/pharmaflow/enterprise"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+            >
+              Open rollout guide
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-[0.9fr,1.1fr]">
+          <div className="space-y-3">
+            {adminState.plans.map((plan) => {
+              const isSelected = plan.id === planDraft.id || plan.id === adminState.selectedPlanId;
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => selectPlan(plan)}
+                  className={`w-full rounded-[1.75rem] border px-4 py-4 text-left transition ${
+                    isSelected
+                      ? 'border-sky-200 bg-sky-50 shadow-sm'
+                      : 'border-slate-200 bg-slate-50 hover:border-sky-200 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-semibold text-slate-950">{plan.name}</div>
+                      <div className="mt-1 text-sm text-slate-500">{plan.bestFor}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-slate-950">{formatInr(plan.monthlyPriceInr)}/mo</div>
+                      <div className="text-xs text-slate-500">{plan.supportTier}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+                    <div>Stores: {plan.maxStores >= 9999 ? 'Unlimited' : plan.maxStores}</div>
+                    <div>Entitlements: {countEntitlements(plan)} / 43</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">Selected plan overview</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Keep pricing and capacity easy to read here, then open the editor when you need to change plan rules.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPlanEditorOpen(true)}
+                className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Edit pricing
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Plan</div>
+                <div className="mt-2 text-lg font-semibold text-slate-950">{planDraft.name}</div>
+                <div className="mt-1 text-sm text-slate-500">{planDraft.bestFor}</div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Support tier</div>
+                <div className="mt-2 text-lg font-semibold text-slate-950">{planDraft.supportTier}</div>
+                <div className="mt-1 text-sm text-slate-500">{countEntitlements(planDraft)} enabled capabilities</div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Monthly price</div>
+                <div className="mt-2 text-lg font-semibold text-slate-950">{formatInr(planDraft.monthlyPriceInr)}</div>
+                <div className="mt-1 text-sm text-slate-500">Annual: {formatInr(planDraft.annualPriceInr)}</div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Capacity</div>
+                <div className="mt-2 text-lg font-semibold text-slate-950">
+                  {planDraft.maxStores >= 9999 ? 'Unlimited stores' : `${planDraft.maxStores} stores`}
+                </div>
+                <div className="mt-1 text-sm text-slate-500">
+                  {planDraft.maxUsers >= 9999 ? 'Unlimited users' : `${planDraft.maxUsers} users`}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+              {planDraft.description}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-6 shadow-sm">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Feature Entitlements</div>
+            <h2 className="mt-3 text-xl font-semibold text-slate-950">Capability matrix for the selected plan</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Toggle included capabilities here, then save the selected plan so pricing and access rules stay aligned.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700">
+              Editing: {planDraft.name}
             </div>
             <button
               type="button"
-              onClick={handleApplyBranding}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+              onClick={savePlan}
+              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
             >
-              Apply branding
+              Save plan changes
             </button>
           </div>
+        </div>
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <div className="mt-5 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-3 py-3 text-left">Q</th>
+                <th className="px-3 py-3 text-left">Feature</th>
+                <th className="px-3 py-3 text-left">Group</th>
+                <th className="px-3 py-3 text-left">Priority</th>
+                <th className="px-3 py-3 text-left">Included</th>
+              </tr>
+            </thead>
+            <tbody>
+              {featureCatalog.map((feature) => {
+                const enabled = isFeatureEnabledForPlan(planDraft, feature.code);
+                return (
+                  <tr key={feature.code} className="border-t border-slate-100 align-top">
+                    <td className="px-3 py-3 font-semibold text-slate-900">{feature.id}</td>
+                    <td className="px-3 py-3">
+                      <div className="font-medium text-slate-900">{feature.title}</div>
+                      <div className="mt-1 text-xs text-slate-500">{feature.summary}</div>
+                    </td>
+                    <td className="px-3 py-3 text-slate-600">{feature.group}</td>
+                    <td className="px-3 py-3 text-slate-600">{feature.priority}</td>
+                    <td className="px-3 py-3">
+                      <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          onChange={() => toggleFeature(feature.code)}
+                          className="h-4 w-4 rounded border-slate-300"
+                        />
+                        {enabled ? 'Included' : 'Not included'}
+                      </label>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <LegacyModal
+        open={isTenantEditorOpen}
+        onClose={() => setIsTenantEditorOpen(false)}
+        title="Tenant Editor"
+        description="Set the commercial profile, rollout status, contact identity, and branding details for a company account."
+        size="xl"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsTenantEditorOpen(false)}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={saveTenant}
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Save tenant
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Tenant code</span>
               <input
@@ -706,9 +971,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
               <input
                 type="number"
                 value={tenantDraft.monthlyRecurringRevenueInr}
-                onChange={(event) =>
-                  updateTenantDraft('monthlyRecurringRevenueInr', Number(event.target.value))
-                }
+                onChange={(event) => updateTenantDraft('monthlyRecurringRevenueInr', Number(event.target.value))}
                 className="w-full rounded-2xl border border-slate-300 px-4 py-3"
               />
             </label>
@@ -771,276 +1034,163 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
             </label>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={saveTenant}
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-            >
-              Save tenant
-            </button>
-            <button
-              type="button"
-              onClick={() => setTenantDraft(selectedTenant || createEmptyTenant(Date.now()))}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
-            >
-              Reset tenant draft
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-6 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Plan Catalog</div>
-            <h2 className="mt-3 text-xl font-semibold text-slate-950">Pricing, support, and scale boundaries</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={createPlan}
-              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
-            >
-              New plan
-            </button>
-            <Link
-              to="/pharmaflow/enterprise"
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
-            >
-              Open buyer guide
-            </Link>
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-4 xl:grid-cols-[0.9fr,1.1fr]">
-          <div className="space-y-3">
-            {adminState.plans.map((plan) => {
-              const isSelected = plan.id === planDraft.id || plan.id === adminState.selectedPlanId;
-              return (
-                <button
-                  key={plan.id}
-                  type="button"
-                  onClick={() => selectPlan(plan)}
-                  className={`w-full rounded-[1.75rem] border px-4 py-4 text-left transition ${
-                    isSelected
-                      ? 'border-sky-200 bg-sky-50 shadow-sm'
-                      : 'border-slate-200 bg-slate-50 hover:border-sky-200 hover:bg-white'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-lg font-semibold text-slate-950">{plan.name}</div>
-                      <div className="mt-1 text-sm text-slate-500">{plan.bestFor}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold text-slate-950">{formatInr(plan.monthlyPriceInr)}/mo</div>
-                      <div className="text-xs text-slate-500">{plan.supportTier}</div>
-                    </div>
-                  </div>
-                  <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
-                    <div>Stores: {plan.maxStores >= 9999 ? 'Unlimited' : plan.maxStores}</div>
-                    <div>Entitlements: {countEntitlements(plan)} / 43</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
-            <h3 className="text-lg font-semibold text-slate-950">Edit selected plan</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Use this to explain how super admin controls pricing and plan boundaries across brands.
-            </p>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Plan code</span>
-                <input
-                  value={planDraft.planCode || ''}
-                  onChange={(event) => updatePlanDraft('planCode', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Plan name</span>
-                <input
-                  value={planDraft.name}
-                  onChange={(event) => updatePlanDraft('name', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Support tier</span>
-                <select
-                  value={planDraft.supportTier}
-                  onChange={(event) => updatePlanDraft('supportTier', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                >
-                  <option value="Business Hours">Business Hours</option>
-                  <option value="Extended">Extended</option>
-                  <option value="24x7">24x7</option>
-                </select>
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Monthly price (INR)</span>
-                <input
-                  type="number"
-                  value={planDraft.monthlyPriceInr}
-                  onChange={(event) => updatePlanDraft('monthlyPriceInr', Number(event.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Annual price (INR)</span>
-                <input
-                  type="number"
-                  value={planDraft.annualPriceInr}
-                  onChange={(event) => updatePlanDraft('annualPriceInr', Number(event.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Onboarding fee (INR)</span>
-                <input
-                  type="number"
-                  value={planDraft.onboardingFeeInr}
-                  onChange={(event) => updatePlanDraft('onboardingFeeInr', Number(event.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Per-store overage (INR)</span>
-                <input
-                  type="number"
-                  value={planDraft.perStoreOverageInr}
-                  onChange={(event) => updatePlanDraft('perStoreOverageInr', Number(event.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Per-user overage (INR)</span>
-                <input
-                  type="number"
-                  value={planDraft.perUserOverageInr}
-                  onChange={(event) => updatePlanDraft('perUserOverageInr', Number(event.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Max stores</span>
-                <input
-                  type="number"
-                  value={planDraft.maxStores}
-                  onChange={(event) => updatePlanDraft('maxStores', Number(event.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Max users</span>
-                <input
-                  type="number"
-                  value={planDraft.maxUsers}
-                  onChange={(event) => updatePlanDraft('maxUsers', Number(event.target.value))}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="font-medium text-slate-700">Description</span>
-                <input
-                  value={planDraft.description}
-                  onChange={(event) => updatePlanDraft('description', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="font-medium text-slate-700">Best for</span>
-                <input
-                  value={planDraft.bestFor}
-                  onChange={(event) => updatePlanDraft('bestFor', event.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 px-4 py-3"
-                />
-              </label>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={savePlan}
-                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-              >
-                Save pricing plan
-              </button>
-              <button
-                type="button"
-                onClick={() => setPlanDraft(selectedPlan || createEmptyPlan(Date.now()))}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
-              >
-                Reset plan draft
-              </button>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                {countEntitlements(planDraft)} of 43 buyer requirements included
-              </div>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-semibold text-slate-950">What this controls</div>
+            <div className="mt-3 grid gap-2 text-sm text-slate-600">
+              <div>Brand identity used across the workspace, receipts, and support-facing communication.</div>
+              <div>Commercial limits such as stores, active users, plan assignment, and renewal expectations.</div>
+              <div>Support and billing contacts used during onboarding, renewal, and rollout follow-up.</div>
             </div>
           </div>
         </div>
-      </section>
+      </LegacyModal>
 
-      <section className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-6 shadow-sm">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Feature Entitlements</div>
-            <h2 className="mt-3 text-xl font-semibold text-slate-950">43-point capability matrix for the selected plan</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              This is the clean answer for “which features are included in which plan?” Toggle the plan entitlements here and save the plan.
-            </p>
+      <LegacyModal
+        open={isPlanEditorOpen}
+        onClose={() => setIsPlanEditorOpen(false)}
+        title="Pricing Plan Editor"
+        description="Define pricing, support, scale limits, and commercial positioning for the selected SaaS plan."
+        size="xl"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsPlanEditorOpen(false)}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={savePlan}
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Save pricing plan
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Plan code</span>
+              <input
+                value={planDraft.planCode || ''}
+                onChange={(event) => updatePlanDraft('planCode', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Plan name</span>
+              <input
+                value={planDraft.name}
+                onChange={(event) => updatePlanDraft('name', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Support tier</span>
+              <select
+                value={planDraft.supportTier}
+                onChange={(event) => updatePlanDraft('supportTier', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              >
+                <option value="Business Hours">Business Hours</option>
+                <option value="Extended">Extended</option>
+                <option value="24x7">24x7</option>
+              </select>
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Monthly price (INR)</span>
+              <input
+                type="number"
+                value={planDraft.monthlyPriceInr}
+                onChange={(event) => updatePlanDraft('monthlyPriceInr', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Annual price (INR)</span>
+              <input
+                type="number"
+                value={planDraft.annualPriceInr}
+                onChange={(event) => updatePlanDraft('annualPriceInr', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Onboarding fee (INR)</span>
+              <input
+                type="number"
+                value={planDraft.onboardingFeeInr}
+                onChange={(event) => updatePlanDraft('onboardingFeeInr', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Per-store overage (INR)</span>
+              <input
+                type="number"
+                value={planDraft.perStoreOverageInr}
+                onChange={(event) => updatePlanDraft('perStoreOverageInr', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Per-user overage (INR)</span>
+              <input
+                type="number"
+                value={planDraft.perUserOverageInr}
+                onChange={(event) => updatePlanDraft('perUserOverageInr', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Max stores</span>
+              <input
+                type="number"
+                value={planDraft.maxStores}
+                onChange={(event) => updatePlanDraft('maxStores', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Max users</span>
+              <input
+                type="number"
+                value={planDraft.maxUsers}
+                onChange={(event) => updatePlanDraft('maxUsers', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">Description</span>
+              <input
+                value={planDraft.description}
+                onChange={(event) => updatePlanDraft('description', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">Best for</span>
+              <input
+                value={planDraft.bestFor}
+                onChange={(event) => updatePlanDraft('bestFor', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
           </div>
-          <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700">
-            Editing: {planDraft.name}
+
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-semibold text-slate-950">Plan coverage</div>
+            <div className="mt-3 grid gap-2 text-sm text-slate-600">
+              <div>{countEntitlements(planDraft)} capabilities are currently enabled for this plan.</div>
+              <div>Use the capability matrix behind the modal to control detailed feature entitlements.</div>
+              <div>Pricing, support, and usage limits here drive how each company account is packaged.</div>
+            </div>
           </div>
         </div>
-
-        <div className="mt-5 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-3 py-3 text-left">Q</th>
-                <th className="px-3 py-3 text-left">Feature</th>
-                <th className="px-3 py-3 text-left">Group</th>
-                <th className="px-3 py-3 text-left">Priority</th>
-                <th className="px-3 py-3 text-left">Included</th>
-              </tr>
-            </thead>
-            <tbody>
-              {featureCatalog.map((feature) => {
-                const enabled = isFeatureEnabledForPlan(planDraft, feature.code);
-                return (
-                  <tr key={feature.code} className="border-t border-slate-100 align-top">
-                    <td className="px-3 py-3 font-semibold text-slate-900">{feature.id}</td>
-                    <td className="px-3 py-3">
-                      <div className="font-medium text-slate-900">{feature.title}</div>
-                      <div className="mt-1 text-xs text-slate-500">{feature.summary}</div>
-                    </td>
-                    <td className="px-3 py-3 text-slate-600">{feature.group}</td>
-                    <td className="px-3 py-3 text-slate-600">{feature.priority}</td>
-                    <td className="px-3 py-3">
-                      <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={enabled}
-                          onChange={() => toggleFeature(feature.code)}
-                          className="h-4 w-4 rounded border-slate-300"
-                        />
-                        {enabled ? 'Included' : 'Not included'}
-                      </label>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      </LegacyModal>
 
       <section className="rounded-[2rem] border border-slate-200/70 bg-slate-950 p-6 text-white shadow-sm">
         <div className="grid gap-4 lg:grid-cols-3">
@@ -1054,7 +1204,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Tenant Branding</div>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Pick a tenant here, apply the branding, and the shell plus receipts will switch to that brand for the demo.
+              Pick a tenant here, apply the branding, and the shell plus receipts will switch to that brand across the workspace.
             </p>
           </div>
           <div>

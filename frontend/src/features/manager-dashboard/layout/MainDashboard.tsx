@@ -16,7 +16,9 @@ import ProcurementDashboard from '../../../pages/procurement/ProcurementDashboar
 import ComplianceDashboard from '../../../pages/compliance/ComplianceDashboard';
 import StoreOperationsDashboard from '../../../pages/stores/StoreOperationsDashboard';
 import PharmaFlowCommandCenter from '../../../pages/pharmaflow/PharmaFlowCommandCenter';
+import PharmaFlowHelpCenter from '../../../pages/pharmaflow/PharmaFlowHelpCenter';
 import SaaSControlCenter from '../../../pages/pharmaflow/SaaSControlCenter';
+import UsersAccessDashboard from '../../../pages/pharmaflow/UsersAccessDashboard';
 import EnterpriseReadinessDashboard from '../../../pages/pharmaflow/EnterpriseReadinessDashboard';
 import LegacyReportsWorkspace, {
   LegacyReportsTab,
@@ -70,6 +72,10 @@ const MainDashboard = () => {
         return <StoreOperationsDashboard embedded />;
       case 'Platform':
         return <SaaSControlCenter embedded />;
+      case 'Users':
+        return <UsersAccessDashboard embedded />;
+      case 'Help':
+        return <PharmaFlowHelpCenter embedded />;
       case 'Enterprise':
         return <EnterpriseReadinessDashboard embedded />;
       case 'Setup':

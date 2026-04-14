@@ -150,7 +150,7 @@ const GSTReportsDashboard: React.FC<GSTReportsDashboardProps> = ({ embedded = fa
                 GST and branch reporting made presentation-ready
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                This page brings tax reports and shortage planning together so the demo can move from counter billing
+                This page brings tax reports and shortage planning together so the team can move from counter billing
                 into monthly compliance and branch replenishment without changing mental context.
               </p>
             </div>

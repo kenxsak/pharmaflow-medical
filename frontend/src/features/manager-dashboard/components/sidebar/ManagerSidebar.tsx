@@ -64,7 +64,7 @@ const ManagerSidebar = ({ onItemClick, selectedItem }: Props) => {
         />
         <ButtonWithIconAndTextVertical
           icon={<MdOutlineManageSearch size={24} />}
-          text='Purchase'
+          text='Purchases'
           onClick={() => onItemClick('Purchases')}
           testid='purchases'
           isActive={selectedItem === 'Purchases'}
@@ -94,20 +94,38 @@ const ManagerSidebar = ({ onItemClick, selectedItem }: Props) => {
           isActive={selectedItem === 'Stores'}
           compact
         />
+        {localStorage.getItem('pharmaflow_platform_owner') === 'true' && (
+          <ButtonWithIconAndTextVertical
+            icon={<LuBuilding2 size={24} />}
+            text='Platform'
+            onClick={() => onItemClick('Platform')}
+            testid='platform'
+            isActive={selectedItem === 'Platform'}
+            compact
+          />
+        )}
         <ButtonWithIconAndTextVertical
-          icon={<LuBuilding2 size={24} />}
-          text='Platform'
-          onClick={() => onItemClick('Platform')}
-          testid='platform'
-          isActive={selectedItem === 'Platform'}
+          icon={<LuUsers size={24} />}
+          text='Users'
+          onClick={() => onItemClick('Users')}
+          testid='users'
+          isActive={selectedItem === 'Users'}
           compact
         />
         <ButtonWithIconAndTextVertical
           icon={<LuBookOpen size={24} />}
-          text='Buyer Guide'
+          text='Rollout'
           onClick={() => onItemClick('Enterprise')}
           testid='enterprise'
           isActive={selectedItem === 'Enterprise'}
+          compact
+        />
+        <ButtonWithIconAndTextVertical
+          icon={<LuBookOpen size={24} />}
+          text='Help'
+          onClick={() => onItemClick('Help')}
+          testid='help'
+          isActive={selectedItem === 'Help'}
           compact
         />
         <ButtonWithIconAndTextVertical
@@ -144,7 +162,7 @@ const ManagerSidebar = ({ onItemClick, selectedItem }: Props) => {
         />
         <ButtonWithIconAndTextVertical
           icon={<BiBarChartAlt2 size={24} />}
-          text='Legacy Sales'
+          text='Sales View'
           onClick={() => onItemClick('Summary')}
           testid='summary'
           isActive={selectedItem === 'Summary'}

@@ -125,7 +125,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
           </div>
 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold">Best Questions to Answer Here</h2>
+            <h2 className="text-xl font-semibold">Operations Overview</h2>
             <div className="mt-4 space-y-3 text-sm text-slate-600">
               <div className="rounded-2xl bg-slate-50 p-4">
                 Multi-location management: show HO, warehouse, branch directory, and active-branch switching.
@@ -143,13 +143,13 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                 to="/pharmaflow/enterprise"
                 className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
-                Open buyer coverage
+                Open rollout guide
               </Link>
               <Link
                 to="/pharmaflow/billing"
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
               >
-                Switch to counter demo
+                Open counter workspace
               </Link>
             </div>
           </div>
@@ -211,7 +211,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
         </section>
 
         <section className="rounded-[2rem] bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">What Multi-Store Means Today</h2>
+          <h2 className="text-xl font-semibold">Current Multi-Store Readiness</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
               <div className="font-semibold">Available now</div>

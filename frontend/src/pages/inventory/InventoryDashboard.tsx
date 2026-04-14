@@ -119,8 +119,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                 Search a medicine, open its live batches, and use the shortage table to decide what must be reordered.
-                This is the easiest demo page after counter billing because it shows stock, FIFO batches, and reorder
-                risk in one place.
+                It keeps stock, FIFO batches, and reorder risk in one place without overloading the branch staff.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {quickSearches.map((query) => (
@@ -324,8 +323,8 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 <div className="mt-1">Raise inward or transfer requests from this list.</div>
               </div>
               <div className="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900">
-                <div className="font-semibold">Demo insight</div>
-                <div className="mt-1">Show this after billing to prove reorder-level automation.</div>
+                <div className="font-semibold">Manager insight</div>
+                <div className="mt-1">Use this view after counter work to confirm reorder-level automation.</div>
               </div>
             </div>
           )}

@@ -40,6 +40,34 @@ function MainManagerDashboard({
     fetchBranchData();
   }, []);
 
+  const legacyBackOfficeModules = [
+    {
+      title: 'Cashier Management',
+      workspaceKey: 'Cashiers',
+      summary: 'Create, review, and update cashier accounts from the original legacy module.',
+    },
+    {
+      title: 'Item Master',
+      workspaceKey: 'Items',
+      summary: 'Maintain medicine catalog details, legacy item forms, and master data records.',
+    },
+    {
+      title: 'Supplier Master',
+      workspaceKey: 'Branches',
+      summary: 'Open the original supplier and company workspace that already exists in the legacy repo.',
+    },
+    {
+      title: 'Orders Desk',
+      workspaceKey: 'Orders',
+      summary: 'Review order workflows and transaction handling from the original legacy order screen.',
+    },
+    {
+      title: 'Sales View',
+      workspaceKey: 'Summary',
+      summary: 'Use the earlier sales summary workspace when the buyer wants the original reporting flow.',
+    },
+  ];
+
   return (
     <div
       className='flex flex-col gap-6 h-full overflow-y-auto'
@@ -59,7 +87,8 @@ function MainManagerDashboard({
             <div>
               <h2 className='text-xl font-semibold text-slate-900'>{branding.brandName} Legacy Workspace</h2>
               <p className='mt-1 text-sm text-slate-500'>
-                Every important pharmacy feature now lives behind the same simpler legacy-style launcher.
+                Billing, stock, purchases, compliance, reports, cashier management, item master, supplier master,
+                orders, and platform controls now sit behind the same simpler legacy-style launcher.
                 Use this as the primary working home if the newer shell feels too busy.
               </p>
             </div>
@@ -84,10 +113,45 @@ function MainManagerDashboard({
           <div className='mt-5'>
             <LegacyFeatureHub
               title='Legacy-style feature launcher'
-              description='Counter, inventory, purchases, compliance, reports, stores, SaaS admin, and buyer guide are all available here with one-click access.'
+              description='Counter operations, stock, purchases, compliance, reports, stores, platform controls, and legacy back-office tools are all available here with one-click access.'
               onOpenWorkspace={onOpenWorkspace}
             />
           </div>
+
+          {onOpenWorkspace ? (
+            <div className='mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4'>
+              <div className='flex flex-col gap-2 md:flex-row md:items-start md:justify-between'>
+                <div>
+                  <h3 className='text-base font-semibold text-slate-900'>Original legacy back-office tools</h3>
+                  <p className='mt-1 text-sm leading-6 text-slate-500'>
+                    These modules come from the original LifePill manager workspace and remain part of the same
+                    software for staffing, item master, supplier records, orders, and older sales review flows.
+                  </p>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => onOpenWorkspace('Cashiers')}
+                  className='inline-flex rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700'
+                >
+                  Open cashier management
+                </button>
+              </div>
+
+              <div className='mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5'>
+                {legacyBackOfficeModules.map((module) => (
+                  <button
+                    key={module.workspaceKey}
+                    type='button'
+                    onClick={() => onOpenWorkspace(module.workspaceKey)}
+                    className='rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-sm'
+                  >
+                    <div className='text-base font-semibold text-slate-900'>{module.title}</div>
+                    <p className='mt-2 text-sm leading-6 text-slate-600'>{module.summary}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Summary Cards Section */}

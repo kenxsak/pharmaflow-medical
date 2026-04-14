@@ -5,7 +5,7 @@ import { PiPillLight } from 'react-icons/pi';
 import ButtonWithIconAndTextVertical from '../../../../shared/buttons/ButtonWithIconAndTextVertical';
 import { RiLogoutCircleLine } from 'react-icons/ri';
 import useAuthService from '../../services/AuthService';
-import { LuBoxes, LuUsers, LuShieldCheck, LuReceipt } from 'react-icons/lu';
+import { LuBoxes, LuUsers, LuShieldCheck, LuReceipt, LuClipboardList, LuBookOpen } from 'react-icons/lu';
 
 type Props = {
   //pass setactivetable
@@ -60,6 +60,14 @@ const CashierSideBar = (props: Props) => {
         compact
       />
       <ButtonWithIconAndTextVertical
+        icon={<LuClipboardList size={25} />}
+        text='Purchases'
+        onClick={() => props.setActiveTable('purchases')}
+        testid='purchases'
+        isActive={props.activeTable === 'purchases'}
+        compact
+      />
+      <ButtonWithIconAndTextVertical
         icon={<LuShieldCheck size={25} />}
         text='Compliance'
         onClick={() => props.setActiveTable('compliance')}
@@ -75,6 +83,14 @@ const CashierSideBar = (props: Props) => {
         isActive={props.activeTable.startsWith('reports')}
         compact
       />
+      <ButtonWithIconAndTextVertical
+        icon={<LuBookOpen size={25} />}
+        text='Help'
+        onClick={() => props.setActiveTable('help')}
+        testid='help'
+        isActive={props.activeTable === 'help'}
+        compact
+      />
       </div>
 
       <div className='mt-2 border-t border-gray-200 pt-2'>
@@ -87,7 +103,7 @@ const CashierSideBar = (props: Props) => {
         />
         <ButtonWithIconAndTextVertical
           icon={<RiLogoutCircleLine size={25} />}
-          text={logging ? 'Wait ...' : 'LogOut'}
+          text={logging ? 'Wait ...' : 'Logout'}
           onClick={logOutCashier}
           testid='testtemporary'
           compact

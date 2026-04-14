@@ -214,13 +214,13 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
         ) || results[0];
 
       if (!bestMatch) {
-        setErrorMessage('No stocked medicine matched that demo shortcut in the selected store.');
+        setErrorMessage('No stocked medicine matched that starter shortcut in the selected store.');
         return;
       }
 
       addToCart(bestMatch);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to add the demo medicine.');
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to add the selected medicine.');
     }
   };
 
@@ -345,10 +345,10 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
           <div className="rounded-3xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <div className="text-sm font-semibold text-sky-900">Counter demo flow</div>
+                <div className="text-sm font-semibold text-sky-900">Counter starter flow</div>
                 <div className="mt-1 text-sm text-sky-800">
-                  Start with a barcode or one of the stocked demo medicines below, then switch unit, add a customer,
-                  or test a controlled drug.
+                  Start with a barcode or one of the stocked medicines below, then switch unit, add a customer,
+                  or verify a controlled-drug workflow.
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">

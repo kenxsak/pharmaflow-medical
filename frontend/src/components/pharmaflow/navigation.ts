@@ -10,13 +10,16 @@ import {
   FileClock,
   LayoutDashboard,
   LineChart,
+  LifeBuoy,
   Receipt,
   ScanLine,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export type PharmaFlowNavStatus = 'Live' | 'Partial';
+export type PharmaFlowNavAccess = 'saas-admin' | 'company-admin' | 'store-ops';
 
 export interface PharmaFlowNavItem {
   title: string;
@@ -26,44 +29,69 @@ export interface PharmaFlowNavItem {
   status: PharmaFlowNavStatus;
   icon: LucideIcon;
   group: 'Workspace' | 'Operations' | 'Controls';
+  access: PharmaFlowNavAccess[];
 }
 
 export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   {
     title: 'Home',
     path: '/pharmaflow/legacy-home',
-    summary: 'Simple legacy-style home with all 43 client questions and every major module in one place.',
-    shortSummary: 'Legacy feature home',
+    summary: 'Simple legacy-style home that opens the main pharmacy workflows in a calmer, buyer-friendly order.',
+    shortSummary: 'Legacy pharmacy home',
     status: 'Live',
     icon: Home,
     group: 'Workspace',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Setup',
     path: '/pharmaflow/setup',
-    summary: 'Sign in, switch the active branch, and review the pilot-store demo checklist.',
-    shortSummary: 'Login and branch setup',
+    summary: 'Sign in, switch the active branch, and set up the right operating account for the business.',
+    shortSummary: 'Access and branch setup',
     status: 'Live',
     icon: LayoutDashboard,
     group: 'Workspace',
+    access: ['saas-admin', 'company-admin'],
   },
   {
     title: 'Enterprise',
     path: '/pharmaflow/enterprise',
-    summary: 'White-label profile, deployment model, buyer-question coverage, and the recommended multi-store demo path.',
-    shortSummary: 'White label and buyer Q&A',
+    summary: 'White-label profile, rollout model, buyer answers, and the recommended business demo path.',
+    shortSummary: 'Buyer guide and rollout',
     status: 'Live',
     icon: FileText,
     group: 'Workspace',
+    access: ['saas-admin', 'company-admin'],
   },
   {
     title: 'SaaS Admin',
     path: '/pharmaflow/platform',
-    summary: 'Tenant roster, plans, pricing, and 43-point feature entitlements for super-admin control.',
+    summary: 'Tenant roster, plans, pricing, and platform controls for SaaS ownership and rollout management.',
     shortSummary: 'Tenants and pricing',
     status: 'Live',
     icon: Coins,
     group: 'Workspace',
+    access: ['saas-admin'],
+  },
+  {
+    title: 'Users & Access',
+    path: '/pharmaflow/users',
+    summary: 'Create company admins, store operators, assign stores, and control who can do what from one legacy-friendly screen.',
+    shortSummary: 'Users, roles, permissions',
+    status: 'Live',
+    icon: Users,
+    group: 'Workspace',
+    access: ['saas-admin', 'company-admin'],
+  },
+  {
+    title: 'Help',
+    path: '/pharmaflow/help',
+    summary: 'Role-based setup guides, FAQs, onboarding instructions, and where each login should go first.',
+    shortSummary: 'Guides and FAQs',
+    status: 'Live',
+    icon: LifeBuoy,
+    group: 'Workspace',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Counter',
@@ -73,6 +101,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: ScanLine,
     group: 'Operations',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Stock',
@@ -82,6 +111,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: Boxes,
     group: 'Operations',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Purchases',
@@ -91,6 +121,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: ClipboardList,
     group: 'Operations',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Bills',
@@ -100,6 +131,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: Receipt,
     group: 'Controls',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Compliance',
@@ -109,6 +141,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: ShieldCheck,
     group: 'Controls',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Customers',
@@ -118,6 +151,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: HeartPulse,
     group: 'Operations',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'GST Reports',
@@ -127,6 +161,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: Activity,
     group: 'Controls',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Profit',
@@ -136,6 +171,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: LineChart,
     group: 'Controls',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Expiry',
@@ -145,6 +181,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Live',
     icon: FileClock,
     group: 'Controls',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     title: 'Stores',
@@ -154,6 +191,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     status: 'Partial',
     icon: Building2,
     group: 'Workspace',
+    access: ['saas-admin', 'company-admin'],
   },
 ];
 

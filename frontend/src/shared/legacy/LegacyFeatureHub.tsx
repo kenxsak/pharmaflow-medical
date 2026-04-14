@@ -34,7 +34,37 @@ interface LegacyFeatureHubProps {
   title?: string;
   description?: string;
   onOpenWorkspace?: (workspaceKey: string) => void;
+  showRequirementCoverage?: boolean;
 }
+
+type LegacyPersona = 'saas-admin' | 'company-admin' | 'store-ops' | 'guest';
+
+const resolveLegacyPersona = (role: string, platformOwner: boolean): LegacyPersona => {
+  if (platformOwner) {
+    return 'saas-admin';
+  }
+  if (['OWNER', 'SUPER_ADMIN', 'STORE_MANAGER'].includes(role)) {
+    return 'company-admin';
+  }
+  if (role) {
+    return 'store-ops';
+  }
+  return 'guest';
+};
+
+const canOpenWorkspace = (workspaceKey: string, persona: LegacyPersona) => {
+  if (persona === 'guest') {
+    return true;
+  }
+  if (persona === 'saas-admin') {
+    return true;
+  }
+  if (persona === 'company-admin') {
+    return workspaceKey !== 'Platform';
+  }
+
+  return !['Platform', 'Enterprise', 'Setup', 'Stores', 'Users'].includes(workspaceKey);
+};
 
 const resolveLegacyWorkspaceKey = (path: string, workspace?: string) => {
   const normalizedWorkspace = workspace?.trim().toLowerCase();
@@ -71,6 +101,12 @@ const resolveLegacyWorkspaceKey = (path: string, workspace?: string) => {
   }
   if (path.includes('/platform')) {
     return 'Platform';
+  }
+  if (path.includes('/users')) {
+    return 'Users';
+  }
+  if (path.includes('/help')) {
+    return 'Help';
   }
   if (path.includes('/enterprise')) {
     return 'Enterprise';
@@ -278,6 +314,13 @@ const featureGroups: FeatureGroup[] = [
         cta: 'Open branding',
       },
       {
+        title: 'Users and Permissions',
+        path: '/pharmaflow/users',
+        summary: 'Create company admins, store operators, assign stores, and control what each login can do.',
+        accent: 'border-sky-200 bg-sky-50',
+        cta: 'Open users',
+      },
+      {
         title: 'Plans and Pricing',
         path: '/pharmaflow/platform',
         summary: 'Review SaaS plans, pricing, entitlements, and platform-level tenant controls.',
@@ -299,9 +342,9 @@ const featureGroups: FeatureGroup[] = [
         cta: 'Open integrations',
       },
       {
-        title: 'Enterprise Buyer Guide',
+        title: 'Enterprise Rollout Guide',
         path: '/pharmaflow/enterprise',
-        summary: 'Answer the full 43-point buyer questionnaire from one guided screen.',
+        summary: 'Answer rollout, pricing, capability, and coverage questions from one guided screen.',
         accent: 'border-indigo-200 bg-indigo-50',
         cta: 'Open guide',
       },
@@ -309,7 +352,7 @@ const featureGroups: FeatureGroup[] = [
   },
   {
     title: 'Extra Tools and Admin',
-    summary: 'Keep the small but important extras visible so the demo does not miss practical daily-use items.',
+    summary: 'Keep the small but important extras visible so the workspace does not miss practical daily-use items.',
     modules: [
       {
         title: 'Print, PDF, and WhatsApp',
@@ -347,11 +390,18 @@ const featureGroups: FeatureGroup[] = [
         cta: 'Open SaaS tools',
       },
       {
-        title: 'Buyer Demo Order',
+        title: 'Rollout Order',
         path: '/pharmaflow/enterprise',
-        summary: 'Use the buyer guide to answer objections, follow the demo order, and cover all 43 points clearly.',
+        summary: 'Use the rollout guide to answer objections, follow the presentation order, and cover all 43 points clearly.',
         accent: 'border-violet-200 bg-violet-50',
-        cta: 'Open buyer guide',
+        cta: 'Open rollout guide',
+      },
+      {
+        title: 'Help and FAQ',
+        path: '/pharmaflow/help',
+        summary: 'Role-based setup help, onboarding answers, and module guidance for SaaS admin, company admin, and store login.',
+        accent: 'border-slate-200 bg-slate-100',
+        cta: 'Open help',
       },
     ],
   },
@@ -552,7 +602,7 @@ const requirementGroups: RequirementCoverageGroup[] = [
       {
         code: 'Q26',
         title: 'Drug Inspector reports again',
-        summary: 'Inspector-ready reporting remains under compliance for repeated demos and audits.',
+        summary: 'Inspector-ready reporting remains under compliance for repeated operational reviews and audits.',
         path: '/pharmaflow/compliance',
         workspace: 'Compliance',
       },
@@ -607,7 +657,7 @@ const requirementGroups: RequirementCoverageGroup[] = [
       {
         code: 'Q33',
         title: 'PTR, PTS, and MRP margins',
-        summary: 'Margin and profitability story is easiest to demo from the profit workspace.',
+        summary: 'Margin and profitability is easiest to present from the profit workspace.',
         path: '/pharmaflow/reports/profit',
         workspace: 'Profit',
       },
@@ -642,16 +692,16 @@ const requirementGroups: RequirementCoverageGroup[] = [
       {
         code: 'Q38',
         title: 'User roles',
-        summary: 'Tenant and role-oriented positioning belongs in the SaaS admin and setup layer.',
-        path: '/pharmaflow/platform',
-        workspace: 'SaaS Admin',
+        summary: 'Company admins and store operators are created and assigned from the Users and Permissions workspace.',
+        path: '/pharmaflow/users',
+        workspace: 'Users',
       },
       {
         code: 'Q39',
         title: 'Restrict price editing',
-        summary: 'Role-driven access and controlled workflows are positioned from platform and setup.',
-        path: '/pharmaflow/platform',
-        workspace: 'SaaS Admin',
+        summary: 'Role-driven access and store-wise permissions are handled from Users and Permissions.',
+        path: '/pharmaflow/users',
+        workspace: 'Users',
       },
       {
         code: 'Q40',
@@ -685,10 +735,25 @@ const requirementGroups: RequirementCoverageGroup[] = [
   },
 ];
 
+const starterModuleTitles: Record<LegacyPersona, string[]> = {
+  guest: ['Billing Counter', 'Inventory Dashboard', 'Compliance Register', 'Help and FAQ'],
+  'saas-admin': ['Users and Permissions', 'Plans and Pricing', 'Stores and HO', 'Enterprise Rollout Guide'],
+  'company-admin': ['Billing Counter', 'Inventory Dashboard', 'Purchase Import', 'Compliance Register'],
+  'store-ops': ['Billing Counter', 'Customers and Loyalty', 'Inventory Dashboard', 'Compliance Register'],
+};
+
+const personaGuides: Record<LegacyPersona, string> = {
+  guest: 'Sign in from the access portal first, then follow billing, stock, compliance, and reports in that order.',
+  'saas-admin': 'Lead with company setup and access control, then move into one company’s live operating flow.',
+  'company-admin': 'Start with billing, move to stock and purchases, then close with compliance and reports.',
+  'store-ops': 'Keep the story practical: billing, customers, stock, compliance, and reports for the active branch.',
+};
+
 const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
   title = 'Simple Pharmacy Launcher',
   description = 'Every major feature is available here in the same straightforward legacy style, without forcing users through the newer shell first.',
   onOpenWorkspace,
+  showRequirementCoverage = false,
 }) => {
   const branding = readBranding();
   const legacyUserRaw = localStorage.getItem('user');
@@ -711,13 +776,21 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
     localStorage.getItem('pharmaflow_username') ||
     legacyUserName;
   const currentRole = localStorage.getItem('pharmaflow_role') || legacyUserRole;
+  const currentPlatformOwner = localStorage.getItem('pharmaflow_platform_owner') === 'true';
+  const currentPersona = resolveLegacyPersona(currentRole, currentPlatformOwner);
   const currentStore = localStorage.getItem('pharmaflow_store_code') || 'No store selected';
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const allModules = featureGroups.flatMap((group) => group.modules);
 
   const filteredFeatureGroups = featureGroups
     .map((group) => ({
       ...group,
       modules: group.modules.filter((module) => {
+        const workspaceKey = resolveLegacyWorkspaceKey(module.path);
+        if (!canOpenWorkspace(workspaceKey, currentPersona)) {
+          return false;
+        }
+
         if (!normalizedSearch) {
           return true;
         }
@@ -732,6 +805,11 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
+        const workspaceKey = resolveLegacyWorkspaceKey(item.path, item.workspace);
+        if (!canOpenWorkspace(workspaceKey, currentPersona)) {
+          return false;
+        }
+
         if (!normalizedSearch) {
           return true;
         }
@@ -743,9 +821,20 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
     }))
     .filter((group) => group.items.length > 0);
 
-  const totalQuickLaunchCards = featureGroups.reduce((sum, group) => sum + group.modules.length, 0);
-  const totalRequirementItems = requirementGroups.reduce((sum, group) => sum + group.items.length, 0);
-  const filteredRequirementItems = filteredRequirementGroups.reduce((sum, group) => sum + group.items.length, 0);
+  const totalQuickLaunchCards = filteredFeatureGroups.reduce((sum, group) => sum + group.modules.length, 0);
+  const totalRequirementItems = filteredRequirementGroups.reduce((sum, group) => sum + group.items.length, 0);
+  const filteredRequirementCount = filteredRequirementGroups.reduce((sum, group) => sum + group.items.length, 0);
+  const visibleWorkAreas = filteredFeatureGroups.length;
+  const starterModules = starterModuleTitles[currentPersona]
+    .map((moduleTitle) => allModules.find((module) => module.title === moduleTitle))
+    .filter((module): module is FeatureModule => Boolean(module))
+    .filter((module) => {
+      const workspaceKey = resolveLegacyWorkspaceKey(module.path);
+      return canOpenWorkspace(workspaceKey, currentPersona);
+    });
+  const searchPlaceholder = showRequirementCoverage
+    ? 'Search barcode, GST, loyalty, doctor, audit, pricing, stores, or Q numbers...'
+    : 'Search billing, stock, purchases, compliance, reports, pricing, stores, or help...';
 
   return (
     <div className='rounded-xl bg-white p-6 shadow-md'>
@@ -776,27 +865,82 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
         <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
           <div className='text-xs uppercase tracking-wide text-slate-400'>Quick Launch Cards</div>
           <div className='mt-2 text-3xl font-bold text-slate-900'>{totalQuickLaunchCards}</div>
-          <div className='mt-1 text-sm text-slate-500'>Every major workspace is reachable from this legacy home.</div>
+          <div className='mt-1 text-sm text-slate-500'>Only the modules available to this login are shown here.</div>
         </div>
 
         <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Client Questions</div>
-          <div className='mt-2 text-3xl font-bold text-slate-900'>{totalRequirementItems}</div>
-          <div className='mt-1 text-sm text-slate-500'>All 43 buyer questions are listed below with their home screen.</div>
+          <div className='text-xs uppercase tracking-wide text-slate-400'>Work Areas</div>
+          <div className='mt-2 text-3xl font-bold text-slate-900'>{visibleWorkAreas}</div>
+          <div className='mt-1 text-sm text-slate-500'>Grouped by day-to-day operations, control, and business setup.</div>
         </div>
 
         <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Simple Demo Flow</div>
-          <div className='mt-2 text-lg font-semibold text-slate-900'>Billing to Stock to Compliance to Reports</div>
-          <div className='mt-1 text-sm text-slate-500'>This keeps the client walkthrough clear and easy to follow.</div>
+          <div className='text-xs uppercase tracking-wide text-slate-400'>Recommended Flow</div>
+          <div className='mt-2 text-lg font-semibold text-slate-900'>Start with what this login actually uses</div>
+          <div className='mt-1 text-sm text-slate-500'>{personaGuides[currentPersona]}</div>
         </div>
 
         <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Find Anything Fast</div>
+          <div className='text-xs uppercase tracking-wide text-slate-400'>Search</div>
           <div className='mt-2 text-lg font-semibold text-slate-900'>
-            {filteredRequirementItems}/{totalRequirementItems} questions shown
+            {totalQuickLaunchCards} modules ready
           </div>
-          <div className='mt-1 text-sm text-slate-500'>Search by Q number, GST, barcode, loyalty, doctor, audit, plan, or delivery.</div>
+          <div className='mt-1 text-sm text-slate-500'>
+            {showRequirementCoverage
+              ? `${filteredRequirementCount}/${totalRequirementItems} buyer questions are available when needed.`
+              : 'Use search to keep the workspace calm instead of showing too much at once.'}
+          </div>
+        </div>
+      </div>
+
+      <div className='mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4'>
+        <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
+          <div>
+            <div className='text-sm font-semibold text-slate-900'>Start here</div>
+            <div className='mt-1 text-sm leading-6 text-slate-600'>
+              These are the cleanest first clicks for the current login, so the walkthrough feels like one real pharmacy product.
+            </div>
+          </div>
+          {!showRequirementCoverage ? (
+            <Link
+              to='/pharmaflow/enterprise'
+              className='inline-flex rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700'
+            >
+              Open rollout guide
+            </Link>
+          ) : null}
+        </div>
+
+        <div className='mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4'>
+          {starterModules.map((module) => {
+            const workspaceKey = resolveLegacyWorkspaceKey(module.path);
+            const shouldUseInlineOpen = Boolean(onOpenWorkspace) && !module.path.includes('/legacy-login');
+
+            if (shouldUseInlineOpen) {
+              return (
+                <button
+                  key={`starter-${module.title}`}
+                  type='button'
+                  onClick={() => onOpenWorkspace?.(workspaceKey)}
+                  className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${module.accent}`}
+                >
+                  <div className='text-base font-semibold text-slate-900'>{module.title}</div>
+                  <p className='mt-2 text-sm leading-6 text-slate-600'>{module.summary}</p>
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={`starter-${module.title}`}
+                to={module.path}
+                className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${module.accent}`}
+              >
+                <div className='text-base font-semibold text-slate-900'>{module.title}</div>
+                <p className='mt-2 text-sm leading-6 text-slate-600'>{module.summary}</p>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -809,7 +953,7 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
           type='text'
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder='Search Q1, barcode, GST, loyalty, doctor, audit, plans, stores...'
+          placeholder={searchPlaceholder}
           className='mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none ring-0 transition focus:border-slate-400'
         />
       </div>
@@ -857,11 +1001,14 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
         ))}
       </div>
 
+      {showRequirementCoverage && (
       <div className='mt-8 border-t border-slate-200 pt-8'>
         <div className='mb-4'>
-          <h3 className='text-xl font-semibold text-slate-900'>43-Point Client Coverage</h3>
+          <h3 className='text-xl font-semibold text-slate-900'>Buyer Question Coverage</h3>
           <p className='mt-1 text-sm text-slate-500'>
-            Every client question now has a clear legacy-home entry point so the team can demo from one simple screen.
+            {currentPersona === 'store-ops'
+              ? 'Store login only sees the operational parts of the coverage map, so the screen stays simple for daily work.'
+              : 'Every client question now has a clear legacy-home entry point so the team can present from one simple screen.'}
           </p>
         </div>
 
@@ -933,6 +1080,7 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 };

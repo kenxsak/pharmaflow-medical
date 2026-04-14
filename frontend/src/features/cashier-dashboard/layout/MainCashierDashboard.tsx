@@ -14,7 +14,9 @@ import POSBilling from '../../../pages/billing/POSBilling';
 import BillingAuditDashboard from '../../../pages/billing/BillingAuditDashboard';
 import CustomersDashboard from '../../../pages/customers/CustomersDashboard';
 import InventoryDashboard from '../../../pages/inventory/InventoryDashboard';
+import PharmaFlowHelpCenter from '../../../pages/pharmaflow/PharmaFlowHelpCenter';
 import ComplianceDashboard from '../../../pages/compliance/ComplianceDashboard';
+import ProcurementDashboard from '../../../pages/procurement/ProcurementDashboard';
 import LegacyReportsWorkspace, {
   LegacyReportsTab,
 } from '../../../shared/legacy/LegacyReportsWorkspace';
@@ -100,8 +102,10 @@ const MainCashierDashboard = () => {
         setActiveTable('customers');
         break;
       case 'Inventory':
-      case 'Purchases':
         setActiveTable('inventory');
+        break;
+      case 'Purchases':
+        setActiveTable('purchases');
         break;
       case 'Compliance':
         setActiveTable('compliance');
@@ -114,6 +118,9 @@ const MainCashierDashboard = () => {
         break;
       case 'Reports:Expiry':
         setActiveTable('reports:expiry');
+        break;
+      case 'Help':
+        setActiveTable('help');
         break;
       default:
         setActiveTable('home');
@@ -132,6 +139,8 @@ const MainCashierDashboard = () => {
       ? 'Customers'
       : activeTable === 'inventory'
       ? 'Stock Control'
+      : activeTable === 'purchases'
+      ? 'Purchases'
       : activeTable === 'compliance'
       ? 'Compliance'
       : activeTable === 'reports:profit'
@@ -140,6 +149,8 @@ const MainCashierDashboard = () => {
       ? 'Expiry Reports'
       : activeTable === 'reports'
       ? 'Reports'
+      : activeTable === 'help'
+      ? 'Help and FAQ'
       : activeTable.charAt(0).toUpperCase() + activeTable.slice(1);
 
   return (
@@ -182,6 +193,11 @@ const MainCashierDashboard = () => {
                 <InventoryDashboard embedded />
               </div>
             )}
+            {activeTable === 'purchases' && (
+              <div className='min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-100 p-6'>
+                <ProcurementDashboard embedded />
+              </div>
+            )}
             {activeTable === 'compliance' && (
               <div className='min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-100 p-6'>
                 <ComplianceDashboard embedded />
@@ -202,16 +218,23 @@ const MainCashierDashboard = () => {
                 />
               </div>
             )}
+            {activeTable === 'help' && (
+              <div className='min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-100 p-6'>
+                <PharmaFlowHelpCenter embedded />
+              </div>
+            )}
             {![
               'home',
               'billing',
               'bills',
               'customers',
               'inventory',
+              'purchases',
               'compliance',
               'reports',
               'reports:profit',
               'reports:expiry',
+              'help',
             ].includes(activeTable) &&
               renderComponent()}
           </PaymentContext.Provider>

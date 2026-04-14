@@ -10,9 +10,11 @@ import CustomersDashboard from './pages/customers/CustomersDashboard';
 import InventoryDashboard from './pages/inventory/InventoryDashboard';
 import PharmaFlowCommandCenter from './pages/pharmaflow/PharmaFlowCommandCenter';
 import PharmaFlowEntry from './pages/pharmaflow/PharmaFlowEntry';
+import PharmaFlowHelpCenter from './pages/pharmaflow/PharmaFlowHelpCenter';
 import PharmaFlowLegacyHome from './pages/pharmaflow/PharmaFlowLegacyHome';
 import EnterpriseReadinessDashboard from './pages/pharmaflow/EnterpriseReadinessDashboard';
 import SaaSControlCenter from './pages/pharmaflow/SaaSControlCenter';
+import UsersAccessDashboard from './pages/pharmaflow/UsersAccessDashboard';
 import ProcurementDashboard from './pages/procurement/ProcurementDashboard';
 import ExpiryAlertsDashboard from './pages/reports/ExpiryAlertsDashboard';
 import GSTReportsDashboard from './pages/reports/GSTReportsDashboard';
@@ -43,8 +45,10 @@ function App() {
         <Route path='/pharmaflow' element={<PharmaFlowEntry />} />
         <Route path='/pharmaflow/legacy-home' element={<PharmaFlowLegacyHome />} />
         <Route path='/pharmaflow/setup' element={<PharmaFlowCommandCenter />} />
+        <Route path='/pharmaflow/help' element={<PharmaFlowHelpCenter />} />
         <Route path='/pharmaflow/enterprise' element={<EnterpriseReadinessDashboard />} />
         <Route path='/pharmaflow/platform' element={<SaaSControlCenter />} />
+        <Route path='/pharmaflow/users' element={<UsersAccessDashboard />} />
         <Route path='/pharmaflow/dashboard' element={<Navigate to='/pharmaflow' replace />} />
         <Route path='/pharmaflow/home' element={<Navigate to='/pharmaflow/legacy-home' replace />} />
         <Route path='/pharmaflow/launchpad' element={<Navigate to='/pharmaflow/setup' replace />} />

@@ -275,9 +275,64 @@ export interface StoreSummary {
   storeCode: string;
   storeName: string;
   storeType: string;
+  tenantId?: string;
+  tenantSlug?: string;
+  tenantName?: string;
   city?: string;
   state?: string;
   gstin?: string;
+}
+
+export interface PharmaRoleOption {
+  role: string;
+  label: string;
+  description: string;
+  canEditPrice: boolean;
+  canEditBills: boolean;
+  canSellScheduleH: boolean;
+  canViewReports: boolean;
+  canManageInventory: boolean;
+}
+
+export interface PharmaUserRecord {
+  userId: string;
+  username: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  role: string;
+  roleLabel?: string;
+  roleDescription?: string;
+  storeId?: string;
+  storeCode?: string;
+  storeName?: string;
+  tenantId?: string;
+  tenantSlug?: string;
+  tenantName?: string;
+  active?: boolean;
+  platformOwner?: boolean;
+  pharmacistRegNo?: string;
+  canEditPrice?: boolean;
+  canEditBills?: boolean;
+  canSellScheduleH?: boolean;
+  canViewReports?: boolean;
+  canManageInventory?: boolean;
+  lastLogin?: string;
+  createdAt?: string;
+}
+
+export interface PharmaUserRequest {
+  username: string;
+  password?: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  role: string;
+  storeId?: string;
+  tenantId?: string;
+  active?: boolean;
+  platformOwner?: boolean;
+  pharmacistRegNo?: string;
 }
 
 export interface InvoiceHistoryItem {
@@ -807,6 +862,35 @@ export const StoreAPI = {
   list: (): Promise<StoreSummary[]> =>
     fetchJson(`${BASE_URL}/stores`, {
       headers: getHeaders(),
+    }),
+};
+
+export const UserAPI = {
+  list: (query?: string): Promise<PharmaUserRecord[]> =>
+    fetchJson(
+      `${BASE_URL}/users${query ? `?query=${encodeURIComponent(query)}` : ''}`,
+      {
+        headers: getHeaders(),
+      }
+    ),
+
+  listRoles: (): Promise<PharmaRoleOption[]> =>
+    fetchJson(`${BASE_URL}/users/roles`, {
+      headers: getHeaders(),
+    }),
+
+  create: (payload: PharmaUserRequest): Promise<PharmaUserRecord> =>
+    fetchJson(`${BASE_URL}/users`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  update: (userId: string, payload: PharmaUserRequest): Promise<PharmaUserRecord> =>
+    fetchJson(`${BASE_URL}/users/${userId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     }),
 };
 

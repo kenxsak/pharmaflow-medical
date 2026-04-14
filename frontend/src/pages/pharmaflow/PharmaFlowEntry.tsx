@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
+import { getPharmaFlowHomePath, usePharmaFlowContext } from '../../utils/pharmaflowContext';
 
 const PharmaFlowEntry: React.FC = () => {
   const context = usePharmaFlowContext();
@@ -24,10 +24,10 @@ const PharmaFlowEntry: React.FC = () => {
   }
 
   if (context.hasToken) {
-    return <Navigate to='/pharmaflow/legacy-home' replace />;
+    return <Navigate to={getPharmaFlowHomePath(context)} replace />;
   }
 
-  return <Navigate to='/legacy-login' replace />;
+  return <Navigate to='/pharmaflow/setup' replace />;
 };
 
 export default PharmaFlowEntry;

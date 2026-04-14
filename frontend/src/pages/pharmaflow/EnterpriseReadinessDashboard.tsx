@@ -441,7 +441,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
     <PharmaFlowShell
       embedded={embedded}
       title="Enterprise Readiness and White Label"
-      description="Answer buyer questions, show the recommended module walkthrough, and present the product as a tenant-branded pharmacy platform instead of a single-store demo."
+      description="Answer buyer questions, show the recommended module walkthrough, and present the product as a tenant-branded pharmacy platform instead of a single-store tool."
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
@@ -536,7 +536,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
         <div className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-6 shadow-sm">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Suggested Demo Flow</div>
+              <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Suggested Rollout Flow</div>
               <h2 className="mt-3 text-xl font-semibold text-slate-950">Walk the client through the platform in this order</h2>
             </div>
             <Link
@@ -570,7 +570,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
           <div key={status} className="rounded-[2rem] border border-slate-200/70 bg-white p-5 shadow-sm">
             <div className="text-xs uppercase tracking-wide text-slate-500">{status}</div>
             <div className="mt-2 text-3xl font-semibold text-slate-950">{statusSummary[status]}</div>
-            <div className="mt-1 text-sm text-slate-500">Buyer questions in this state</div>
+            <div className="mt-1 text-sm text-slate-500">Rollout questions in this state</div>
           </div>
         ))}
       </section>

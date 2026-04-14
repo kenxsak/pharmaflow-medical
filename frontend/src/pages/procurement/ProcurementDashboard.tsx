@@ -12,6 +12,7 @@ import {
   SupplierCreateRequest,
   SupplierSummary,
 } from '../../services/api';
+import LegacyModal from '../../shared/legacy/LegacyModal';
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
 import { downloadCsv } from '../../utils/exportCsv';
 
@@ -47,7 +48,7 @@ const procurementSteps = [
   },
   {
     title: 'Import rows or CSV',
-    summary: 'Use manual rows for a quick demo or CSV import for a realistic distributor file.',
+    summary: 'Use manual rows for quick inward entry or upload a distributor CSV when the invoice is large.',
     tone: 'border-violet-200 bg-violet-50 text-violet-900',
   },
 ];
@@ -77,6 +78,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<PurchaseImportResponse | null>(null);
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
   const [supplierDraft, setSupplierDraft] = useState<SupplierCreateRequest>({
     name: '',
     phone: '',
@@ -139,6 +141,11 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   const recentCreditValue = useMemo(
     () => creditNotes.reduce((sum, note) => sum + Number(note.totalAmount || 0), 0),
     [creditNotes]
+  );
+
+  const selectedSupplier = useMemo(
+    () => suppliers.find((supplier) => supplier.supplierId === selectedSupplierId) || null,
+    [selectedSupplierId, suppliers]
   );
 
   const updateRow = (index: number, partial: Partial<PurchaseImportRow>) => {
@@ -280,6 +287,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       setSuppliers((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
       setSelectedSupplierId(created.supplierId);
       setSupplierDraft({ name: '', phone: '', gstin: '', contact: '' });
+      setIsSupplierModalOpen(false);
       setMessage(`Supplier ${created.name} created.`);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : 'Unable to create supplier.');
@@ -360,8 +368,8 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                 This page is designed for real pharmacy staff: create the supplier, enter the distributor invoice
-                header, and then import the rows manually or through CSV. It is the fastest way to prove bulk inward
-                handling in the demo.
+                header, and then import the rows manually or through CSV. It keeps inward stock work organized for
+                regular branch operations as well as rollout presentations.
               </p>
             </div>
 
@@ -369,7 +377,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               <div className="rounded-3xl bg-white p-4 shadow-sm">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Suppliers</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{suppliers.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Configured for this demo</div>
+                <div className="mt-1 text-sm text-slate-500">Configured for the active workspace</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Purchase Orders</div>
@@ -422,50 +430,30 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                 {suppliers.length} supplier{suppliers.length === 1 ? '' : 's'}
               </div>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Supplier name</span>
-                <input
-                  type="text"
-                  value={supplierDraft.name || ''}
-                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, name: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Contact person</span>
-                <input
-                  type="text"
-                  value={supplierDraft.contact || ''}
-                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, contact: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Phone</span>
-                <input
-                  type="text"
-                  value={supplierDraft.phone || ''}
-                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, phone: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">GSTIN</span>
-                <input
-                  type="text"
-                  value={supplierDraft.gstin || ''}
-                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, gstin: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-950">What this flow captures</div>
+                <div className="mt-3 grid gap-2 text-sm text-slate-600">
+                  <div>Distributor name, contact person, phone, and GSTIN in one clean supplier master.</div>
+                  <div>Reusable supplier selection for inward invoices, credit notes, and procurement history.</div>
+                  <div>Consistent supplier mapping so branch teams do not retype vendor details every time.</div>
+                </div>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-950">Current selection</div>
+                <div className="mt-2 text-sm leading-6 text-slate-600">
+                  {selectedSupplier
+                    ? `${selectedSupplier.name}${selectedSupplier.contact ? ` • ${selectedSupplier.contact}` : ''}${selectedSupplier.phone ? ` • ${selectedSupplier.phone}` : ''}`
+                    : 'No supplier selected yet. Add the first supplier or choose one from the import header.'}
+                </div>
+              </div>
             </div>
             <button
               type="button"
-              onClick={handleSupplierCreate}
+              onClick={() => setIsSupplierModalOpen(true)}
               className="mt-4 rounded-2xl border border-slate-300 bg-slate-900 px-4 py-3 text-sm font-medium text-white"
             >
-              Create Supplier
+              Add Supplier
             </button>
           </div>
 
@@ -721,8 +709,8 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           </div>
 
           <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-            Best demo move: download the template, show the expected columns, then import a distributor file to
-            prove bulk inward support.
+            Recommended workflow: download the template, confirm the expected columns, then import a distributor
+            file to show how bulk inward support works.
           </div>
         </section>
 
@@ -919,7 +907,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
             </div>
 
             <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
-              Use this area in the demo to show that RTV and supplier-credit workflows are now visible, not hidden work.
+              Use this area to show that RTV and supplier-credit workflows are visible operational steps, not hidden back-office work.
             </div>
 
             <div className="mt-4 overflow-x-auto">
@@ -967,7 +955,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
             <div>
               <h2 className="text-xl font-semibold">Recent Purchase Orders</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Use this list to show that inward imports are creating real purchase records.
+                Use this list to confirm that inward imports are creating real purchase records.
               </p>
             </div>
             <div className="rounded-2xl bg-violet-50 px-4 py-2 text-sm text-violet-900">
@@ -1014,6 +1002,81 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
             </table>
           </div>
         </section>
+
+        <LegacyModal
+          open={isSupplierModalOpen}
+          onClose={() => setIsSupplierModalOpen(false)}
+          title="Create Supplier"
+          description="Add the distributor or vendor once, then reuse the supplier for inward invoices, return notes, and follow-up."
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setIsSupplierModalOpen(false)}
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSupplierCreate}
+                className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+              >
+                Save supplier
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-5">
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">Supplier name</span>
+                <input
+                  type="text"
+                  value={supplierDraft.name || ''}
+                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, name: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-300 px-3 py-3"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">Contact person</span>
+                <input
+                  type="text"
+                  value={supplierDraft.contact || ''}
+                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, contact: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-300 px-3 py-3"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">Phone</span>
+                <input
+                  type="text"
+                  value={supplierDraft.phone || ''}
+                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, phone: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-300 px-3 py-3"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">GSTIN</span>
+                <input
+                  type="text"
+                  value={supplierDraft.gstin || ''}
+                  onChange={(event) => setSupplierDraft((prev) => ({ ...prev, gstin: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-300 px-3 py-3"
+                />
+              </label>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm font-semibold text-slate-950">Before you save</div>
+              <div className="mt-3 grid gap-2 text-sm text-slate-600">
+                <div>Use the invoice-facing supplier name so the inward team can find it quickly later.</div>
+                <div>Keep GSTIN ready for reconciliation, credit notes, and branch purchase documentation.</div>
+                <div>Save the main contact so follow-ups stay simple during inward and return cycles.</div>
+              </div>
+            </div>
+          </div>
+        </LegacyModal>
       </div>
     </PharmaFlowShell>
   );

@@ -2,10 +2,15 @@ package com.pharmaflow.tenant;
 
 import com.pharmaflow.auth.PharmaUser;
 import com.pharmaflow.auth.PharmaUserRepository;
+import com.pharmaflow.auth.PharmaRoleName;
+import com.pharmaflow.auth.RoleEntity;
+import com.pharmaflow.auth.RoleRepository;
 import com.pharmaflow.store.Store;
 import com.pharmaflow.store.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Component
+@Order(2)
 @RequiredArgsConstructor
 public class TenantBootstrap implements CommandLineRunner {
 
@@ -27,6 +33,8 @@ public class TenantBootstrap implements CommandLineRunner {
     private final TenantSubscriptionRepository tenantSubscriptionRepository;
     private final StoreRepository storeRepository;
     private final PharmaUserRepository pharmaUserRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -63,6 +71,92 @@ public class TenantBootstrap implements CommandLineRunner {
                 "Legacy login and cashier flow used for compatibility demonstrations.");
         ensureSubscription(lifePillTenant, growthPlan, BillingCycle.MONTHLY, SubscriptionStatus.ACTIVE, LocalDate.now().plusMonths(1), 39999);
 
+        Store pharmaflowHeadOffice = ensureStore(
+                pharmaflowTenant,
+                "TN-HO-000",
+                "PharmaFlow Head Office",
+                "HO",
+                "Anna Nagar, Chennai",
+                "Chennai",
+                "Tamil Nadu",
+                "600040",
+                "+91 44 4000 9000",
+                "ho@pharmaflow.in",
+                "33AABCP1234A1Z5",
+                "TN/PH/HO/001"
+        );
+        ensureStore(
+                pharmaflowTenant,
+                "TN-WH-001",
+                "PharmaFlow Central Warehouse",
+                "WAREHOUSE",
+                "Madhavaram, Chennai",
+                "Chennai",
+                "Tamil Nadu",
+                "600060",
+                "+91 44 4000 9010",
+                "warehouse@pharmaflow.in",
+                "33AABCP1234A1Z5",
+                "TN/PH/WH/001"
+        );
+        Store annaNagarStore = ensureStore(
+                pharmaflowTenant,
+                "TN-STORE-001",
+                "Anna Nagar Main Pharmacy",
+                "STORE",
+                "2nd Avenue, Anna Nagar",
+                "Chennai",
+                "Tamil Nadu",
+                "600040",
+                "+91 44 4000 9020",
+                "annanagar@pharmaflow.in",
+                "33AABCP1234A1Z5",
+                "TN/PH/ST/001"
+        );
+        ensureStore(
+                pharmaflowTenant,
+                "TN-STORE-002",
+                "Velachery Family Pharmacy",
+                "STORE",
+                "Velachery Main Road",
+                "Chennai",
+                "Tamil Nadu",
+                "600042",
+                "+91 44 4000 9030",
+                "velachery@pharmaflow.in",
+                "33AABCP1234A1Z5",
+                "TN/PH/ST/002"
+        );
+
+        Store posibleHeadOffice = ensureStore(
+                posibleTenant,
+                "POS-HO-001",
+                "Posible Rx Head Office",
+                "HO",
+                "Coimbatore HO",
+                "Coimbatore",
+                "Tamil Nadu",
+                "641001",
+                "+91 422 555 0100",
+                "ho@posible.in",
+                "33AABCP1234A1Z5",
+                "TN/PO/HO/001"
+        );
+        ensureStore(
+                posibleTenant,
+                "POS-STORE-001",
+                "Posible Rx Coimbatore Central",
+                "STORE",
+                "Cross Cut Road",
+                "Coimbatore",
+                "Tamil Nadu",
+                "641012",
+                "+91 422 555 0101",
+                "central@posible.in",
+                "33AABCP1234A1Z5",
+                "TN/PO/ST/001"
+        );
+
         List<Store> stores = storeRepository.findAllByIsActiveTrueOrderByStoreNameAsc();
         stores.stream()
                 .filter(store -> store.getTenant() == null)
@@ -83,6 +177,55 @@ public class TenantBootstrap implements CommandLineRunner {
             }
         });
         pharmaUserRepository.saveAll(users);
+
+        ensureUser(
+                "admin",
+                "Admin@123",
+                "PharmaFlow Platform Owner",
+                "admin@pharmaflow.in",
+                "+91 90000 00001",
+                pharmaflowHeadOffice,
+                pharmaflowTenant,
+                PharmaRoleName.SUPER_ADMIN,
+                true,
+                null
+        );
+        ensureUser(
+                "manager@pharmaflow.in",
+                "Company@123",
+                "PharmaFlow Company Admin",
+                "manager@pharmaflow.in",
+                "+91 90000 00002",
+                pharmaflowHeadOffice,
+                pharmaflowTenant,
+                PharmaRoleName.STORE_MANAGER,
+                false,
+                null
+        );
+        ensureUser(
+                "store@pharmaflow.in",
+                "Store@123",
+                "Anna Nagar Store Operator",
+                "store@pharmaflow.in",
+                "+91 90000 00003",
+                annaNagarStore,
+                pharmaflowTenant,
+                PharmaRoleName.PHARMACIST,
+                false,
+                "TNPHARM12345"
+        );
+        ensureUser(
+                "manager@posible.in",
+                "Company@123",
+                "Posible Rx Company Admin",
+                "manager@posible.in",
+                "+91 90000 00004",
+                posibleHeadOffice,
+                posibleTenant,
+                PharmaRoleName.STORE_MANAGER,
+                false,
+                null
+        );
     }
 
     private SubscriptionPlan ensurePlan(
@@ -182,6 +325,76 @@ public class TenantBootstrap implements CommandLineRunner {
         subscription.setOverageUserPriceInr(plan.getPerUserOverageInr());
         subscription.setAutoRenew(true);
         tenantSubscriptionRepository.save(subscription);
+    }
+
+    private Store ensureStore(
+            Tenant tenant,
+            String storeCode,
+            String storeName,
+            String storeType,
+            String address,
+            String city,
+            String state,
+            String pincode,
+            String phone,
+            String email,
+            String gstin,
+            String drugLicenseNo
+    ) {
+        Store store = storeRepository.findByStoreCode(storeCode).orElseGet(Store::new);
+        store.setTenant(tenant);
+        store.setStoreCode(storeCode);
+        store.setStoreName(storeName);
+        store.setStoreType(storeType);
+        store.setAddress(address);
+        store.setCity(city);
+        store.setState(state);
+        store.setPincode(pincode);
+        store.setPhone(normalizePhone(phone));
+        store.setEmail(email);
+        store.setGstin(gstin);
+        store.setDrugLicenseNo(drugLicenseNo);
+        store.setIsActive(true);
+        store.setIs24Hr("STORE".equalsIgnoreCase(storeType));
+        return storeRepository.save(store);
+    }
+
+    private PharmaUser ensureUser(
+            String username,
+            String password,
+            String fullName,
+            String email,
+            String phone,
+            Store store,
+            Tenant tenant,
+            PharmaRoleName roleName,
+            boolean platformOwner,
+            String pharmacistRegNo
+    ) {
+        RoleEntity role = roleRepository.findByRoleName(roleName)
+                .orElseThrow(() -> new IllegalStateException("Role not found: " + roleName));
+
+        PharmaUser user = pharmaUserRepository.findByUsername(username).orElseGet(PharmaUser::new);
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(normalizePhone(phone));
+        user.setStore(store);
+        user.setTenant(tenant);
+        user.setRole(role);
+        user.setIsActive(true);
+        user.setIsPlatformOwner(platformOwner);
+        user.setPharmacistRegNo(pharmacistRegNo);
+        return pharmaUserRepository.save(user);
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) {
+            return null;
+        }
+        String compact = phone.replaceAll("[^+0-9]", "");
+        return compact.length() > 15 ? compact.substring(0, 15) : compact;
     }
 
     private Set<String> codes(int... numbers) {

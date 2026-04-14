@@ -7,6 +7,7 @@ import {
   PatientHistoryResponse,
 } from '../../services/api';
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
+import LegacyModal from '../../shared/legacy/LegacyModal';
 
 const currency = (value: number) =>
   value.toLocaleString('en-IN', {
@@ -57,6 +58,7 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const loadCustomers = async (nextQuery = query) => {
     if (!storeId) {
@@ -112,6 +114,7 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
         creditLimit: Number(customerDraft.creditLimit || 0),
       });
       setCustomerDraft(emptyCustomerDraft);
+      setIsCreateModalOpen(false);
       setMessage(`Customer ${created.name} created successfully.`);
       setError(null);
       await loadCustomers(query);
@@ -308,9 +311,9 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Quick Create Customer</h2>
+                <h2 className="text-xl font-semibold">Customer Registration</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Use this for walk-ins that need credit, loyalty, or patient tracking.
+                  Register walk-ins cleanly, then reopen them for credit, loyalty, and patient tracking.
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
@@ -318,73 +321,30 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="font-medium text-slate-700">Customer name</span>
-                <input
-                  type="text"
-                  value={customerDraft.name || ''}
-                  onChange={(event) => setCustomerDraft((prev) => ({ ...prev, name: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Phone</span>
-                <input
-                  type="text"
-                  value={customerDraft.phone || ''}
-                  onChange={(event) => setCustomerDraft((prev) => ({ ...prev, phone: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Email</span>
-                <input
-                  type="email"
-                  value={customerDraft.email || ''}
-                  onChange={(event) => setCustomerDraft((prev) => ({ ...prev, email: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Default doctor</span>
-                <input
-                  type="text"
-                  value={customerDraft.doctorName || ''}
-                  onChange={(event) => setCustomerDraft((prev) => ({ ...prev, doctorName: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="font-medium text-slate-700">Credit limit</span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={customerDraft.creditLimit || 0}
-                  onChange={(event) =>
-                    setCustomerDraft((prev) => ({ ...prev, creditLimit: Number(event.target.value) }))
-                  }
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="font-medium text-slate-700">Address</span>
-                <textarea
-                  value={customerDraft.address || ''}
-                  onChange={(event) => setCustomerDraft((prev) => ({ ...prev, address: event.target.value }))}
-                  rows={3}
-                  className="w-full rounded-2xl border border-slate-300 px-3 py-2"
-                />
-              </label>
+            <div className="grid gap-3">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-950">What this flow captures</div>
+                <div className="mt-3 grid gap-2 text-sm text-slate-600">
+                  <div>Customer identity and contact details</div>
+                  <div>Credit limit for branch-level credit control</div>
+                  <div>Default doctor and address for future patient history</div>
+                </div>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white p-4">
+                <div className="text-sm font-semibold text-slate-950">Recommended next step</div>
+                <div className="mt-2 text-sm leading-6 text-slate-600">
+                  Create a new customer from the popup, reopen the profile, then show credit, loyalty,
+                  and prescription-linked history on the same page.
+                </div>
+              </div>
             </div>
 
             <button
               type="button"
-              onClick={() => void handleCreateCustomer()}
+              onClick={() => setIsCreateModalOpen(true)}
               className="mt-4 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white"
             >
-              Create Customer
+              Add Customer
             </button>
           </div>
         </section>
@@ -537,6 +497,120 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
           </div>
         </section>
       </div>
+
+      <LegacyModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Register customer"
+        description="Capture the customer once, then reuse the same profile for billing, loyalty, credit, and patient history."
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-slate-500">
+              This customer will be created for the active branch and will be available for daily operations.
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCreateCustomer()}
+                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Create customer
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <div className="grid gap-4 xl:grid-cols-[1.08fr,0.92fr]">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">Customer name</span>
+              <input
+                type="text"
+                value={customerDraft.name || ''}
+                onChange={(event) => setCustomerDraft((prev) => ({ ...prev, name: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Phone</span>
+              <input
+                type="text"
+                value={customerDraft.phone || ''}
+                onChange={(event) => setCustomerDraft((prev) => ({ ...prev, phone: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Email</span>
+              <input
+                type="email"
+                value={customerDraft.email || ''}
+                onChange={(event) => setCustomerDraft((prev) => ({ ...prev, email: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Default doctor</span>
+              <input
+                type="text"
+                value={customerDraft.doctorName || ''}
+                onChange={(event) => setCustomerDraft((prev) => ({ ...prev, doctorName: event.target.value }))}
+                className="w-full rounded-2xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Credit limit</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={customerDraft.creditLimit || 0}
+                onChange={(event) =>
+                  setCustomerDraft((prev) => ({ ...prev, creditLimit: Number(event.target.value) }))
+                }
+                className="w-full rounded-2xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">Address</span>
+              <textarea
+                value={customerDraft.address || ''}
+                onChange={(event) => setCustomerDraft((prev) => ({ ...prev, address: event.target.value }))}
+                rows={4}
+                className="w-full rounded-2xl border border-slate-300 px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4">
+              <div className="text-sm font-semibold text-sky-950">Profile preview</div>
+              <div className="mt-3 space-y-2 text-sm text-sky-900">
+                <div>Name: <span className="font-semibold">{customerDraft.name || 'Not entered yet'}</span></div>
+                <div>Phone: <span className="font-semibold">{customerDraft.phone || 'Not entered yet'}</span></div>
+                <div>Doctor: <span className="font-semibold">{customerDraft.doctorName || 'Not assigned'}</span></div>
+                <div>Credit limit: <span className="font-semibold">{currency(Number(customerDraft.creditLimit || 0))}</span></div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="text-sm font-semibold text-slate-950">Why this matters</div>
+              <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                <div>Billing staff can reopen the same customer instantly.</div>
+                <div>Credit and loyalty become visible during the next sale.</div>
+                <div>Patient history links back to this profile automatically.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </LegacyModal>
     </PharmaFlowShell>
   );
 };

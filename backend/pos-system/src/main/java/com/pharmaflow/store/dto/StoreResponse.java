@@ -19,6 +19,9 @@ public class StoreResponse {
     private String storeCode;
     private String storeName;
     private String storeType;
+    private UUID tenantId;
+    private String tenantSlug;
+    private String tenantName;
     private String city;
     private String state;
     private String gstin;

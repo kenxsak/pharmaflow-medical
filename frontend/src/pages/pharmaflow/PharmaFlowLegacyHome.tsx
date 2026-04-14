@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import LegacyFeatureHub from '../../shared/legacy/LegacyFeatureHub';
 import { readBranding } from '../../utils/branding';
-import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
+import { getPharmaFlowRoleLabel, usePharmaFlowContext } from '../../utils/pharmaflowContext';
 
 const PharmaFlowLegacyHome: React.FC = () => {
   const branding = readBranding();
@@ -34,7 +34,13 @@ const PharmaFlowLegacyHome: React.FC = () => {
                 to='/pharmaflow/setup'
                 className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
               >
-                Setup
+                Access Portal
+              </Link>
+              <Link
+                to='/pharmaflow/help'
+                className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
+              >
+                Help
               </Link>
             </div>
           </div>
@@ -46,7 +52,9 @@ const PharmaFlowLegacyHome: React.FC = () => {
             <div className='mt-2 text-lg font-semibold text-slate-900'>
               {context.fullName || context.username || 'Legacy operator'}
             </div>
-            <div className='mt-1 text-sm text-slate-500'>{context.role || 'Legacy session'}</div>
+            <div className='mt-1 text-sm text-slate-500'>
+              {getPharmaFlowRoleLabel(context.role, context.platformOwner) || 'Legacy session'}
+            </div>
           </div>
 
           <div className='rounded-2xl bg-white p-5 shadow-sm'>
@@ -54,13 +62,13 @@ const PharmaFlowLegacyHome: React.FC = () => {
             <div className='mt-2 text-lg font-semibold text-slate-900'>
               {context.storeCode || localStorage.getItem('pharmaflow_store_code') || 'Select branch in Setup'}
             </div>
-            <div className='mt-1 text-sm text-slate-500'>Use this as the starting point for demos and daily work.</div>
+            <div className='mt-1 text-sm text-slate-500'>Use this as the starting point for daily work and rollout walkthroughs.</div>
           </div>
 
           <div className='rounded-2xl bg-white p-5 shadow-sm'>
             <div className='text-xs uppercase tracking-wide text-slate-400'>Tenant</div>
             <div className='mt-2 text-lg font-semibold text-slate-900'>
-              {context.tenantSlug || localStorage.getItem('pharmaflow_tenant_slug') || 'Demo tenant'}
+              {context.tenantSlug || localStorage.getItem('pharmaflow_tenant_slug') || 'No tenant selected'}
             </div>
             <div className='mt-1 text-sm text-slate-500'>
               Branding, plans, and chain setup still remain available when you need them.
