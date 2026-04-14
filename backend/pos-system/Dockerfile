@@ -16,6 +16,8 @@ LABEL maintainer="LifePill Development Team"
 LABEL version="1.0.0"
 LABEL description="LifePill POS System Backend Service"
 
+RUN apk add --no-cache postgresql-client wget
+
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
@@ -26,8 +28,11 @@ RUN mkdir -p /app/uploads /app/logs && \
 
 COPY --from=builder --chown=appuser:appgroup /build/target/*.jar app.jar
 COPY --chown=appuser:appgroup docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY --chown=appuser:appgroup run-medicine-import.sh /app/run-medicine-import.sh
+COPY --chown=appuser:appgroup import-data /app/import-data
+COPY --chown=appuser:appgroup import-sql /app/import-sql
 
-RUN chmod +x /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh /app/run-medicine-import.sh
 
 USER appuser
 

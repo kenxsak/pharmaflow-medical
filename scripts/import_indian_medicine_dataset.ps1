@@ -1,5 +1,5 @@
 param(
-    [string]$DatasetRoot = (Join-Path $PSScriptRoot '..\external\Indian-Medicine-Dataset'),
+    [string]$DatasetRoot = (Join-Path $PSScriptRoot '..\backend\pos-system\import-data'),
     [string]$DatasetFile = 'updated_indian_medicine_data.csv',
     [string]$PostgresContainer = 'pharmaflow-db',
     [string]$Database = 'pharmaflow',
@@ -10,12 +10,17 @@ param(
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
-$csvPath = Join-Path $DatasetRoot "DATA\$DatasetFile"
+$csvPath = Join-Path $DatasetRoot $DatasetFile
+$legacyCsvPath = Join-Path (Join-Path $PSScriptRoot '..\external\Indian-Medicine-Dataset') "DATA\$DatasetFile"
 $importSqlPath = Join-Path $PSScriptRoot 'sql\import_indian_medicine_dataset.sql'
 $substituteSqlPath = Join-Path $PSScriptRoot 'sql\build_medicine_substitutes.sql'
 
 if (-not (Test-Path $csvPath)) {
-    throw "Dataset file not found: $csvPath"
+    if (Test-Path $legacyCsvPath) {
+        $csvPath = $legacyCsvPath
+    } else {
+        throw "Dataset file not found. Checked: $csvPath and $legacyCsvPath"
+    }
 }
 
 if (-not (Test-Path $importSqlPath)) {

@@ -51,3 +51,19 @@ App URLs:
 - The free demo stack is suitable for sales demos and internal testing, not production.
 - Free Render services can sleep after inactivity.
 - Uploaded files on the free backend are ephemeral until production storage is added.
+
+## Medicine Catalogue
+
+- The tracked junioralive dataset CSV lives in `backend/pos-system/import-data/updated_indian_medicine_data.csv`.
+- The backend image includes the CSV plus the import SQL in `backend/pos-system/import-sql/`.
+- Local Docker and Render both enable `PHARMAFLOW_MEDICINE_AUTO_IMPORT=true`.
+- On first boot, the backend checks whether `JUNIORALIVE_GITHUB` medicines already exist:
+  - if not, it imports the medicine catalogue and builds salt-based substitutes automatically
+  - if medicines exist but substitutes do not, it builds only the substitutes
+  - if both exist, it skips the import cleanly
+
+For manual local reloads, run:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File .\scripts\import_indian_medicine_dataset.ps1
+```

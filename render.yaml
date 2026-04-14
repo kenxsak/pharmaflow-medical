@@ -82,6 +82,8 @@ services:
         value: support@pharmaflow.in
       - key: PHARMAFLOW_BRAND_SUPPORT_PHONE
         value: +91 44 4000 9000
+      - key: PHARMAFLOW_MEDICINE_AUTO_IMPORT
+        value: "true"
 
   - type: web
     name: pharmaflow-frontend

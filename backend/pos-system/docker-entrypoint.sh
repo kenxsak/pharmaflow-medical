@@ -45,4 +45,11 @@ if [ -n "${DATABASE_PASSWORD:-}" ] && [ -z "${SPRING_DATASOURCE_PASSWORD:-}" ]; 
   export SPRING_DATASOURCE_PASSWORD="$DATABASE_PASSWORD"
 fi
 
-exec java $JAVA_OPTS -jar app.jar
+java $JAVA_OPTS -jar app.jar &
+app_pid=$!
+
+if [ "${PHARMAFLOW_MEDICINE_AUTO_IMPORT:-false}" = "true" ]; then
+  sh /app/run-medicine-import.sh &
+fi
+
+wait "$app_pid"

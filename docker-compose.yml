@@ -38,6 +38,7 @@ services:
       PHARMAFLOW_BRAND_TAGLINE: Retail pharmacy operations, billing, and compliance workspace
       PHARMAFLOW_BRAND_SUPPORT_EMAIL: support@pharmaflow.in
       PHARMAFLOW_BRAND_SUPPORT_PHONE: +91 44 4000 9000
+      PHARMAFLOW_MEDICINE_AUTO_IMPORT: "true"
     ports:
       - "8080:8080"
     depends_on:
