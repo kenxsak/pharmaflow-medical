@@ -5,6 +5,9 @@ import { StoreAPI, StoreSummary } from '../../services/api';
 import { getBrandInitials, useBranding } from '../../utils/branding';
 import {
   announcePharmaFlowContextChange,
+  canAccessCompanyControls,
+  canSwitchStores,
+  getVisibleStoresForContext,
   getPharmaFlowHomePath,
   getPharmaFlowPersona,
   getPharmaFlowRoleLabel,
@@ -63,6 +66,8 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const persona = getPharmaFlowPersona(context);
   const homePath = getPharmaFlowHomePath(context);
   const roleLabel = getPharmaFlowRoleLabel(context.role, context.platformOwner);
+  const companyControlsVisible = canAccessCompanyControls(context);
+  const storeSwitcherEnabled = canSwitchStores(context);
 
   useEffect(() => {
     if (!context.hasToken) {
@@ -73,13 +78,13 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
 
     StoreAPI.list()
       .then((items) => {
-        setStores(items);
+        setStores(getVisibleStoresForContext(items, context));
         setStoreLoadError(null);
       })
       .catch((error) => {
         setStoreLoadError(error instanceof Error ? error.message : 'Unable to load stores.');
       });
-  }, [context.hasToken, context.storeCode, context.storeId]);
+  }, [context.hasToken, context.role, context.platformOwner, context.storeCode, context.storeId, context.tenantId]);
 
   const currentNavItem = useMemo(() => {
     const exact = pharmaFlowNavItems.find((item) => item.path === location.pathname);
@@ -133,6 +138,9 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   };
 
   const handleStoreChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (!storeSwitcherEnabled) {
+      return;
+    }
     applyStoreSelection(event.target.value);
   };
 
@@ -227,12 +235,14 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
               >
                 Billing
               </Link>
-              <Link
-                to="/lifepill/setup"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700"
-              >
-                Company Setup
-              </Link>
+              {companyControlsVisible && (
+                <Link
+                  to="/lifepill/setup"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700"
+                >
+                  Company Setup
+                </Link>
+              )}
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
@@ -247,22 +257,32 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
               <ChevronsLeftRight size={14} />
               Branch Control
             </div>
-            <label className="mt-4 block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Active store</span>
-              <select
-                value={context.storeId}
-                onChange={handleStoreChange}
-                disabled={!context.hasToken || stores.length === 0}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm disabled:bg-slate-100"
-              >
-                <option value="">Select a store</option>
-                {stores.map((store) => (
-                  <option key={store.storeId} value={store.storeId}>
-                    {store.storeName} ({store.storeCode})
-                  </option>
-                ))}
-              </select>
-            </label>
+            {storeSwitcherEnabled ? (
+              <label className="mt-4 block text-sm">
+                <span className="mb-1 block font-medium text-slate-700">Active store</span>
+                <select
+                  value={context.storeId}
+                  onChange={handleStoreChange}
+                  disabled={!context.hasToken || stores.length === 0}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm disabled:bg-slate-100"
+                >
+                  <option value="">Select a store</option>
+                  {stores.map((store) => (
+                    <option key={store.storeId} value={store.storeId}>
+                      {store.storeName} ({store.storeCode})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Assigned store</div>
+                <div className="mt-2 font-semibold text-slate-950">{currentStoreName}</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Store logins stay locked to their own branch workspace.
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -369,22 +389,29 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 </Link>
               </div>
 
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-slate-700">Active store</span>
-                <select
-                  value={context.storeId}
-                  onChange={handleStoreChange}
-                  disabled={!context.hasToken || stores.length === 0}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 disabled:bg-slate-100"
-                >
-                  <option value="">Select a store</option>
-                  {stores.map((store) => (
-                    <option key={store.storeId} value={store.storeId}>
-                      {store.storeName} ({store.storeCode})
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {storeSwitcherEnabled ? (
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium text-slate-700">Active store</span>
+                  <select
+                    value={context.storeId}
+                    onChange={handleStoreChange}
+                    disabled={!context.hasToken || stores.length === 0}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 disabled:bg-slate-100"
+                  >
+                    <option value="">Select a store</option>
+                    {stores.map((store) => (
+                      <option key={store.storeId} value={store.storeId}>
+                        {store.storeName} ({store.storeCode})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Assigned store</div>
+                  <div className="mt-2 font-semibold text-slate-950">{currentStoreName}</div>
+                </div>
+              )}
             </div>
           </section>
 

@@ -49,6 +49,10 @@ public class CustomerService {
         return customer;
     }
 
+    public CustomerLookupResponse getCustomer(UUID customerId) {
+        return toLookupResponse(getCustomerOrThrow(customerId));
+    }
+
     @Transactional
     public CustomerLookupResponse createCustomer(UUID storeId, Customer customerDraft) {
         if (customerDraft.getName() == null || customerDraft.getName().isBlank()) {
@@ -57,11 +61,29 @@ public class CustomerService {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Store not found"));
         customerDraft.setStore(store);
+        applyEditableFields(customerDraft);
         customerDraft.setIsActive(true);
         if (customerDraft.getIsBlocked() == null) {
             customerDraft.setIsBlocked(false);
         }
         Customer saved = customerRepository.save(customerDraft);
+        return toLookupResponse(saved);
+    }
+
+    @Transactional
+    public CustomerLookupResponse updateCustomer(UUID customerId, Customer customerDraft) {
+        Customer customer = getCustomerOrThrow(customerId);
+        customer.setName(customerDraft.getName());
+        customer.setPhone(customerDraft.getPhone());
+        customer.setEmail(customerDraft.getEmail());
+        customer.setAddress(customerDraft.getAddress());
+        customer.setDoctorName(customerDraft.getDoctorName());
+        customer.setCreditLimit(customerDraft.getCreditLimit());
+        if (customerDraft.getIsBlocked() != null) {
+            customer.setIsBlocked(customerDraft.getIsBlocked());
+        }
+        applyEditableFields(customer);
+        Customer saved = customerRepository.save(customer);
         return toLookupResponse(saved);
     }
 
@@ -139,6 +161,8 @@ public class CustomerService {
                 .customerId(customer.getCustomerId())
                 .name(customer.getName())
                 .phone(customer.getPhone())
+                .email(customer.getEmail())
+                .address(customer.getAddress())
                 .doctorName(customer.getDoctorName())
                 .creditLimit(creditLimit)
                 .currentBalance(currentBalance)
@@ -146,6 +170,26 @@ public class CustomerService {
                 .loyaltyPoints(customer.getLoyaltyPoints())
                 .blocked(customer.getIsBlocked())
                 .build();
+    }
+
+    private void applyEditableFields(Customer customer) {
+        if (customer.getName() == null || customer.getName().isBlank()) {
+            throw new IllegalArgumentException("Customer name is required");
+        }
+        customer.setName(customer.getName().trim());
+        customer.setPhone(normalize(customer.getPhone()));
+        customer.setEmail(normalize(customer.getEmail()));
+        customer.setAddress(normalize(customer.getAddress()));
+        customer.setDoctorName(normalize(customer.getDoctorName()));
+        customer.setCreditLimit(safe(customer.getCreditLimit()));
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private BigDecimal safe(BigDecimal value) {

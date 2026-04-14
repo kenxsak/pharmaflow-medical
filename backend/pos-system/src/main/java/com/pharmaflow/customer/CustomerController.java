@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -47,20 +48,25 @@ public class CustomerController {
         return customerService.getPatientHistory(customerId, limit);
     }
 
+    @GetMapping("/{customerId}")
+    public CustomerLookupResponse getCustomer(@PathVariable UUID customerId) {
+        return customerService.getCustomer(customerId);
+    }
+
     @PostMapping
     public CustomerLookupResponse createCustomer(
             @RequestParam UUID storeId,
             @Valid @RequestBody CustomerCreateRequest request
     ) {
-        Customer customer = Customer.builder()
-                .name(request.getName())
-                .phone(request.getPhone())
-                .email(request.getEmail())
-                .address(request.getAddress())
-                .doctorName(request.getDoctorName())
-                .creditLimit(request.getCreditLimit())
-                .build();
-        return customerService.createCustomer(storeId, customer);
+        return customerService.createCustomer(storeId, toCustomerDraft(request));
+    }
+
+    @PutMapping("/{customerId}")
+    public CustomerLookupResponse updateCustomer(
+            @PathVariable UUID customerId,
+            @Valid @RequestBody CustomerCreateRequest request
+    ) {
+        return customerService.updateCustomer(customerId, toCustomerDraft(request));
     }
 
     @GetMapping("/{customerId}/validate-credit")
@@ -80,5 +86,17 @@ public class CustomerController {
             @RequestParam(required = false) String description
     ) {
         return customerService.addLoyaltyPoints(customerId, points, invoiceId, description);
+    }
+
+    private Customer toCustomerDraft(CustomerCreateRequest request) {
+        return Customer.builder()
+                .name(request.getName())
+                .phone(request.getPhone())
+                .email(request.getEmail())
+                .address(request.getAddress())
+                .doctorName(request.getDoctorName())
+                .creditLimit(request.getCreditLimit())
+                .isBlocked(request.getBlocked())
+                .build();
     }
 }

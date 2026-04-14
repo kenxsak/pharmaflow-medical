@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
 import {
+  canAccessCompanyControls,
+  canAccessPlatformControls,
   getPharmaFlowPersona,
   getPharmaFlowRoleLabel,
   usePharmaFlowContext,
@@ -13,6 +15,13 @@ interface HelpCard {
   route: string;
   routeLabel: string;
   checklist: string[];
+  audiences: Array<'saas-admin' | 'company-admin' | 'store-ops'>;
+}
+
+interface HelpFaqItem {
+  question: string;
+  answer: string;
+  audiences: Array<'saas-admin' | 'company-admin' | 'store-ops'>;
 }
 
 const setupCards: HelpCard[] = [
@@ -27,6 +36,7 @@ const setupCards: HelpCard[] = [
       'Review feature entitlements before onboarding the company.',
       'Create the first company admin from Users and Permissions.',
     ],
+    audiences: ['saas-admin'],
   },
   {
     title: 'Company Admin Setup',
@@ -39,6 +49,7 @@ const setupCards: HelpCard[] = [
       'Use Billing, Inventory, Purchases, Compliance, and Reports as the working modules.',
       'Keep Help open for FAQs and onboarding during rollout.',
     ],
+    audiences: ['saas-admin', 'company-admin'],
   },
   {
     title: 'Store Login Setup',
@@ -51,58 +62,145 @@ const setupCards: HelpCard[] = [
       'Use Customers for history, credit, and loyalty visibility.',
       'Use Stock, Purchases, Compliance, and Reports for daily branch operations.',
     ],
+    audiences: ['saas-admin', 'company-admin', 'store-ops'],
   },
 ];
 
-const faqItems = [
+const faqItems: HelpFaqItem[] = [
   {
-    question: 'Which login should I use?',
+    question: 'What does SaaS Admin control?',
     answer:
-      'SaaS Admin is for platform ownership. Company Admin is for one company or chain. Store Login is for day-to-day branch work.',
-  },
-  {
-    question: 'Where do I create more users?',
-    answer:
-      'Open Users and Permissions. SaaS admins can create company admins. Company admins can create store operators and assign stores.',
+      'Use SaaS Admin for platform ownership: tenants, plans, pricing, feature entitlements, company onboarding, and cross-company rollout control.',
+    audiences: ['saas-admin'],
   },
   {
     question: 'Where do I change plans, pricing, or feature access?',
     answer:
       'Open SaaS Admin. That area controls tenants, plans, pricing, feature entitlements, and platform-level rollout decisions.',
+    audiences: ['saas-admin'],
   },
   {
-    question: 'Where do I switch stores?',
+    question: 'What does Company Admin control?',
     answer:
-      'Use the branch selector in the legacy workspace shell or the Setup page. The active store drives billing, stock, compliance, and report data.',
+      'Company admins manage their own company only: users, stores, permissions, billing operations, stock, purchases, compliance, reports, and daily branch rollout.',
+    audiences: ['saas-admin', 'company-admin'],
+  },
+  {
+    question: 'Where do I create more users?',
+    answer:
+      'Open Users and Permissions. SaaS admins can create company admins. Company admins can create store operators and assign stores.',
+    audiences: ['saas-admin', 'company-admin'],
+  },
+  {
+    question: 'Where do I switch between company stores?',
+    answer:
+      'Use the store selector in the legacy workspace shell. SaaS admins can switch across companies and stores, while company admins can switch only within their own company stores.',
+    audiences: ['saas-admin', 'company-admin'],
+  },
+  {
+    question: 'What does Store Login control?',
+    answer:
+      'Store logins stay focused on one assigned branch. Use them for billing, customers, stock lookup, inward stock, compliance, purchase entry, and store-level reports.',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'],
+  },
+  {
+    question: 'Can a store login manage other stores, users, or pricing?',
+    answer:
+      'No. Store logins do not manage company setup, plan pricing, or cross-store controls. Those actions stay with company admins or SaaS admins.',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
     question: 'Where do daily store teams spend most of their time?',
     answer:
       'Billing, Customers, Stock, Purchases, Compliance, and Reports. Those are the main daily-use areas for store operations.',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
-    question: 'Where are explanations and buyer-style notes kept now?',
+    question: 'Where are explanations and rollout notes kept now?',
     answer:
-      'They live in Help and FAQ or in the Enterprise page, so the working screens stay focused on real operations instead of scattered explanatory notes.',
+      'They stay in Help and FAQ or in the Enterprise page, so the working screens stay focused on real operations instead of scattered explanatory notes.',
+    audiences: ['saas-admin', 'company-admin'],
   },
 ];
 
 const moduleMap = [
-  ['Admin Control', 'Companies, plans, pricing, feature entitlements, rollout control', '/lifepill/platform'],
-  ['Users and Permissions', 'Create company admins and store operators, assign stores, manage access', '/lifepill/users'],
-  ['Billing', 'Invoices, GST, barcode, loose tablets, substitutes, WhatsApp/PDF/print', '/lifepill/billing'],
-  ['Customers', 'Credit, loyalty, patient history, repeat customer lookup', '/lifepill/customers'],
-  ['Inventory', 'Batches, stock visibility, shortage, expiry-safe stock review', '/lifepill/inventory'],
-  ['Purchases', 'Suppliers, inward entry, purchase import, credit notes', '/lifepill/procurement'],
-  ['Compliance', 'Schedule H/H1/X, doctor and patient capture, inspector-ready reporting', '/lifepill/compliance'],
-  ['Reports', 'GST, profit, daily sales, top sellers, slow movers, expiry loss', '/lifepill/reports/gst'],
-  ['Stores', 'Branch structure, store directory, HO and rollout view', '/lifepill/stores'],
+  {
+    title: 'Admin Control',
+    summary: 'Companies, plans, pricing, feature entitlements, rollout control',
+    route: '/lifepill/platform',
+    audiences: ['saas-admin'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Users and Permissions',
+    summary: 'Create company admins and store operators, assign stores, manage access',
+    route: '/lifepill/users',
+    audiences: ['saas-admin', 'company-admin'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Billing',
+    summary: 'Invoices, GST, barcode, loose tablets, substitutes, WhatsApp/PDF/print',
+    route: '/lifepill/billing',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Customers',
+    summary: 'Credit, loyalty, patient history, repeat customer lookup',
+    route: '/lifepill/customers',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Inventory',
+    summary: 'Batches, stock visibility, shortage, expiry-safe stock review',
+    route: '/lifepill/inventory',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Purchases',
+    summary: 'Suppliers, inward entry, purchase import, credit notes',
+    route: '/lifepill/procurement',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Compliance',
+    summary: 'Schedule H/H1/X, doctor and patient capture, inspector-ready reporting',
+    route: '/lifepill/compliance',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Reports',
+    summary: 'GST, profit, daily sales, top sellers, slow movers, expiry loss',
+    route: '/lifepill/reports/gst',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
+  {
+    title: 'Stores',
+    summary: 'Branch structure, store directory, HO and rollout view',
+    route: '/lifepill/stores',
+    audiences: ['saas-admin', 'company-admin'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+  },
 ];
 
 const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const context = usePharmaFlowContext();
   const persona = getPharmaFlowPersona(context);
   const roleLabel = getPharmaFlowRoleLabel(context.role, context.platformOwner);
+  const visibleSetupCards =
+    persona === 'guest'
+      ? setupCards
+      : setupCards.filter((card) => card.audiences.includes(persona));
+  const visibleFaqItems =
+    persona === 'guest'
+      ? faqItems
+      : faqItems.filter((item) => item.audiences.includes(persona));
+  const visibleModuleMap =
+    persona === 'guest'
+      ? moduleMap
+      : moduleMap.filter((item) => item.audiences.includes(persona));
+  const primaryAction = canAccessPlatformControls(context)
+    ? { route: '/lifepill/platform', label: 'Open SaaS Admin' }
+    : canAccessCompanyControls(context)
+      ? { route: '/lifepill/users', label: 'Open users and access' }
+      : { route: '/lifepill/billing', label: 'Open store workspace' };
 
   return (
     <PharmaFlowShell
@@ -111,10 +209,10 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
       description="Use this page for setup instructions, role-specific onboarding, and quick answers while keeping the working modules free of scattered explanatory notes."
       actions={
         <Link
-          to="/lifepill/setup"
+          to={primaryAction.route}
           className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
         >
-          Open company setup
+          {primaryAction.label}
         </Link>
       }
     >
@@ -122,14 +220,14 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
         <div className="text-lg font-semibold">Current session</div>
         <p className="mt-2 max-w-3xl leading-6">
           You are currently signed in as <span className="font-semibold">{roleLabel}</span>.
-          {persona === 'saas-admin' && ' Start in SaaS Admin, then create company admins and hand off stores.'}
-          {persona === 'company-admin' && ' Start in Users and Permissions, then move into Stores, Billing, Inventory, Purchases, Compliance, and Reports.'}
-          {persona === 'store-ops' && ' Start in Billing and keep the store workspace focused on daily operations.'}
+          {persona === 'saas-admin' && ' You can control platform, company, and store layers from here.'}
+          {persona === 'company-admin' && ' You can control your company and its stores, but not the SaaS platform layer.'}
+          {persona === 'store-ops' && ' Your workspace stays focused on your own store, daily billing, stock, customers, compliance, and reports.'}
         </p>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3">
-        {setupCards.map((card) => (
+        {visibleSetupCards.map((card) => (
           <div key={card.title} className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Quick Start</div>
             <h2 className="mt-3 text-xl font-semibold text-slate-950">{card.title}</h2>
@@ -164,12 +262,12 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
               </tr>
             </thead>
             <tbody>
-              {moduleMap.map(([title, summary, route]) => (
-                <tr key={title} className="border-t border-slate-100">
-                  <td className="px-4 py-3 font-medium text-slate-900">{title}</td>
-                  <td className="px-4 py-3 text-slate-600">{summary}</td>
+              {visibleModuleMap.map((item) => (
+                <tr key={item.title} className="border-t border-slate-100">
+                  <td className="px-4 py-3 font-medium text-slate-900">{item.title}</td>
+                  <td className="px-4 py-3 text-slate-600">{item.summary}</td>
                   <td className="px-4 py-3">
-                    <Link to={route} className="text-sm font-medium text-sky-700">
+                    <Link to={item.route} className="text-sm font-medium text-sky-700">
                       Open
                     </Link>
                   </td>
@@ -184,7 +282,7 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
         <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">FAQ</div>
         <h2 className="mt-3 text-xl font-semibold text-slate-950">Common setup and access questions</h2>
         <div className="mt-5 grid gap-3">
-          {faqItems.map((item) => (
+          {visibleFaqItems.map((item) => (
             <div key={item.question} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
               <div className="text-base font-semibold text-slate-950">{item.question}</div>
               <p className="mt-2 text-sm leading-6 text-slate-600">{item.answer}</p>

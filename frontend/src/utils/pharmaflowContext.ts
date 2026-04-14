@@ -16,6 +16,11 @@ export interface PharmaFlowContextSnapshot {
   hasToken: boolean;
 }
 
+interface StoreScopeRecord {
+  storeId: string;
+  tenantId?: string;
+}
+
 export const readPharmaFlowContext = (): PharmaFlowContextSnapshot => {
   if (typeof window === 'undefined') {
     return {
@@ -110,6 +115,51 @@ export const getPharmaFlowHomePath = (
     default:
       return '/legacy-login';
   }
+};
+
+export const canAccessCompanyControls = (
+  context: PharmaFlowContextSnapshot = readPharmaFlowContext()
+) => {
+  const persona = getPharmaFlowPersona(context);
+  return persona === 'saas-admin' || persona === 'company-admin';
+};
+
+export const canAccessPlatformControls = (
+  context: PharmaFlowContextSnapshot = readPharmaFlowContext()
+) => getPharmaFlowPersona(context) === 'saas-admin';
+
+export const canSwitchStores = (
+  context: PharmaFlowContextSnapshot = readPharmaFlowContext()
+) => {
+  const persona = getPharmaFlowPersona(context);
+  return persona === 'saas-admin' || persona === 'company-admin';
+};
+
+export const getVisibleStoresForContext = <T extends StoreScopeRecord>(
+  stores: T[],
+  context: PharmaFlowContextSnapshot = readPharmaFlowContext()
+) => {
+  const persona = getPharmaFlowPersona(context);
+
+  if (persona === 'saas-admin') {
+    return stores;
+  }
+
+  if (persona === 'company-admin') {
+    if (!context.tenantId) {
+      return [];
+    }
+    return stores.filter((store) => store.tenantId === context.tenantId);
+  }
+
+  if (persona === 'store-ops') {
+    if (!context.storeId) {
+      return [];
+    }
+    return stores.filter((store) => store.storeId === context.storeId);
+  }
+
+  return [];
 };
 
 export const savePharmaFlowSession = (response: AuthResponse) => {

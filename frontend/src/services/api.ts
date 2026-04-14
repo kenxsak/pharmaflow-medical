@@ -518,6 +518,8 @@ export interface CustomerLookupResponse {
   customerId: string;
   name: string;
   phone: string;
+  email?: string;
+  address?: string;
   doctorName?: string;
   creditLimit: number;
   currentBalance: number;
@@ -533,6 +535,7 @@ export interface CustomerCreateRequest {
   address?: string;
   doctorName?: string;
   creditLimit?: number;
+  blocked?: boolean;
 }
 
 export interface PatientHistoryResponse {
@@ -824,6 +827,18 @@ export const CustomerAPI = {
   create: (storeId: string, payload: CustomerCreateRequest): Promise<CustomerLookupResponse> =>
     fetchJson(`${BASE_URL}/customers?storeId=${storeId}`, {
       method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  get: (customerId: string): Promise<CustomerLookupResponse> =>
+    fetchJson(`${BASE_URL}/customers/${customerId}`, {
+      headers: getHeaders(),
+    }),
+
+  update: (customerId: string, payload: CustomerCreateRequest): Promise<CustomerLookupResponse> =>
+    fetchJson(`${BASE_URL}/customers/${customerId}`, {
+      method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify(payload),
     }),

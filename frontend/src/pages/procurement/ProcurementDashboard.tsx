@@ -15,6 +15,7 @@ import {
 import LegacyModal from '../../shared/legacy/LegacyModal';
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
 import { downloadCsv } from '../../utils/exportCsv';
+import { formatDateAsStartOfDayLocalDateTime } from '../../utils/dateTime';
 
 interface CreditDraftItem extends StockBatchResponse {
   quantity: number;
@@ -222,12 +223,20 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
   const handleManualImport = async () => {
     clearImportState();
+    if (!selectedSupplierId) {
+      setError('Choose or create a supplier before importing stock.');
+      return;
+    }
+    if (!invoiceNumber.trim()) {
+      setError('Enter the supplier invoice number before importing stock.');
+      return;
+    }
     try {
       const payload: PurchaseImportRequest = {
         supplierId: selectedSupplierId,
         invoiceNumber,
         poNumber: poNumber || undefined,
-        purchaseDate: purchaseDate ? new Date(`${purchaseDate}T00:00:00`).toISOString() : undefined,
+        purchaseDate: purchaseDate ? formatDateAsStartOfDayLocalDateTime(purchaseDate) : undefined,
         rows: rows.map((row) => ({
           ...row,
           brandName: row.brandName || undefined,
@@ -253,6 +262,14 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
   const handleCsvImport = async () => {
     clearImportState();
+    if (!selectedSupplierId) {
+      setError('Choose or create a supplier before importing stock.');
+      return;
+    }
+    if (!invoiceNumber.trim()) {
+      setError('Enter the supplier invoice number before importing stock.');
+      return;
+    }
     if (!csvFile) {
       setError('Choose a CSV file before importing.');
       return;
@@ -264,7 +281,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           supplierId: selectedSupplierId,
           invoiceNumber,
           poNumber: poNumber || undefined,
-          purchaseDate: purchaseDate ? new Date(`${purchaseDate}T00:00:00`).toISOString() : undefined,
+          purchaseDate: purchaseDate ? formatDateAsStartOfDayLocalDateTime(purchaseDate) : undefined,
         },
         csvFile
       );

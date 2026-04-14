@@ -5,6 +5,8 @@ import { StoreAPI, StoreSummary } from '../../services/api';
 import { useBranding } from '../../utils/branding';
 import {
   announcePharmaFlowContextChange,
+  canAccessCompanyControls,
+  getVisibleStoresForContext,
   usePharmaFlowContext,
 } from '../../utils/pharmaflowContext';
 
@@ -19,6 +21,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
   const [error, setError] = useState<string | null>(null);
   const [activeStoreId, setActiveStoreId] = useState(context.storeId);
   const [activeStoreCode, setActiveStoreCode] = useState(context.storeCode);
+  const canManageStores = canAccessCompanyControls(context);
 
   const storeCount = stores.filter((store) => store.storeType === 'STORE').length;
   const warehouseCount = stores.filter((store) => store.storeType === 'WAREHOUSE').length;
@@ -30,15 +33,51 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
   }, [context.storeCode, context.storeId]);
 
   useEffect(() => {
+    if (!canManageStores) {
+      setStores([]);
+      return;
+    }
     StoreAPI.list()
       .then((items) => {
-        setStores(items);
+        setStores(getVisibleStoresForContext(items, context));
         setError(null);
       })
       .catch((loadError) => {
         setError(loadError instanceof Error ? loadError.message : 'Unable to load store list.');
       });
-  }, []);
+  }, [canManageStores, context]);
+
+  if (!canManageStores) {
+    return (
+      <PharmaFlowShell
+        embedded={embedded}
+        title="Multi-Store Operations"
+        description="Company and SaaS admins use this area to manage store directories and multi-store rollout."
+      >
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-5 text-sm text-amber-950 shadow-sm">
+          <div className="text-lg font-semibold">This area is limited to company and SaaS admins.</div>
+          <p className="mt-2 max-w-3xl leading-6">
+            Store logins stay focused on their assigned branch. Use Billing, Customers, Stock, Purchases,
+            Compliance, and Reports for daily operations.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              to="/lifepill/help"
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+            >
+              Open help center
+            </Link>
+            <Link
+              to="/lifepill/billing"
+              className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700"
+            >
+              Open billing
+            </Link>
+          </div>
+        </section>
+      </PharmaFlowShell>
+    );
+  }
 
   const makeActive = (store: StoreSummary) => {
     setActiveStoreId(store.storeId);

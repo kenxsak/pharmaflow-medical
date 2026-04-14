@@ -7,6 +7,7 @@ import { BrandingSnapshot, resetBranding, saveBranding, useBranding } from '../.
 import {
   announcePharmaFlowContextChange,
   clearPharmaFlowSession,
+  getVisibleStoresForContext,
   getPharmaFlowHomePath,
   getPharmaFlowRoleLabel,
   readPharmaFlowContext,
@@ -109,11 +110,12 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
     setIsLoadingStores(true);
     StoreAPI.list()
       .then((items) => {
-        setStores(items);
-        if (!selectedStoreId && items.length > 0) {
-          localStorage.setItem('pharmaflow_store_id', items[0].storeId);
-          localStorage.setItem('pharmaflow_store_code', items[0].storeCode);
-          setSelectedStoreId(items[0].storeId);
+        const scopedStores = getVisibleStoresForContext(items, context);
+        setStores(scopedStores);
+        if (!selectedStoreId && scopedStores.length > 0) {
+          localStorage.setItem('pharmaflow_store_id', scopedStores[0].storeId);
+          localStorage.setItem('pharmaflow_store_code', scopedStores[0].storeCode);
+          setSelectedStoreId(scopedStores[0].storeId);
           announcePharmaFlowContextChange();
         }
       })
@@ -121,7 +123,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
         setError(loadError instanceof Error ? loadError.message : 'Unable to load stores.');
       })
       .finally(() => setIsLoadingStores(false));
-  }, [context.hasToken, selectedStoreId]);
+  }, [context, selectedStoreId]);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();

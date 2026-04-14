@@ -41,6 +41,7 @@ const emptyCustomerDraft: CustomerCreateRequest = {
   address: '',
   doctorName: '',
   creditLimit: 0,
+  blocked: false,
 };
 
 interface CustomersDashboardProps {
@@ -58,7 +59,8 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<'create' | 'edit'>('create');
 
   const loadCustomers = async (nextQuery = query) => {
     if (!storeId) {
@@ -88,11 +90,14 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
   }, [storeId]);
 
   const openCustomer = async (customer: CustomerLookupResponse) => {
-    setSelectedCustomer(customer);
     setLoadingHistory(true);
     setMessage(null);
     try {
-      const history = await CustomerAPI.getHistory(customer.customerId, 50);
+      const [details, history] = await Promise.all([
+        CustomerAPI.get(customer.customerId),
+        CustomerAPI.getHistory(customer.customerId, 50),
+      ]);
+      setSelectedCustomer(details);
       setPatientHistory(history);
       setError(null);
     } catch (historyError) {
@@ -103,24 +108,70 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
     }
   };
 
-  const handleCreateCustomer = async () => {
-    if (!storeId) {
+  const openCreateEditor = () => {
+    setEditorMode('create');
+    setCustomerDraft(emptyCustomerDraft);
+    setIsEditorOpen(true);
+    setError(null);
+    setMessage(null);
+  };
+
+  const openEditEditor = () => {
+    if (!selectedCustomer) {
       return;
     }
+    setEditorMode('edit');
+    setCustomerDraft({
+      name: selectedCustomer.name || '',
+      phone: selectedCustomer.phone || '',
+      email: selectedCustomer.email || '',
+      address: selectedCustomer.address || '',
+      doctorName: selectedCustomer.doctorName || '',
+      creditLimit: Number(selectedCustomer.creditLimit || 0),
+      blocked: Boolean(selectedCustomer.blocked),
+    });
+    setIsEditorOpen(true);
+    setError(null);
+    setMessage(null);
+  };
 
+  const handleSaveCustomer = async () => {
     try {
-      const created = await CustomerAPI.create(storeId, {
+      const payload = {
         ...customerDraft,
         creditLimit: Number(customerDraft.creditLimit || 0),
-      });
+        blocked: Boolean(customerDraft.blocked),
+      };
+
+      if (editorMode === 'create') {
+        if (!storeId) {
+          return;
+        }
+        const created = await CustomerAPI.create(storeId, payload);
+        setCustomerDraft(emptyCustomerDraft);
+        setIsEditorOpen(false);
+        setMessage(`Customer ${created.name} created successfully.`);
+        setError(null);
+        await loadCustomers(query);
+        await openCustomer(created);
+        return;
+      }
+
+      if (!selectedCustomer) {
+        return;
+      }
+
+      const updated = await CustomerAPI.update(selectedCustomer.customerId, payload);
       setCustomerDraft(emptyCustomerDraft);
-      setIsCreateModalOpen(false);
-      setMessage(`Customer ${created.name} created successfully.`);
+      setIsEditorOpen(false);
+      setSelectedCustomer(updated);
+      setCustomers((prev) =>
+        prev.map((customer) => (customer.customerId === updated.customerId ? updated : customer))
+      );
+      setMessage(`Customer ${updated.name} updated successfully.`);
       setError(null);
-      await loadCustomers(query);
-      await openCustomer(created);
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : 'Unable to create customer.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unable to save customer.');
       setMessage(null);
     }
   };
@@ -321,9 +372,9 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
               </div>
             </div>
 
-            <div className="grid gap-3">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-950">What this flow captures</div>
+              <div className="grid gap-3">
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-sm font-semibold text-slate-950">What this flow captures</div>
                 <div className="mt-3 grid gap-2 text-sm text-slate-600">
                   <div>Customer identity and contact details</div>
                   <div>Credit limit for branch-level credit control</div>
@@ -341,7 +392,7 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
 
             <button
               type="button"
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={openCreateEditor}
               className="mt-4 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white"
             >
               Add Customer
@@ -358,17 +409,28 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
                   Credit, loyalty, and patient profile summary.
                 </p>
               </div>
-              {selectedCustomer && (
-                <div
-                  className={`rounded-full px-3 py-2 text-xs font-medium ${
-                    selectedCustomer.blocked
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-emerald-100 text-emerald-700'
-                  }`}
-                >
-                  {selectedCustomer.blocked ? 'Credit blocked' : 'Credit active'}
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedCustomer && (
+                  <div
+                    className={`rounded-full px-3 py-2 text-xs font-medium ${
+                      selectedCustomer.blocked
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}
+                  >
+                    {selectedCustomer.blocked ? 'Credit blocked' : 'Credit active'}
+                  </div>
+                )}
+                {selectedCustomer && (
+                  <button
+                    type="button"
+                    onClick={openEditEditor}
+                    className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-medium"
+                  >
+                    Edit customer
+                  </button>
+                )}
+              </div>
             </div>
 
             {!selectedCustomer && (
@@ -382,6 +444,9 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
                 <div className="rounded-3xl bg-slate-50 p-4">
                   <div className="text-lg font-semibold text-slate-950">{selectedCustomer.name}</div>
                   <div className="mt-1 text-sm text-slate-500">{selectedCustomer.phone || 'No phone recorded'}</div>
+                  <div className="mt-1 text-sm text-slate-500">
+                    {selectedCustomer.email || 'No email recorded'}
+                  </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl bg-white p-3">
                       <div className="text-xs uppercase tracking-wide text-slate-400">Credit Limit</div>
@@ -405,6 +470,18 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
                       <div className="text-xs uppercase tracking-wide text-slate-400">Loyalty Points</div>
                       <div className="mt-2 font-semibold text-slate-950">
                         {selectedCustomer.loyaltyPoints || 0}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-3">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">Default Doctor</div>
+                      <div className="mt-2 font-semibold text-slate-950">
+                        {selectedCustomer.doctorName || 'Not assigned'}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-3 sm:col-span-2">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">Address</div>
+                      <div className="mt-2 font-semibold text-slate-950">
+                        {selectedCustomer.address || 'No address recorded'}
                       </div>
                     </div>
                   </div>
@@ -499,29 +576,35 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
       </div>
 
       <LegacyModal
-        open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Register customer"
-        description="Capture the customer once, then reuse the same profile for billing, loyalty, credit, and patient history."
+        open={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        title={editorMode === 'create' ? 'Register customer' : 'Edit customer'}
+        description={
+          editorMode === 'create'
+            ? 'Capture the customer once, then reuse the same profile for billing, loyalty, credit, and patient history.'
+            : 'Update the customer profile without leaving the branch workspace.'
+        }
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-slate-500">
-              This customer will be created for the active branch and will be available for daily operations.
+              {editorMode === 'create'
+                ? 'This customer will be created for the active branch and will be available for daily operations.'
+                : 'Save profile changes and continue working with the same customer record immediately.'}
             </div>
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={() => setIsEditorOpen(false)}
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => void handleCreateCustomer()}
+                onClick={() => void handleSaveCustomer()}
                 className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
-                Create customer
+                {editorMode === 'create' ? 'Create customer' : 'Save changes'}
               </button>
             </div>
           </div>
@@ -587,6 +670,15 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
                 className="w-full rounded-2xl border border-slate-300 px-3 py-2"
               />
             </label>
+            <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={Boolean(customerDraft.blocked)}
+                onChange={(event) => setCustomerDraft((prev) => ({ ...prev, blocked: event.target.checked }))}
+                className="h-4 w-4 rounded border-slate-300"
+              />
+              Block credit usage for this customer
+            </label>
           </div>
 
           <div className="space-y-3">
@@ -597,6 +689,7 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
                 <div>Phone: <span className="font-semibold">{customerDraft.phone || 'Not entered yet'}</span></div>
                 <div>Doctor: <span className="font-semibold">{customerDraft.doctorName || 'Not assigned'}</span></div>
                 <div>Credit limit: <span className="font-semibold">{currency(Number(customerDraft.creditLimit || 0))}</span></div>
+                <div>Credit status: <span className="font-semibold">{customerDraft.blocked ? 'Blocked' : 'Active'}</span></div>
               </div>
             </div>
 

@@ -1,13 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
 import {
   MedicineAPI,
   MedicineSearchResult,
+  PurchaseAPI,
   ReportsAPI,
   ShortageItemResponse,
   StockBatchResponse,
+  SupplierSummary,
 } from '../../services/api';
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
+import LegacyModal from '../../shared/legacy/LegacyModal';
+import { formatDateInput, formatLocalDateTime } from '../../utils/dateTime';
 
 const quickSearches = ['8901234500001', 'Dolo 650', 'Mox 500', 'Alprax 0.25'];
 
@@ -17,6 +22,48 @@ const expiryBadgeClasses: Record<string, string> = {
   EXPIRY_60: 'bg-sky-100 text-sky-700',
   EXPIRY_90: 'bg-indigo-100 text-indigo-700',
   OK: 'bg-emerald-100 text-emerald-700',
+};
+
+interface OpeningStockDraft {
+  supplierId: string;
+  newSupplierName: string;
+  newSupplierContact: string;
+  invoiceNumber: string;
+  batchNumber: string;
+  manufactureDate: string;
+  expiryDate: string;
+  quantity: number;
+  freeQty: number;
+  purchaseRate: number;
+  mrp: number;
+  gstRate: number;
+}
+
+const createOpeningStockDraft = (
+  medicine: MedicineSearchResult | null,
+  supplierId = '',
+  supplierName = ''
+): OpeningStockDraft => {
+  const today = new Date();
+  const expiryDate = new Date(today);
+  expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+  const mrp = Number(medicine?.mrp || 0);
+  const purchaseRate = Number((mrp > 0 ? mrp * 0.65 : 0).toFixed(2));
+
+  return {
+    supplierId,
+    newSupplierName: supplierName || 'Opening Stock Supplier',
+    newSupplierContact: 'Demo inward supplier',
+    invoiceNumber: `OPEN-${Date.now()}`,
+    batchNumber: `BATCH-${Date.now().toString().slice(-6)}`,
+    manufactureDate: '',
+    expiryDate: formatDateInput(expiryDate),
+    quantity: 10,
+    freeQty: 0,
+    purchaseRate,
+    mrp,
+    gstRate: Number(medicine?.gstRate || 0),
+  };
 };
 
 interface InventoryDashboardProps {
@@ -31,21 +78,32 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
   const [selectedMedicine, setSelectedMedicine] = useState<MedicineSearchResult | null>(null);
   const [stockRows, setStockRows] = useState<StockBatchResponse[]>([]);
   const [shortageRows, setShortageRows] = useState<ShortageItemResponse[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isOpeningStockOpen, setIsOpeningStockOpen] = useState(false);
+  const [openingStockDraft, setOpeningStockDraft] = useState<OpeningStockDraft>(() =>
+    createOpeningStockDraft(null)
+  );
 
   useEffect(() => {
     if (!storeId) {
       setShortageRows([]);
       setStockRows([]);
       setSelectedMedicine(null);
+      setSuppliers([]);
       setError('Choose the active store in Company Setup before opening inventory.');
       return;
     }
 
-    ReportsAPI.getShortageReport(storeId)
-      .then(setShortageRows)
+    Promise.all([ReportsAPI.getShortageReport(storeId), PurchaseAPI.listSuppliers()])
+      .then(([shortage, supplierRows]) => {
+        setShortageRows(shortage);
+        setSuppliers(supplierRows);
+        setError(null);
+      })
       .catch((loadError) => {
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load shortage report.');
+        setError(loadError instanceof Error ? loadError.message : 'Unable to load inventory context.');
       });
   }, [storeId]);
 
@@ -76,10 +134,121 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
       setStockRows(rows);
       setSearchResults([]);
       setSearchQuery(medicine.brandName);
+      setMessage(null);
       setError(null);
     } catch (stockError) {
       setError(stockError instanceof Error ? stockError.message : 'Unable to load stock.');
+    }
+  };
+
+  const openOpeningStockEditor = () => {
+    if (!selectedMedicine) {
+      return;
+    }
+    setOpeningStockDraft(
+      createOpeningStockDraft(
+        selectedMedicine,
+        suppliers[0]?.supplierId || '',
+        suppliers.length === 0 ? 'Opening Stock Supplier' : ''
+      )
+    );
+    setIsOpeningStockOpen(true);
+    setError(null);
+    setMessage(null);
+  };
+
+  const handleOpeningStockChange = <K extends keyof OpeningStockDraft>(
+    key: K,
+    value: OpeningStockDraft[K]
+  ) => {
+    setOpeningStockDraft((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
+  const handleOpeningStockSubmit = async () => {
+    if (!selectedMedicine || !storeId) {
+      return;
+    }
+
+    if (!openingStockDraft.invoiceNumber.trim()) {
+      setError('Enter an invoice number before inwarding opening stock.');
+      setMessage(null);
+      return;
+    }
+
+    if (!openingStockDraft.batchNumber.trim()) {
+      setError('Enter a batch number before inwarding opening stock.');
+      setMessage(null);
+      return;
+    }
+
+    if (!openingStockDraft.expiryDate) {
+      setError('Choose an expiry date before inwarding opening stock.');
+      setMessage(null);
+      return;
+    }
+
+    if (Number(openingStockDraft.quantity) <= 0) {
+      setError('Opening stock quantity must be greater than zero.');
+      setMessage(null);
+      return;
+    }
+
+    try {
+      let supplierId = openingStockDraft.supplierId;
+
+      if (!supplierId) {
+        const createdSupplier = await PurchaseAPI.createSupplier({
+          name: openingStockDraft.newSupplierName.trim() || 'Opening Stock Supplier',
+          contact: openingStockDraft.newSupplierContact.trim() || undefined,
+          phone: undefined,
+          email: undefined,
+          gstin: undefined,
+          drugLicense: undefined,
+          address: 'Created from inventory opening stock',
+        });
+        supplierId = createdSupplier.supplierId;
+        setSuppliers((prev) => [...prev, createdSupplier]);
       }
+
+      const response = await PurchaseAPI.importJson({
+        supplierId,
+        invoiceNumber: openingStockDraft.invoiceNumber.trim(),
+        purchaseDate: formatLocalDateTime(),
+        rows: [
+          {
+            medicineId: selectedMedicine.medicineId,
+            batchNumber: openingStockDraft.batchNumber.trim(),
+            manufactureDate: openingStockDraft.manufactureDate || undefined,
+            expiryDate: openingStockDraft.expiryDate,
+            quantity: Number(openingStockDraft.quantity),
+            freeQty: Number(openingStockDraft.freeQty || 0),
+            purchaseRate: Number(openingStockDraft.purchaseRate),
+            mrp: Number(openingStockDraft.mrp),
+            gstRate: Number(openingStockDraft.gstRate),
+          },
+        ],
+      });
+
+      const refreshedShortage = await ReportsAPI.getShortageReport(storeId);
+      const refreshedMedicine =
+        (await MedicineAPI.search(selectedMedicine.brandName)).find(
+          (medicine) => medicine.medicineId === selectedMedicine.medicineId
+        ) || selectedMedicine;
+
+      setShortageRows(refreshedShortage);
+      setIsOpeningStockOpen(false);
+      setMessage(
+        `Stock inward completed for ${selectedMedicine.brandName}. ${response.importedRows} row imported into batch ${openingStockDraft.batchNumber}.`
+      );
+      setError(null);
+      await loadStock(refreshedMedicine);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Unable to inward stock.');
+      setMessage(null);
+    }
   };
 
   const shortageStrips = useMemo(
@@ -108,6 +277,18 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
       description="Check what is available right now, inspect batch-wise stock, and see what needs replenishment before the branch runs short."
     >
       <div className="space-y-5">
+        {(message || error) && (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm ${
+              error
+                ? 'border-rose-200 bg-rose-50 text-rose-900'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            }`}
+          >
+            {error || message}
+          </div>
+        )}
+
         <section className="rounded-[2rem] border border-sky-200 bg-gradient-to-r from-sky-50 via-white to-emerald-50 p-6 shadow-sm">
           <div className="grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
             <div>
@@ -154,12 +335,6 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
             </div>
           </div>
         </section>
-
-        {error && (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-            {error}
-          </div>
-        )}
 
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
@@ -249,6 +424,55 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
           </div>
 
           {selectedMedicine && (
+            <div className="mb-4 grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">Selected medicine</div>
+                <div className="mt-2 text-lg font-semibold text-slate-950">{selectedMedicine.brandName}</div>
+                <div className="mt-1 text-sm text-slate-500">
+                  {selectedMedicine.genericName || 'Generic not available'} • {selectedMedicine.manufacturer || 'Manufacturer not available'}
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-white p-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Pack size</div>
+                    <div className="mt-2 font-semibold text-slate-950">{selectedMedicine.packSize || 1}</div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">MRP</div>
+                    <div className="mt-2 font-semibold text-slate-950">₹{selectedMedicine.mrp.toFixed(2)}</div>
+                  </div>
+                  <div className="rounded-2xl bg-white p-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">GST</div>
+                    <div className="mt-2 font-semibold text-slate-950">{selectedMedicine.gstRate}%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="text-sm font-semibold text-emerald-900">Turn catalog medicine into billable stock</div>
+                <div className="mt-2 text-sm leading-6 text-emerald-900">
+                  If this medicine came from the uploaded master catalog but has no inward yet, add one batch here.
+                  Once stock is saved, the same medicine will show in billing for this store.
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={openOpeningStockEditor}
+                    className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+                  >
+                    Add opening stock
+                  </button>
+                  <Link
+                    to="/lifepill/billing"
+                    className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+                  >
+                    Open billing
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedMedicine && (
             <div className="mb-4 flex flex-wrap gap-2">
               {Object.entries(stockBuckets).map(([status, count]) => (
                 <div
@@ -297,7 +521,9 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 {!stockRows.length && (
                   <tr>
                     <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
-                      Search and select a medicine to open its batch-wise stock.
+                      {selectedMedicine
+                        ? 'No active stock exists yet for this medicine in the selected store. Use Add opening stock above.'
+                        : 'Search and select a medicine to open its batch-wise stock.'}
                     </td>
                   </tr>
                 )}
@@ -362,6 +588,186 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
           </div>
         </section>
       </div>
+
+      <LegacyModal
+        open={isOpeningStockOpen}
+        onClose={() => setIsOpeningStockOpen(false)}
+        title="Add opening stock"
+        description="Create a real inward entry for the selected medicine so it immediately becomes available for billing in this store."
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-slate-500">
+              This uses the purchase import service underneath, so the medicine enters stock the same way a real inward does.
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setIsOpeningStockOpen(false)}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleOpeningStockSubmit()}
+                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+              >
+                Save stock inward
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <div className="grid gap-4 xl:grid-cols-[1.08fr,0.92fr]">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">Supplier</span>
+              <select
+                value={openingStockDraft.supplierId}
+                onChange={(event) => handleOpeningStockChange('supplierId', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              >
+                <option value="">Create quick supplier below</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.supplierId} value={supplier.supplierId}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {!openingStockDraft.supplierId && (
+              <>
+                <label className="space-y-1 text-sm">
+                  <span className="font-medium text-slate-700">Quick supplier name</span>
+                  <input
+                    value={openingStockDraft.newSupplierName}
+                    onChange={(event) => handleOpeningStockChange('newSupplierName', event.target.value)}
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="font-medium text-slate-700">Supplier contact</span>
+                  <input
+                    value={openingStockDraft.newSupplierContact}
+                    onChange={(event) => handleOpeningStockChange('newSupplierContact', event.target.value)}
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                  />
+                </label>
+              </>
+            )}
+
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Invoice number</span>
+              <input
+                value={openingStockDraft.invoiceNumber}
+                onChange={(event) => handleOpeningStockChange('invoiceNumber', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Batch number</span>
+              <input
+                value={openingStockDraft.batchNumber}
+                onChange={(event) => handleOpeningStockChange('batchNumber', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Manufacture date</span>
+              <input
+                type="date"
+                value={openingStockDraft.manufactureDate}
+                onChange={(event) => handleOpeningStockChange('manufactureDate', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Expiry date</span>
+              <input
+                type="date"
+                value={openingStockDraft.expiryDate}
+                onChange={(event) => handleOpeningStockChange('expiryDate', event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Quantity (strips)</span>
+              <input
+                type="number"
+                min={1}
+                value={openingStockDraft.quantity}
+                onChange={(event) => handleOpeningStockChange('quantity', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Free quantity</span>
+              <input
+                type="number"
+                min={0}
+                value={openingStockDraft.freeQty}
+                onChange={(event) => handleOpeningStockChange('freeQty', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Purchase rate</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={openingStockDraft.purchaseRate}
+                onChange={(event) => handleOpeningStockChange('purchaseRate', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">MRP</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={openingStockDraft.mrp}
+                onChange={(event) => handleOpeningStockChange('mrp', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">GST rate</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={openingStockDraft.gstRate}
+                onChange={(event) => handleOpeningStockChange('gstRate', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4">
+              <div className="text-sm font-semibold text-sky-950">Inward preview</div>
+              <div className="mt-3 space-y-2 text-sm text-sky-900">
+                <div>Medicine: <span className="font-semibold">{selectedMedicine?.brandName || 'No medicine selected'}</span></div>
+                <div>Batch: <span className="font-semibold">{openingStockDraft.batchNumber || 'Not entered yet'}</span></div>
+                <div>Supplier: <span className="font-semibold">{suppliers.find((supplier) => supplier.supplierId === openingStockDraft.supplierId)?.name || openingStockDraft.newSupplierName || 'Quick supplier will be created'}</span></div>
+                <div>Total inward: <span className="font-semibold">{Number(openingStockDraft.quantity || 0) + Number(openingStockDraft.freeQty || 0)} strips</span></div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="text-sm font-semibold text-slate-950">What happens next</div>
+              <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                <div>A purchase inward row is created for the selected store.</div>
+                <div>The batch becomes visible in stock view immediately.</div>
+                <div>The same medicine can then be searched and billed from the counter screen.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </LegacyModal>
     </PharmaFlowShell>
   );
 };

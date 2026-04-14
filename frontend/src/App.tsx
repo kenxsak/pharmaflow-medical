@@ -33,7 +33,13 @@ import { useUserContext } from './context/UserContext';
 import ViewItem from './features/items-management/layout/ViewItem';
 import AddCompany from './features/seller-management/layouts/AddCompany';
 import UpdateCompany from './features/seller-management/layouts/UpdateCompany';
-import { getPharmaFlowPersona, usePharmaFlowContext } from './utils/pharmaflowContext';
+import {
+  canAccessCompanyControls,
+  canAccessPlatformControls,
+  getPharmaFlowHomePath,
+  getPharmaFlowPersona,
+  usePharmaFlowContext,
+} from './utils/pharmaflowContext';
 
 function RedirectLegacyPharmaFlowRoute() {
   const location = useLocation();
@@ -49,10 +55,21 @@ function App() {
   const { user } = useUserContext();
   const pharmaFlowContext = usePharmaFlowContext();
   const pharmaFlowPersona = getPharmaFlowPersona(pharmaFlowContext);
+  const pharmaFlowHomePath = getPharmaFlowHomePath(pharmaFlowContext);
   const isAdmin =
     user?.role === 'OWNER' ||
     pharmaFlowPersona === 'saas-admin' ||
     pharmaFlowPersona === 'company-admin';
+  const canOpenCompanyControls = user?.role === 'OWNER' || canAccessCompanyControls(pharmaFlowContext);
+  const canOpenPlatformControls = canAccessPlatformControls(pharmaFlowContext);
+  const companyControlsFallback =
+    pharmaFlowPersona === 'store-ops' ? '/lifepill/help' : '/legacy-login';
+  const platformControlsFallback =
+    pharmaFlowPersona === 'company-admin'
+      ? '/lifepill/users'
+      : pharmaFlowPersona === 'store-ops'
+        ? '/lifepill/help'
+        : '/legacy-login';
 
   return (
     <Router>
@@ -60,11 +77,47 @@ function App() {
         <Route path='/' element={<Navigate to='/legacy-login' replace />} />
         <Route path='/lifepill' element={<PharmaFlowEntry />} />
         <Route path='/lifepill/legacy-home' element={<PharmaFlowLegacyHome />} />
-        <Route path='/lifepill/setup' element={<PharmaFlowCommandCenter />} />
+        <Route
+          path='/lifepill/setup'
+          element={
+            canOpenCompanyControls ? (
+              <PharmaFlowCommandCenter />
+            ) : (
+              <Navigate to={companyControlsFallback} replace />
+            )
+          }
+        />
         <Route path='/lifepill/help' element={<PharmaFlowHelpCenter />} />
-        <Route path='/lifepill/enterprise' element={<EnterpriseReadinessDashboard />} />
-        <Route path='/lifepill/platform' element={<SaaSControlCenter />} />
-        <Route path='/lifepill/users' element={<UsersAccessDashboard />} />
+        <Route
+          path='/lifepill/enterprise'
+          element={
+            canOpenCompanyControls ? (
+              <EnterpriseReadinessDashboard />
+            ) : (
+              <Navigate to={companyControlsFallback} replace />
+            )
+          }
+        />
+        <Route
+          path='/lifepill/platform'
+          element={
+            canOpenPlatformControls ? (
+              <SaaSControlCenter />
+            ) : (
+              <Navigate to={platformControlsFallback} replace />
+            )
+          }
+        />
+        <Route
+          path='/lifepill/users'
+          element={
+            canOpenCompanyControls ? (
+              <UsersAccessDashboard />
+            ) : (
+              <Navigate to={companyControlsFallback} replace />
+            )
+          }
+        />
         <Route path='/lifepill/dashboard' element={<Navigate to='/lifepill' replace />} />
         <Route path='/lifepill/home' element={<Navigate to='/lifepill/legacy-home' replace />} />
         <Route path='/lifepill/launchpad' element={<Navigate to='/legacy-login' replace />} />
@@ -75,7 +128,16 @@ function App() {
         <Route path='/lifepill/procurement' element={<ProcurementDashboard />} />
         <Route path='/lifepill/billing-history' element={<BillingAuditDashboard />} />
         <Route path='/lifepill/inventory' element={<InventoryDashboard />} />
-        <Route path='/lifepill/stores' element={<StoreOperationsDashboard />} />
+        <Route
+          path='/lifepill/stores'
+          element={
+            canOpenCompanyControls ? (
+              <StoreOperationsDashboard />
+            ) : (
+              <Navigate to={companyControlsFallback} replace />
+            )
+          }
+        />
         <Route path='/lifepill/customers' element={<CustomersDashboard />} />
         <Route path='/legacy-login' element={<LogInPage />} />
         <Route
@@ -132,7 +194,10 @@ function App() {
         )}
 
         {/* Error route */}
-        <Route path='/*' element={<ErrorRoutePage />} />
+        <Route
+          path='/*'
+          element={pharmaFlowPersona !== 'guest' ? <Navigate to={pharmaFlowHomePath} replace /> : <ErrorRoutePage />}
+        />
       </Routes>
     </Router>
   );

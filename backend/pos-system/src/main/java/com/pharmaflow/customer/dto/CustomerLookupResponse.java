@@ -19,6 +19,8 @@ public class CustomerLookupResponse {
     private UUID customerId;
     private String name;
     private String phone;
+    private String email;
+    private String address;
     private String doctorName;
     private BigDecimal creditLimit;
     private BigDecimal currentBalance;

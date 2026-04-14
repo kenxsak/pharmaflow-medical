@@ -18,4 +18,5 @@ public class CustomerCreateRequest {
     private String address;
     private String doctorName;
     private BigDecimal creditLimit;
+    private Boolean blocked;
 }
