@@ -12,10 +12,6 @@ ALTER TABLE medicines ALTER COLUMN search_keywords TYPE TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_medicines_salt ON medicines(salt_id);
 CREATE INDEX IF NOT EXISTS idx_medicines_catalog_external ON medicines(catalog_source, external_product_id);
-CREATE INDEX IF NOT EXISTS idx_medicines_search_keywords_fts
-    ON medicines
-    USING GIN (to_tsvector('english', COALESCE(search_keywords, '')));
-
 CREATE UNIQUE INDEX IF NOT EXISTS uq_medicines_catalog_external
     ON medicines(catalog_source, external_product_id)
     WHERE external_product_id IS NOT NULL;
@@ -24,6 +20,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_medicine_substitute_pair
     ON medicine_substitutes(medicine_id, substitute_id);
 
 DROP TABLE IF EXISTS medicine_import_stage;
+DROP INDEX IF EXISTS idx_medicines_search_keywords_fts;
 
 CREATE TEMP TABLE medicine_import_stage (
     source_id TEXT,
@@ -98,6 +95,52 @@ WHERE NOT EXISTS (
 );
 
 \echo 'Importing medicines with salt-based composition metadata...'
+\echo 'Removing previously imported JUNIORALIVE_GITHUB catalogue rows before reload...'
+DELETE FROM medicine_substitutes
+WHERE medicine_id IN (
+    SELECT medicine_id FROM medicines WHERE catalog_source = 'JUNIORALIVE_GITHUB'
+)
+OR substitute_id IN (
+    SELECT medicine_id FROM medicines WHERE catalog_source = 'JUNIORALIVE_GITHUB'
+);
+
+DELETE FROM medicines
+WHERE catalog_source = 'JUNIORALIVE_GITHUB';
+
+DROP TABLE IF EXISTS manufacturer_lookup;
+CREATE TEMP TABLE manufacturer_lookup AS
+SELECT DISTINCT ON (lookup_key)
+    lookup_key,
+    manufacturer_id
+FROM (
+    SELECT
+        LOWER(TRIM(name)) AS lookup_key,
+        manufacturer_id
+    FROM manufacturers
+    WHERE NULLIF(TRIM(name), '') IS NOT NULL
+) source_lookup
+ORDER BY lookup_key, manufacturer_id;
+
+CREATE INDEX idx_manufacturer_lookup_key
+    ON manufacturer_lookup(lookup_key);
+
+DROP TABLE IF EXISTS salt_lookup;
+CREATE TEMP TABLE salt_lookup AS
+SELECT DISTINCT ON (lookup_key)
+    lookup_key,
+    salt_id
+FROM (
+    SELECT
+        LOWER(TRIM(salt_name)) AS lookup_key,
+        salt_id
+    FROM salt_compositions
+    WHERE NULLIF(TRIM(salt_name), '') IS NOT NULL
+) source_lookup
+ORDER BY lookup_key, salt_id;
+
+CREATE INDEX idx_salt_lookup_key
+    ON salt_lookup(lookup_key);
+
 WITH normalized AS (
     SELECT
         NULLIF(TRIM(source_id), '') AS source_id,
@@ -277,17 +320,15 @@ FROM (
         ) AS source_rank
     FROM prepared
 ) p
-LEFT JOIN manufacturers m
-    ON LOWER(TRIM(m.name)) = LOWER(TRIM(p.manufacturer_name))
-LEFT JOIN salt_compositions s
-    ON LOWER(TRIM(s.salt_name)) = LOWER(TRIM(COALESCE(p.salt1, SPLIT_PART(COALESCE(p.composition_summary, ''), '+', 1))))
-WHERE p.source_rank = 1
-  AND NOT EXISTS (
-    SELECT 1
-    FROM medicines existing
-    WHERE existing.catalog_source = 'JUNIORALIVE_GITHUB'
-      AND existing.external_product_id = p.source_id
-);
+LEFT JOIN manufacturer_lookup m
+    ON m.lookup_key = LOWER(TRIM(p.manufacturer_name))
+LEFT JOIN salt_lookup s
+    ON s.lookup_key = LOWER(TRIM(COALESCE(p.salt1, SPLIT_PART(COALESCE(p.composition_summary, ''), '+', 1))))
+WHERE p.source_rank = 1;
+
+CREATE INDEX IF NOT EXISTS idx_medicines_search_keywords_fts
+    ON medicines
+    USING GIN (to_tsvector('english', COALESCE(search_keywords, '')));
 
 \echo 'Dataset import completed. Current catalogue counts:'
 SELECT catalog_source, COUNT(*) AS medicine_count

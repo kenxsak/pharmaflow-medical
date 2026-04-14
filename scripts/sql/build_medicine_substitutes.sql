@@ -22,7 +22,13 @@ JOIN LATERAL (
         END AS is_generic,
         CASE
             WHEN base.mrp IS NULL OR base.mrp = 0 OR candidate.mrp IS NULL THEN 0::NUMERIC(5,2)
-            ELSE ROUND(((base.mrp - candidate.mrp) / base.mrp) * 100, 2)
+            ELSE GREATEST(
+                -999.99::NUMERIC,
+                LEAST(
+                    999.99::NUMERIC,
+                    ROUND(((base.mrp - candidate.mrp) / base.mrp) * 100, 2)
+                )
+            )::NUMERIC(5,2)
         END AS price_diff_pct
     FROM medicines candidate
     WHERE candidate.salt_id = base.salt_id
