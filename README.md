@@ -8,7 +8,7 @@ This repository contains the PharmaFlow/LifePill pharmacy SaaS demo stack:
 
 GitHub repo:
 
-- `https://github.com/rudrawhooo/pharmaflow-medical`
+- `https://github.com/kenxsak/pharmaflow-medical`
 
 ## Free Demo Hosting
 
