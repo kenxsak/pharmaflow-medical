@@ -19,7 +19,7 @@ const setupCards: HelpCard[] = [
   {
     title: 'SaaS Admin Setup',
     who: 'Use this when you own the platform and need to manage companies, plans, pricing, and feature entitlements.',
-    route: '/pharmaflow/platform',
+    route: '/lifepill/platform',
     routeLabel: 'Open SaaS Admin',
     checklist: [
       'Create or review the company tenant and select the right pricing plan.',
@@ -31,7 +31,7 @@ const setupCards: HelpCard[] = [
   {
     title: 'Company Admin Setup',
     who: 'Use this when you run one company or chain and need to manage stores, users, permissions, and daily operations.',
-    route: '/pharmaflow/users',
+    route: '/lifepill/users',
     routeLabel: 'Open Users and Access',
     checklist: [
       'Create store operators and assign each user to the correct store.',
@@ -88,15 +88,15 @@ const faqItems = [
 ];
 
 const moduleMap = [
-  ['SaaS Admin', 'Companies, plans, pricing, feature entitlements, rollout control', '/pharmaflow/platform'],
-  ['Users and Permissions', 'Create company admins and store operators, assign stores, manage access', '/pharmaflow/users'],
-  ['Billing', 'Invoices, GST, barcode, loose tablets, substitutes, WhatsApp/PDF/print', '/pharmaflow/billing'],
-  ['Customers', 'Credit, loyalty, patient history, repeat customer lookup', '/pharmaflow/customers'],
-  ['Inventory', 'Batches, stock visibility, shortage, expiry-safe stock review', '/pharmaflow/inventory'],
-  ['Purchases', 'Suppliers, inward entry, purchase import, credit notes', '/pharmaflow/procurement'],
-  ['Compliance', 'Schedule H/H1/X, doctor and patient capture, inspector-ready reporting', '/pharmaflow/compliance'],
-  ['Reports', 'GST, profit, daily sales, top sellers, slow movers, expiry loss', '/pharmaflow/reports/gst'],
-  ['Stores', 'Branch structure, store directory, HO and rollout view', '/pharmaflow/stores'],
+  ['Admin Control', 'Companies, plans, pricing, feature entitlements, rollout control', '/lifepill/platform'],
+  ['Users and Permissions', 'Create company admins and store operators, assign stores, manage access', '/lifepill/users'],
+  ['Billing', 'Invoices, GST, barcode, loose tablets, substitutes, WhatsApp/PDF/print', '/lifepill/billing'],
+  ['Customers', 'Credit, loyalty, patient history, repeat customer lookup', '/lifepill/customers'],
+  ['Inventory', 'Batches, stock visibility, shortage, expiry-safe stock review', '/lifepill/inventory'],
+  ['Purchases', 'Suppliers, inward entry, purchase import, credit notes', '/lifepill/procurement'],
+  ['Compliance', 'Schedule H/H1/X, doctor and patient capture, inspector-ready reporting', '/lifepill/compliance'],
+  ['Reports', 'GST, profit, daily sales, top sellers, slow movers, expiry loss', '/lifepill/reports/gst'],
+  ['Stores', 'Branch structure, store directory, HO and rollout view', '/lifepill/stores'],
 ];
 
 const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
@@ -111,7 +111,7 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
       description="Use this page for setup instructions, role-specific onboarding, and quick answers while keeping the working modules free of scattered explanatory notes."
       actions={
         <Link
-          to="/pharmaflow/setup"
+          to="/lifepill/setup"
           className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
         >
           Open company setup

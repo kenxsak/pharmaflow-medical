@@ -30,7 +30,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Store, HO, and warehouse context switching are live now. Enterprise transfer sync and real-time inter-branch orchestration are the next rollout layer.',
-    routePath: '/pharmaflow/stores',
+    routePath: '/lifepill/stores',
     routeLabel: 'Stores',
   },
   {
@@ -39,7 +39,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       '30/60/90-day expiry visibility is live today. Dump, return-to-vendor, and closure workflow need deeper RTV orchestration on top of the credit-note flow.',
-    routePath: '/pharmaflow/reports/expiry-alerts',
+    routePath: '/lifepill/reports/expiry-alerts',
     routeLabel: 'Expiry',
   },
   {
@@ -47,7 +47,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Bulk purchase import',
     status: 'Live',
     answer: 'CSV purchase import, supplier setup, and manual inward entry are live for high-SKU distributor invoices.',
-    routePath: '/pharmaflow/procurement',
+    routePath: '/lifepill/procurement',
     routeLabel: 'Purchases',
   },
   {
@@ -55,7 +55,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Salt-to-brand substitute suggestions',
     status: 'Live',
     answer: 'Triple medicine lookup and substitute suggestions are already exposed during billing.',
-    routePath: '/pharmaflow/billing',
+    routePath: '/lifepill/billing',
     routeLabel: 'Counter',
   },
   {
@@ -63,7 +63,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Schedule H1 and narcotic tracking',
     status: 'Live',
     answer: 'Schedule H / H1 / X capture, narcotic reporting, patient-doctor traceability, and inspector views are live.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -71,7 +71,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Batch and strip tracking with FIFO',
     status: 'Live',
     answer: 'Batch-aware stock, oldest-batch-first visibility, and strip/tablet handling are already supported in stock and billing flows.',
-    routePath: '/pharmaflow/inventory',
+    routePath: '/lifepill/inventory',
     routeLabel: 'Stock',
   },
   {
@@ -80,7 +80,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Credit-note creation is live in Purchases, while outlet collection, supplier dispatch, and reconciliation milestones should be added as the next enterprise workflow.',
-    routePath: '/pharmaflow/procurement',
+    routePath: '/lifepill/procurement',
     routeLabel: 'Purchases',
   },
   {
@@ -89,7 +89,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Prescription reference capture is live. Full scan-and-attach rollout depends on storage integration and upload workflow hardening.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -98,7 +98,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Customer credit and loyalty are live today. Cross-branch earning and redemption policy should be finalized as part of enterprise rollout rules.',
-    routePath: '/pharmaflow/customers',
+    routePath: '/lifepill/customers',
     routeLabel: 'Customers',
   },
   {
@@ -107,7 +107,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Extension-ready',
     answer:
       'Delivery entities are present in the backend foundation, but the delivery boy app and dispatch workflow still need their rollout UI.',
-    routePath: '/pharmaflow/enterprise',
+    routePath: '/lifepill/enterprise',
     routeLabel: 'Enterprise',
   },
   {
@@ -115,7 +115,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'GSTR-1 and GSTR-3B generation',
     status: 'Live',
     answer: 'GSTR-1, GSTR-3B, tax summary, and exportable reporting are live.',
-    routePath: '/pharmaflow/reports/gst',
+    routePath: '/lifepill/reports/gst',
     routeLabel: 'GST Reports',
   },
   {
@@ -123,7 +123,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Profit by manufacturer or category',
     status: 'Live',
     answer: 'Estimated profit by manufacturer and category is available with monthly sales context.',
-    routePath: '/pharmaflow/reports/profit',
+    routePath: '/lifepill/reports/profit',
     routeLabel: 'Profit',
   },
   {
@@ -131,7 +131,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Credit limits and billing block',
     status: 'Live',
     answer: 'Customer credit visibility and credit-limit validation are built into billing and customer views.',
-    routePath: '/pharmaflow/customers',
+    routePath: '/lifepill/customers',
     routeLabel: 'Customers',
   },
   {
@@ -140,7 +140,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'The positioning is hybrid cloud plus branch-local operations. Advanced offline sync and conflict handling still need the next reliability pass.',
-    routePath: '/pharmaflow/stores',
+    routePath: '/lifepill/stores',
     routeLabel: 'Stores',
   },
   {
@@ -149,7 +149,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Service pack',
     answer:
       'This is delivered as an operating SLA, not a screen. The product now exposes a tenant support identity so a branded support package can be attached to each deployment.',
-    routePath: '/pharmaflow/setup',
+    routePath: '/lifepill/setup',
     routeLabel: 'Company Setup',
   },
   {
@@ -157,7 +157,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Shortage report and reorder support',
     status: 'Live',
     answer: 'Shortage visibility and reorder-oriented reporting are already available and exportable.',
-    routePath: '/pharmaflow/reports/expiry-alerts',
+    routePath: '/lifepill/reports/expiry-alerts',
     routeLabel: 'Expiry',
   },
   {
@@ -165,7 +165,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Schedule H, H1, and X tracking',
     status: 'Live',
     answer: 'Tracked and reportable through the controlled-drug register.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -173,7 +173,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Mandatory sale registers for controlled drugs',
     status: 'Live',
     answer: 'Inspector-facing controlled-drug register export is live.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -181,7 +181,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Pharmacist login and audit trail for drug sales',
     status: 'Live',
     answer: 'Audit trail and controlled-sale capture are present in billing and compliance flows.',
-    routePath: '/pharmaflow/billing-history',
+    routePath: '/lifepill/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -189,7 +189,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Instant Drug Inspector reports',
     status: 'Live',
     answer: 'Drug Inspector register and monthly export flow are live.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -197,7 +197,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Doctor prescription tracking for restricted medicines',
     status: 'Live',
     answer: 'Patient, doctor, schedule, and prescription reference are all captured in compliance-linked billing.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -205,7 +205,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Patient history for prescription medicines',
     status: 'Live',
     answer: 'Customer and patient history are available from the customer workspace.',
-    routePath: '/pharmaflow/customers',
+    routePath: '/lifepill/customers',
     routeLabel: 'Customers',
   },
   {
@@ -213,7 +213,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'GST-compliant invoicing',
     status: 'Live',
     answer: 'GST-inclusive billing, invoice numbering, print, PDF, and WhatsApp share are live.',
-    routePath: '/pharmaflow/billing-history',
+    routePath: '/lifepill/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -221,7 +221,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Mandatory sale registers for controlled drugs (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q18 through the compliance register.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -229,7 +229,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Pharmacist audit trail for drug sales (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q19 through billing audit and compliance history.',
-    routePath: '/pharmaflow/billing-history',
+    routePath: '/lifepill/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -237,7 +237,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Instant Drug Inspector reports (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q20 through the compliance dashboard.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -245,7 +245,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Doctor prescription tracking (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q21 through schedule-linked billing and reporting.',
-    routePath: '/pharmaflow/compliance',
+    routePath: '/lifepill/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -253,7 +253,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Patient history (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q22 through the customer workspace.',
-    routePath: '/pharmaflow/customers',
+    routePath: '/lifepill/customers',
     routeLabel: 'Customers',
   },
   {
@@ -261,7 +261,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'GST-compliant invoicing (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q23 through billing and receipt exports.',
-    routePath: '/pharmaflow/billing-history',
+    routePath: '/lifepill/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -269,7 +269,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Automatic batch tracking',
     status: 'Live',
     answer: 'Batch-aware billing and inventory detail are active.',
-    routePath: '/pharmaflow/inventory',
+    routePath: '/lifepill/inventory',
     routeLabel: 'Stock',
   },
   {
@@ -277,7 +277,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Prevent sale of expired medicines',
     status: 'Live',
     answer: 'Expired-batch validation and expiry filtering are active.',
-    routePath: '/pharmaflow/inventory',
+    routePath: '/lifepill/inventory',
     routeLabel: 'Stock',
   },
   {
@@ -285,7 +285,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Purchase scheme tracking (Buy 10 Get 1)',
     status: 'Partial',
     answer: 'Free-quantity support exists in purchase imports, while richer scheme management should be expanded during procurement rollout.',
-    routePath: '/pharmaflow/procurement',
+    routePath: '/lifepill/procurement',
     routeLabel: 'Purchases',
   },
   {
@@ -294,7 +294,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Margin fields and estimated profitability are present. Broader pricing analytics by PTR and PTS can be deepened in the reporting layer.',
-    routePath: '/pharmaflow/reports/profit',
+    routePath: '/lifepill/reports/profit',
     routeLabel: 'Profit',
   },
   {
@@ -302,7 +302,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Barcode scanning',
     status: 'Live',
     answer: 'Billing supports barcode-aware medicine lookup.',
-    routePath: '/pharmaflow/billing',
+    routePath: '/lifepill/billing',
     routeLabel: 'Counter',
   },
   {
@@ -310,7 +310,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Partial strip sales',
     status: 'Live',
     answer: 'Strip and tablet-oriented quantity handling is already visible in billing.',
-    routePath: '/pharmaflow/billing',
+    routePath: '/lifepill/billing',
     routeLabel: 'Counter',
   },
   {
@@ -318,7 +318,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Search by brand, generic, and salt',
     status: 'Live',
     answer: 'Triple medicine search is live.',
-    routePath: '/pharmaflow/billing',
+    routePath: '/lifepill/billing',
     routeLabel: 'Counter',
   },
   {
@@ -327,7 +327,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Live',
     answer:
       'Daily sales, top sellers, slow movers, profit analytics, expiry loss visibility, and CSV export are now live in the reporting suite.',
-    routePath: '/pharmaflow/reports/gst',
+    routePath: '/lifepill/reports/gst',
     routeLabel: 'GST Reports',
   },
   {
@@ -335,7 +335,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Different user roles',
     status: 'Live',
     answer: 'Role-based access and pharmacy-specific role structure are in place.',
-    routePath: '/pharmaflow/setup',
+    routePath: '/lifepill/setup',
     routeLabel: 'Company Setup',
   },
   {
@@ -343,7 +343,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Restrict price editing',
     status: 'Live',
     answer: 'Role-aware price-control behavior is already part of the billing model.',
-    routePath: '/pharmaflow/billing',
+    routePath: '/lifepill/billing',
     routeLabel: 'Counter',
   },
   {
@@ -351,7 +351,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Track who edited bills',
     status: 'Live',
     answer: 'Invoice-level audit visibility is live.',
-    routePath: '/pharmaflow/billing-history',
+    routePath: '/lifepill/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -359,7 +359,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Activity audit log',
     status: 'Live',
     answer: 'Store-level audit trail is live.',
-    routePath: '/pharmaflow/billing-history',
+    routePath: '/lifepill/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -367,7 +367,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Unlimited invoices and documents',
     status: 'Live',
     answer: 'No hard product limit is imposed in the current implementation.',
-    routePath: '/pharmaflow/billing-history',
+    routePath: '/lifepill/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -376,23 +376,23 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'WhatsApp invoice sharing is live. Tally, GST filing connectors, e-commerce, online pharmacy, SMS, and custom APIs remain extension-ready integration tracks.',
-    routePath: '/pharmaflow/enterprise',
+    routePath: '/lifepill/enterprise',
     routeLabel: 'Enterprise',
   },
 ];
 
 const demoRouteOrder = [
-  '/pharmaflow/setup',
-  '/pharmaflow/enterprise',
-  '/pharmaflow/stores',
-  '/pharmaflow/billing',
-  '/pharmaflow/inventory',
-  '/pharmaflow/procurement',
-  '/pharmaflow/compliance',
-  '/pharmaflow/reports/gst',
-  '/pharmaflow/reports/profit',
-  '/pharmaflow/customers',
-  '/pharmaflow/billing-history',
+  '/lifepill/setup',
+  '/lifepill/enterprise',
+  '/lifepill/stores',
+  '/lifepill/billing',
+  '/lifepill/inventory',
+  '/lifepill/procurement',
+  '/lifepill/compliance',
+  '/lifepill/reports/gst',
+  '/lifepill/reports/profit',
+  '/lifepill/customers',
+  '/lifepill/billing-history',
 ];
 
 interface EnterpriseReadinessDashboardProps {
@@ -445,7 +445,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/pharmaflow/platform"
+            to="/lifepill/platform"
             className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
           >
             Open SaaS Admin
@@ -540,7 +540,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
               <h2 className="mt-3 text-xl font-semibold text-slate-950">Walk the client through the platform in this order</h2>
             </div>
             <Link
-              to="/pharmaflow/setup"
+              to="/lifepill/setup"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
             >
               Open company setup

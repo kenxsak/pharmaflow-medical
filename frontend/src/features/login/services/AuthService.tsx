@@ -32,11 +32,11 @@ const useSignIn = () => {
 
       savePharmaFlowSession(response);
       saveBranding({
-        brandName: response.brandName || 'PharmaFlow',
+        brandName: response.brandName || 'LifePill',
         tagline:
           response.brandTagline ||
-          'Retail pharmacy operations, billing, and compliance workspace',
-        supportEmail: response.supportEmail || 'support@pharmaflow.in',
+          'Simple pharmacy operations, billing, and compliance workspace',
+        supportEmail: response.supportEmail || 'support@lifepill.com',
         supportPhone: response.supportPhone || '+91 44 4000 9000',
         deploymentMode:
           response.deploymentMode || 'Hybrid cloud + branch-local operations',

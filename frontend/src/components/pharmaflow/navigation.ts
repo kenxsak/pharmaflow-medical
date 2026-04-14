@@ -35,7 +35,7 @@ export interface PharmaFlowNavItem {
 export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   {
     title: 'Home',
-    path: '/pharmaflow/legacy-home',
+    path: '/lifepill/legacy-home',
     summary: 'Simple legacy-style home that opens the main pharmacy workflows in a calmer, buyer-friendly order.',
     shortSummary: 'Legacy pharmacy home',
     status: 'Live',
@@ -45,7 +45,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Company Setup',
-    path: '/pharmaflow/setup',
+    path: '/lifepill/setup',
     summary: 'Manage active store selection, branding, rollout configuration, and company setup after signing in through the legacy LifePill login.',
     shortSummary: 'Store, brand, rollout setup',
     status: 'Live',
@@ -55,7 +55,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Enterprise',
-    path: '/pharmaflow/enterprise',
+    path: '/lifepill/enterprise',
     summary: 'White-label profile, rollout model, buyer answers, and the recommended business demo path.',
     shortSummary: 'Buyer guide and rollout',
     status: 'Live',
@@ -65,7 +65,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'SaaS Admin',
-    path: '/pharmaflow/platform',
+    path: '/lifepill/platform',
     summary: 'Tenant roster, plans, pricing, and platform controls for SaaS ownership and rollout management.',
     shortSummary: 'Tenants and pricing',
     status: 'Live',
@@ -75,7 +75,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Users & Access',
-    path: '/pharmaflow/users',
+    path: '/lifepill/users',
     summary: 'Create company admins, store operators, assign stores, and control who can do what from one legacy-friendly screen.',
     shortSummary: 'Users, roles, permissions',
     status: 'Live',
@@ -85,7 +85,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Help',
-    path: '/pharmaflow/help',
+    path: '/lifepill/help',
     summary: 'Role-based setup guides, FAQs, onboarding instructions, and where each login should go first.',
     shortSummary: 'Guides and FAQs',
     status: 'Live',
@@ -95,7 +95,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Counter',
-    path: '/pharmaflow/billing',
+    path: '/lifepill/billing',
     summary: 'Counter billing with barcode-ready medicine search, GST, substitutes, and compliance capture.',
     shortSummary: 'Billing and barcode scan',
     status: 'Live',
@@ -105,7 +105,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Stock',
-    path: '/pharmaflow/inventory',
+    path: '/lifepill/inventory',
     summary: 'Batch stock visibility, medicine lookup, shortage detection, and FIFO-oriented stock inspection.',
     shortSummary: 'Inventory and batches',
     status: 'Live',
@@ -115,7 +115,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Purchases',
-    path: '/pharmaflow/procurement',
+    path: '/lifepill/procurement',
     summary: 'Supplier setup, manual inward entry, and CSV purchase invoice import for the active store.',
     shortSummary: 'Inward and purchase import',
     status: 'Live',
@@ -125,7 +125,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Bills',
-    path: '/pharmaflow/billing-history',
+    path: '/lifepill/billing-history',
     summary: 'Invoice search, detailed bill review, and audit trail visibility for changes and events.',
     shortSummary: 'History and edits',
     status: 'Live',
@@ -135,7 +135,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Compliance',
-    path: '/pharmaflow/compliance',
+    path: '/lifepill/compliance',
     summary: 'Schedule H, H1, X, and narcotic reporting with Drug Inspector-ready register views.',
     shortSummary: 'Controlled drugs',
     status: 'Live',
@@ -145,7 +145,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Customers',
-    path: '/pharmaflow/customers',
+    path: '/lifepill/customers',
     summary: 'Customer search, credit visibility, loyalty actions, and patient history in one branch-friendly workspace.',
     shortSummary: 'Credit and history',
     status: 'Live',
@@ -155,7 +155,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'GST Reports',
-    path: '/pharmaflow/reports/gst',
+    path: '/lifepill/reports/gst',
     summary: 'GSTR-1, GSTR-3B, shortage, expiry loss, and monthly operational reporting from store invoices.',
     shortSummary: 'GST, shortage, expiry loss',
     status: 'Live',
@@ -165,7 +165,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Profit',
-    path: '/pharmaflow/reports/profit',
+    path: '/lifepill/reports/profit',
     summary: 'Daily sales, top sellers, slow movers, and estimated profit by manufacturer and category for the active store.',
     shortSummary: 'Sales, movement, margin',
     status: 'Live',
@@ -175,7 +175,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Expiry',
-    path: '/pharmaflow/reports/expiry-alerts',
+    path: '/lifepill/reports/expiry-alerts',
     summary: '30, 60, and 90-day expiry buckets, at-risk stock value, and exportable alerts.',
     shortSummary: 'Expiry and shortage',
     status: 'Live',
@@ -185,7 +185,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Stores',
-    path: '/pharmaflow/stores',
+    path: '/lifepill/stores',
     summary: 'Store directory, branch selection, and current multi-store readiness across HO and warehouse.',
     shortSummary: 'Store switching',
     status: 'Partial',

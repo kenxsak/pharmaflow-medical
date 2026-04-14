@@ -55,7 +55,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
       description={`Central store directory, tenant rollout view, and active branch context for ${branding.brandName}.`}
       actions={
         <Link
-          to="/pharmaflow/enterprise"
+          to="/lifepill/enterprise"
           className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
         >
           Open enterprise guide
@@ -140,13 +140,13 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
 
             <div className="mt-5 flex flex-wrap gap-3">
               <Link
-                to="/pharmaflow/enterprise"
+                to="/lifepill/enterprise"
                 className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
                 Open rollout guide
               </Link>
               <Link
-                to="/pharmaflow/billing"
+                to="/lifepill/billing"
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
               >
                 Open counter workspace

@@ -7,15 +7,15 @@ const getBrandingHeaders = () => ({
     localStorage.getItem('pharmaflow_brand_name') ||
     process.env.REACT_APP_BRAND_NAME ||
     process.env.REACT_APP_STORE_NAME ||
-    'PharmaFlow',
+    'LifePill',
   'X-Brand-Tagline':
     localStorage.getItem('pharmaflow_brand_tagline') ||
     process.env.REACT_APP_BRAND_TAGLINE ||
-    'Retail pharmacy operations, billing, and compliance workspace',
+    'Simple pharmacy operations, billing, and compliance workspace',
   'X-Brand-Support-Email':
     localStorage.getItem('pharmaflow_brand_support_email') ||
     process.env.REACT_APP_BRAND_SUPPORT_EMAIL ||
-    'support@pharmaflow.in',
+    'support@lifepill.com',
   'X-Brand-Support-Phone':
     localStorage.getItem('pharmaflow_brand_support_phone') ||
     process.env.REACT_APP_BRAND_SUPPORT_PHONE ||

@@ -42,10 +42,10 @@ const sideLinkClasses = (isActive: boolean) =>
   ].join(' ');
 
 const demoRoutePaths = [
-  '/pharmaflow/billing',
-  '/pharmaflow/inventory',
-  '/pharmaflow/procurement',
-  '/pharmaflow/compliance',
+  '/lifepill/billing',
+  '/lifepill/inventory',
+  '/lifepill/procurement',
+  '/lifepill/compliance',
 ];
 
 const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
@@ -107,7 +107,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const visibleNavItems =
     persona === 'guest'
       ? pharmaFlowNavItems.filter((item) =>
-          ['/pharmaflow/legacy-home', '/pharmaflow/help'].includes(item.path)
+          ['/lifepill/legacy-home', '/lifepill/help'].includes(item.path)
         )
       : pharmaFlowNavItems.filter((item) => item.access.includes(persona));
   const demoRouteItems = visibleNavItems.filter((item) => demoRoutePaths.includes(item.path));
@@ -203,7 +203,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
             </div>
             <div className="mt-2 text-sm leading-6 text-slate-600">
               Simple screens for non-technical teams. Open billing first, then stock, purchases, compliance, reports,
-              stores, and SaaS controls in the same easy flow.
+              stores, and admin controls in the same easy flow.
             </div>
 
             <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -222,13 +222,13 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 Home
               </Link>
               <Link
-                to="/pharmaflow/billing"
+                to="/lifepill/billing"
                 className="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
               >
                 Billing
               </Link>
               <Link
-                to="/pharmaflow/setup"
+                to="/lifepill/setup"
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700"
               >
                 Company Setup
@@ -287,7 +287,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 Legacy login
               </Link>
               <Link
-                to={persona === 'store-ops' ? '/pharmaflow/help' : '/pharmaflow/enterprise'}
+                to={persona === 'store-ops' ? '/lifepill/help' : '/lifepill/enterprise'}
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
               >
                 {persona === 'store-ops' ? 'Help and FAQ' : 'Rollout and coverage guide'}
@@ -455,13 +455,13 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
             preferredCounterStore.storeId !== currentStore.storeId && (
               <section className="rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-sky-900 shadow-sm">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <div className="font-semibold">Preferred counter branch</div>
-                    <div className="mt-1">
-                      You are on {currentStore.storeName}. Billing, stocked medicines, customers, invoices, and
-                      compliance samples are preloaded in {preferredCounterStore.storeName}.
+                    <div>
+                      <div className="font-semibold">Preferred counter branch</div>
+                      <div className="mt-1">
+                        You are on {currentStore.storeName}. Billing, stocked medicines, customers, invoices, and
+                        compliance samples are preloaded in {preferredCounterStore.storeName}.
+                      </div>
                     </div>
-                  </div>
                   <button
                     type="button"
                     onClick={() => applyStoreSelection(preferredCounterStore.storeId)}

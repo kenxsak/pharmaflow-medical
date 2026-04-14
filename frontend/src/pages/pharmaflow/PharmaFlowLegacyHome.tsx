@@ -18,26 +18,26 @@ const PharmaFlowLegacyHome: React.FC = () => {
               <h1 className='mt-2 text-3xl font-bold'>{branding.brandName} Pharmacy Home</h1>
               <p className='mt-2 max-w-3xl text-sm leading-6 text-slate-200'>
                 This is the easy launcher for daily pharmacy work. Billing, stock, purchases,
-                compliance, reports, stores, and SaaS admin are all available here without the
+                compliance, reports, stores, and admin control are all available here without the
                 busier workspace flow.
               </p>
             </div>
 
             <div className='flex flex-wrap gap-3'>
               <Link
-                to='/pharmaflow/billing'
+                to='/lifepill/billing'
                 className='rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm'
               >
                 Open Billing
               </Link>
               <Link
-                to='/pharmaflow/setup'
+                to='/lifepill/setup'
                 className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
               >
                 Company Setup
               </Link>
               <Link
-                to='/pharmaflow/help'
+                to='/lifepill/help'
                 className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
               >
                 Help
@@ -66,19 +66,19 @@ const PharmaFlowLegacyHome: React.FC = () => {
           </div>
 
           <div className='rounded-2xl bg-white p-5 shadow-sm'>
-            <div className='text-xs uppercase tracking-wide text-slate-400'>Tenant</div>
+            <div className='text-xs uppercase tracking-wide text-slate-400'>Company</div>
             <div className='mt-2 text-lg font-semibold text-slate-900'>
-              {context.tenantSlug || localStorage.getItem('pharmaflow_tenant_slug') || 'No tenant selected'}
+              {branding.brandName || 'LifePill'}
             </div>
             <div className='mt-1 text-sm text-slate-500'>
-              Branding, plans, and chain setup still remain available when you need them.
+              Branding, plans, and chain setup remain available when you need them.
             </div>
           </div>
         </div>
 
         <LegacyFeatureHub
           title='Legacy-style feature launcher'
-          description='One-click access to billing, customers, inventory, purchases, compliance, GST, profit, stores, enterprise guide, SaaS control, and setup.'
+          description='One-click access to billing, customers, inventory, purchases, compliance, GST, profit, stores, rollout guide, admin control, and setup.'
         />
       </div>
     </div>

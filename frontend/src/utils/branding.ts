@@ -12,11 +12,11 @@ export interface BrandingSnapshot {
 
 const DEFAULT_BRANDING: BrandingSnapshot = {
   brandName:
-    process.env.REACT_APP_BRAND_NAME || process.env.REACT_APP_STORE_NAME || 'PharmaFlow',
+    process.env.REACT_APP_BRAND_NAME || process.env.REACT_APP_STORE_NAME || 'LifePill',
   tagline:
     process.env.REACT_APP_BRAND_TAGLINE ||
-    'Retail pharmacy operations, billing, and compliance workspace',
-  supportEmail: process.env.REACT_APP_BRAND_SUPPORT_EMAIL || 'support@pharmaflow.in',
+    'Simple pharmacy operations, billing, and compliance workspace',
+  supportEmail: process.env.REACT_APP_BRAND_SUPPORT_EMAIL || 'support@lifepill.com',
   supportPhone: process.env.REACT_APP_BRAND_SUPPORT_PHONE || '+91 44 4000 9000',
   deploymentMode:
     process.env.REACT_APP_BRAND_DEPLOYMENT_MODE || 'Hybrid cloud + branch-local operations',
@@ -30,12 +30,31 @@ const BRANDING_STORAGE_KEYS: Record<keyof BrandingSnapshot, string> = {
   deploymentMode: 'pharmaflow_brand_deployment_mode',
 };
 
+const normalizeBrandingText = (key: keyof BrandingSnapshot, value: string) => {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return DEFAULT_BRANDING[key];
+  }
+
+  if (key === 'brandName' && /^pharmaflow$/i.test(trimmed)) {
+    return 'LifePill';
+  }
+
+  if (key === 'supportEmail' && /^support@pharmaflow\.in$/i.test(trimmed)) {
+    return 'support@lifepill.com';
+  }
+
+  return trimmed.replace(/PharmaFlow/g, 'LifePill');
+};
+
 const readValue = (key: keyof BrandingSnapshot) => {
   if (typeof window === 'undefined') {
     return DEFAULT_BRANDING[key];
   }
 
-  return localStorage.getItem(BRANDING_STORAGE_KEYS[key]) || DEFAULT_BRANDING[key];
+  const storedValue = localStorage.getItem(BRANDING_STORAGE_KEYS[key]);
+  return storedValue ? normalizeBrandingText(key, storedValue) : DEFAULT_BRANDING[key];
 };
 
 export const readBranding = (): BrandingSnapshot => ({
@@ -60,7 +79,7 @@ export const saveBranding = (branding: Partial<BrandingSnapshot>) => {
   (Object.keys(branding) as Array<keyof BrandingSnapshot>).forEach((key) => {
     const value = branding[key];
     if (typeof value === 'string') {
-      localStorage.setItem(BRANDING_STORAGE_KEYS[key], value.trim());
+      localStorage.setItem(BRANDING_STORAGE_KEYS[key], normalizeBrandingText(key, value));
     }
   });
 
@@ -82,7 +101,7 @@ export const getBrandInitials = (brandName: string) =>
     .filter(Boolean)
     .slice(0, 2)
     .map((token) => token[0]?.toUpperCase() || '')
-    .join('') || 'PF';
+    .join('') || 'LP';
 
 export const useBranding = () => {
   const [branding, setBranding] = useState<BrandingSnapshot>(() => readBranding());

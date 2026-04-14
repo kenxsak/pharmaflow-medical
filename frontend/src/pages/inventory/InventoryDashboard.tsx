@@ -38,7 +38,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
       setShortageRows([]);
       setStockRows([]);
       setSelectedMedicine(null);
-      setError('Set pharmaflow_store_id from Setup before opening inventory.');
+      setError('Choose the active store in Company Setup before opening inventory.');
       return;
     }
 

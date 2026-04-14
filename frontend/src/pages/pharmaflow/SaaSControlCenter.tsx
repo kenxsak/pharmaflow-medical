@@ -690,7 +690,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
               New plan
             </button>
             <Link
-              to="/pharmaflow/enterprise"
+              to="/lifepill/enterprise"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
             >
               Open rollout guide
@@ -1198,7 +1198,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Legacy Compatibility</div>
             <h2 className="mt-3 text-xl font-semibold">LifePill login now uses its own API base again</h2>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              The legacy LifePill route now resolves against the old `/lifepill/v1` backend instead of accidentally borrowing the new PharmaFlow `/api/v1` base.
+              The legacy LifePill route now resolves against the old `/lifepill/v1` backend instead of accidentally borrowing the retail `/api/v1` base.
             </p>
           </div>
           <div>

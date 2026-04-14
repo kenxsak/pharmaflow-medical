@@ -194,7 +194,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/pharmaflow/help"
+            to="/lifepill/help"
             className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
           >
             Open help
@@ -419,8 +419,8 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="text-xs uppercase tracking-wide text-slate-400">Tenant</div>
-              <div className="mt-2 font-semibold text-slate-950">{context.tenantSlug || 'No tenant selected'}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-400">Company</div>
+              <div className="mt-2 font-semibold text-slate-950">{branding.brandName || 'LifePill'}</div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
               <div className="text-xs uppercase tracking-wide text-slate-400">Active store</div>
@@ -455,7 +455,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
                   Open my workspace
                 </Link>
                 <Link
-                  to="/pharmaflow/help"
+                  to="/lifepill/help"
                   className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
                 >
                   Help and FAQ

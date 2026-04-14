@@ -23,7 +23,7 @@ function MainManagerDashboard({
     branchName: localStorage.getItem('pharmaflow_store_code') || 'LifePill Main Branch',
     branchAddress:
       localStorage.getItem('pharmaflow_brand_tagline') ||
-      'Use this simple legacy workspace to open the full PharmaFlow suite.',
+      'Use this simple legacy workspace to open the full LifePill business suite.',
     branchContact: localStorage.getItem('pharmaflow_brand_support_phone') || '-',
     branchEmail: localStorage.getItem('pharmaflow_brand_support_email') || '-',
     branchLocation: 'Tamil Nadu branch workspace',
@@ -102,7 +102,7 @@ function MainManagerDashboard({
               </button>
             ) : (
               <Link
-                to='/pharmaflow/billing'
+                to='/lifepill/billing'
                 className='inline-flex items-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white'
               >
                 Open Billing Counter

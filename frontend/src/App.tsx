@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LogInPage from './pages/login-page';
 import LogInCashierPasswordPage from './pages/cashier-password-page';
 import CashierTemporaryLogOutPage from './pages/temporary-logout-page';
@@ -35,6 +35,16 @@ import AddCompany from './features/seller-management/layouts/AddCompany';
 import UpdateCompany from './features/seller-management/layouts/UpdateCompany';
 import { getPharmaFlowPersona, usePharmaFlowContext } from './utils/pharmaflowContext';
 
+function RedirectLegacyPharmaFlowRoute() {
+  const location = useLocation();
+  const nextPath =
+    location.pathname === '/pharmaflow'
+      ? '/lifepill'
+      : location.pathname.replace(/^\/pharmaflow/, '/lifepill');
+
+  return <Navigate to={`${nextPath}${location.search}`} replace />;
+}
+
 function App() {
   const { user } = useUserContext();
   const pharmaFlowContext = usePharmaFlowContext();
@@ -47,26 +57,26 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path='/' element={<Navigate to='/pharmaflow' replace />} />
-        <Route path='/pharmaflow' element={<PharmaFlowEntry />} />
-        <Route path='/pharmaflow/legacy-home' element={<PharmaFlowLegacyHome />} />
-        <Route path='/pharmaflow/setup' element={<PharmaFlowCommandCenter />} />
-        <Route path='/pharmaflow/help' element={<PharmaFlowHelpCenter />} />
-        <Route path='/pharmaflow/enterprise' element={<EnterpriseReadinessDashboard />} />
-        <Route path='/pharmaflow/platform' element={<SaaSControlCenter />} />
-        <Route path='/pharmaflow/users' element={<UsersAccessDashboard />} />
-        <Route path='/pharmaflow/dashboard' element={<Navigate to='/pharmaflow' replace />} />
-        <Route path='/pharmaflow/home' element={<Navigate to='/pharmaflow/legacy-home' replace />} />
-        <Route path='/pharmaflow/launchpad' element={<Navigate to='/legacy-login' replace />} />
-        <Route path='/pharmaflow/operations' element={<Navigate to='/pharmaflow/billing' replace />} />
-        <Route path='/pharmaflow/stock' element={<Navigate to='/pharmaflow/inventory' replace />} />
-        <Route path='/pharmaflow/reports' element={<Navigate to='/pharmaflow/reports/gst' replace />} />
-        <Route path='/pharmaflow/expiry' element={<Navigate to='/pharmaflow/reports/expiry-alerts' replace />} />
-        <Route path='/pharmaflow/procurement' element={<ProcurementDashboard />} />
-        <Route path='/pharmaflow/billing-history' element={<BillingAuditDashboard />} />
-        <Route path='/pharmaflow/inventory' element={<InventoryDashboard />} />
-        <Route path='/pharmaflow/stores' element={<StoreOperationsDashboard />} />
-        <Route path='/pharmaflow/customers' element={<CustomersDashboard />} />
+        <Route path='/' element={<Navigate to='/legacy-login' replace />} />
+        <Route path='/lifepill' element={<PharmaFlowEntry />} />
+        <Route path='/lifepill/legacy-home' element={<PharmaFlowLegacyHome />} />
+        <Route path='/lifepill/setup' element={<PharmaFlowCommandCenter />} />
+        <Route path='/lifepill/help' element={<PharmaFlowHelpCenter />} />
+        <Route path='/lifepill/enterprise' element={<EnterpriseReadinessDashboard />} />
+        <Route path='/lifepill/platform' element={<SaaSControlCenter />} />
+        <Route path='/lifepill/users' element={<UsersAccessDashboard />} />
+        <Route path='/lifepill/dashboard' element={<Navigate to='/lifepill' replace />} />
+        <Route path='/lifepill/home' element={<Navigate to='/lifepill/legacy-home' replace />} />
+        <Route path='/lifepill/launchpad' element={<Navigate to='/legacy-login' replace />} />
+        <Route path='/lifepill/operations' element={<Navigate to='/lifepill/billing' replace />} />
+        <Route path='/lifepill/stock' element={<Navigate to='/lifepill/inventory' replace />} />
+        <Route path='/lifepill/reports' element={<Navigate to='/lifepill/reports/gst' replace />} />
+        <Route path='/lifepill/expiry' element={<Navigate to='/lifepill/reports/expiry-alerts' replace />} />
+        <Route path='/lifepill/procurement' element={<ProcurementDashboard />} />
+        <Route path='/lifepill/billing-history' element={<BillingAuditDashboard />} />
+        <Route path='/lifepill/inventory' element={<InventoryDashboard />} />
+        <Route path='/lifepill/stores' element={<StoreOperationsDashboard />} />
+        <Route path='/lifepill/customers' element={<CustomersDashboard />} />
         <Route path='/legacy-login' element={<LogInPage />} />
         <Route
           path='/login-cashier-password'
@@ -76,14 +86,15 @@ function App() {
           path='/temporary-logout'
           element={<CashierTemporaryLogOutPage />}
         />
-        <Route path='/pharmaflow/billing' element={<POSBilling />} />
-        <Route path='/pharmaflow/compliance' element={<ComplianceDashboard />} />
-        <Route path='/pharmaflow/reports/gst' element={<GSTReportsDashboard />} />
-        <Route path='/pharmaflow/reports/profit' element={<ProfitAnalyticsDashboard />} />
+        <Route path='/lifepill/billing' element={<POSBilling />} />
+        <Route path='/lifepill/compliance' element={<ComplianceDashboard />} />
+        <Route path='/lifepill/reports/gst' element={<GSTReportsDashboard />} />
+        <Route path='/lifepill/reports/profit' element={<ProfitAnalyticsDashboard />} />
         <Route
-          path='/pharmaflow/reports/expiry-alerts'
+          path='/lifepill/reports/expiry-alerts'
           element={<ExpiryAlertsDashboard />}
         />
+        <Route path='/pharmaflow/*' element={<RedirectLegacyPharmaFlowRoute />} />
 
         {isAdmin ? (
           <>

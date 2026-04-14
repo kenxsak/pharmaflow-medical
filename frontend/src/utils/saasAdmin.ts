@@ -208,18 +208,18 @@ const DEFAULT_TENANTS: TenantRecord[] = [
     notes: 'Tamil Nadu enterprise chain rollout with HO, warehouse, and branch expansion plan.',
   },
   {
-    id: 'tenant-pharmaflow',
-    brandName: 'PharmaFlow',
-    slug: 'pharmaflow',
+    id: 'tenant-lifepill',
+    brandName: 'LifePill',
+    slug: 'lifepill',
     status: 'Live',
     planId: 'enterprise',
     billingCycle: 'Annual',
     storeCount: 5,
     activeUsers: 65,
     deploymentMode: 'Hybrid cloud + branch-local operations',
-    supportEmail: 'support@pharmaflow.in',
+    supportEmail: 'support@lifepill.com',
     supportPhone: '+91 44 4000 9000',
-    billingEmail: 'finance@pharmaflow.in',
+    billingEmail: 'finance@lifepill.com',
     gstin: '33AABCP1234A1Z5',
     renewalDate: '2027-03-31',
     monthlyRecurringRevenueInr: 199999,
@@ -338,7 +338,7 @@ export const applyTenantBranding = (tenant: TenantRecord) => {
     supportEmail: tenant.supportEmail,
     supportPhone: tenant.supportPhone,
     deploymentMode: tenant.deploymentMode,
-    tagline: `Multi-store pharmacy SaaS for ${tenant.brandName}`,
+    tagline: `Multi-store pharmacy system for ${tenant.brandName}`,
   });
 };
 

@@ -26,6 +26,18 @@ interface TenantOption {
   tenantName: string;
 }
 
+const getCompanyLabel = (tenantName?: string, tenantSlug?: string) => {
+  if (tenantName?.trim()) {
+    return tenantName.trim() === 'PharmaFlow' ? 'LifePill' : tenantName.trim();
+  }
+
+  if (!tenantSlug?.trim()) {
+    return '';
+  }
+
+  return tenantSlug.trim() === 'pharmaflow' ? 'LifePill' : tenantSlug.trim();
+};
+
 const createDraft = (
   contextTenantId = '',
   contextStoreId = '',
@@ -69,7 +81,7 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
         tenantMap.set(store.tenantId, {
           tenantId: store.tenantId,
           tenantSlug: store.tenantSlug || '',
-          tenantName: store.tenantName || store.tenantSlug || 'Tenant',
+          tenantName: getCompanyLabel(store.tenantName, store.tenantSlug) || 'Tenant',
         });
       }
     });
@@ -300,13 +312,13 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
-              to="/pharmaflow/help"
+              to="/lifepill/help"
               className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
             >
               Open help center
             </Link>
             <Link
-              to="/pharmaflow/billing"
+              to="/lifepill/billing"
               className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700"
             >
               Open billing
@@ -422,7 +434,7 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                     </div>
                   </div>
                   <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
-                    <div>{user.tenantName || user.tenantSlug || 'No company'}</div>
+                    <div>{getCompanyLabel(user.tenantName, user.tenantSlug) || 'No company'}</div>
                     <div>{user.storeName || user.storeCode || 'No store assigned'}</div>
                     <div>{user.phone || user.email || 'No contact info'}</div>
                     <div>{user.lastLogin ? `Last login: ${new Date(user.lastLogin).toLocaleString()}` : 'No login yet'}</div>
@@ -478,7 +490,7 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                 Create a user
               </button>
               <Link
-                to="/pharmaflow/help"
+                to="/lifepill/help"
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
               >
                 Open help and FAQ
@@ -576,11 +588,11 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                 >
                   <option value="">Select a company</option>
                   {tenantOptions.map((tenant) => (
-                    <option key={tenant.tenantId} value={tenant.tenantId}>
-                      {tenant.tenantName} ({tenant.tenantSlug})
-                    </option>
-                  ))}
-                </select>
+                  <option key={tenant.tenantId} value={tenant.tenantId}>
+                      {tenant.tenantName}
+                  </option>
+                ))}
+              </select>
               </label>
             )}
 
@@ -703,7 +715,7 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                   Company:{' '}
                   <span className="font-semibold">
                     {tenantOptions.find((tenant) => tenant.tenantId === (draft.tenantId || activeTenantId))?.tenantName ||
-                      context.tenantSlug ||
+                      getCompanyLabel(undefined, context.tenantSlug) ||
                       'Not selected'}
                   </span>
                 </div>

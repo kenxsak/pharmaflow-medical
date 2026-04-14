@@ -377,13 +377,13 @@ const ProfitAnalyticsDashboard: React.FC<ProfitAnalyticsDashboardProps> = ({ emb
             </div>
             <div className="flex flex-wrap gap-2">
               <Link
-                to="/pharmaflow/reports/gst"
+                to="/lifepill/reports/gst"
                 className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
               >
                 Open GST reports
               </Link>
               <Link
-                to="/pharmaflow/billing-history"
+                to="/lifepill/billing-history"
                 className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
               >
                 Open billing history
