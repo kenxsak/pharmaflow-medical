@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fix for Electron input issues */
+input,
+textarea,
+select {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  pointer-events: auto !important;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'poppins', sans-serif;
+  }
+}
+
+@font-face {
+  font-family: 'poppins';
+  src: url('./assets/fonts/Poppins-Regular.ttf');
+}
+
+@layer components {
+  .signup_button {
+    @apply py-2 px-4 rounded-md focus:outline-none bg-blueDarker w-[400px] text-white font-bold outline outline-blueDarker;
+  }
+  .login_button {
+    @apply py-2 px-4 rounded-full bg-white w-[400px] text-blueDark outline outline-blueDarker font-bold;
+  }
+}
+
+@layer utilities {
+  .shadow-right {
+    box-shadow: 5px 0px 4px 0px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.legacy-module-ui .rounded-3xl,
+.legacy-module-ui .rounded-2xl,
+.legacy-module-ui .rounded-\[2rem\] {
+  border-radius: 0.9rem !important;
+}
+
+.legacy-module-ui {
+  font-family: 'poppins', sans-serif;
+  color: #0f172a;
+}
+
+.legacy-module-ui .shadow-sm,
+.legacy-module-ui .shadow-lg,
+.legacy-module-ui .shadow-xl {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+}
+
+.legacy-module-ui [class*='bg-gradient-to-r'] {
+  background-image: none !important;
+  background-color: #ffffff !important;
+}
+
+.legacy-module-ui section {
+  border-color: #d7dee8 !important;
+}
+
+.legacy-module-ui .bg-slate-100 {
+  background-color: #eef3f8 !important;
+}
+
+.legacy-module-ui .border-slate-300,
+.legacy-module-ui .border-slate-200 {
+  border-color: #d7dee8 !important;
+}
+
+.legacy-module-ui input,
+.legacy-module-ui textarea,
+.legacy-module-ui select,
+.legacy-module-ui button {
+  border-radius: 0.75rem;
+}
+
+.legacy-module-ui a,
+.legacy-module-ui button {
+  transition: all 160ms ease;
+}
+
+.legacy-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 transparent;
+}
+
+.legacy-sidebar-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.legacy-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.legacy-sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: #94a3b8;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.legacy-module-ui table thead tr {
+  background-color: #f8fafc !important;
+}
+
+.legacy-module-ui table tbody tr:hover {
+  background-color: #f8fafc;
+}

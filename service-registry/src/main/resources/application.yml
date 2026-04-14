@@ -1,0 +1,85 @@
+# LifePill Service Registry (Eureka Server) Configuration
+# This is the FIRST service to start in the ecosystem
+# All other services register here for service discovery
+# Start Order: 1. Service Registry -> 2. Config Server -> 3. Other Services
+
+server:
+  port: ${EUREKA_PORT:8761}
+
+spring:
+  application:
+    name: SERVICE-REGISTRY
+  
+  # Security for Eureka Dashboard
+  security:
+    user:
+      name: ${EUREKA_USERNAME:admin}
+      password: ${EUREKA_PASSWORD:admin}
+
+# Eureka Server Configuration
+eureka:
+  instance:
+    hostname: ${EUREKA_HOSTNAME:localhost}
+    prefer-ip-address: true
+  client:
+    # Standalone mode - don't register with itself
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${spring.security.user.name}:${spring.security.user.password}@${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    # Enable self-preservation mode (recommended for production)
+    enable-self-preservation: ${EUREKA_SELF_PRESERVATION:true}
+    # Renewal threshold percentage
+    renewal-percent-threshold: 0.85
+    # Eviction interval timer (ms)
+    eviction-interval-timer-in-ms: 60000
+    # Response cache update interval (ms)
+    response-cache-update-interval-ms: 30000
+    # Wait time before sync (ms)
+    wait-time-in-ms-when-sync-empty: 5
+
+# Actuator Configuration for Production Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: when_authorized
+      probes:
+        enabled: true
+    info:
+      enabled: true
+  health:
+    diskspace:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:development}
+
+# Application Info for Actuator
+info:
+  app:
+    name: LifePill Service Registry
+    description: Netflix Eureka Server for Service Discovery
+    version: v1.0.0
+    encoding: UTF-8
+    java:
+      version: ${java.version}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.lifepill: DEBUG
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_PATH:./logs}/service-registry.log

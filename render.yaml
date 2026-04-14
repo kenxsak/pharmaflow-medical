@@ -1,0 +1,129 @@
+services:
+  - type: web
+    name: pharmaflow-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/pos-system/Dockerfile
+    dockerContext: ./backend/pos-system
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SERVER_PORT
+        value: "10000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pharmaflow-db
+          property: connectionString
+      - key: DATABASE_USERNAME
+        fromDatabase:
+          name: pharmaflow-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: pharmaflow-db
+          property: password
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: pharmaflow-cache
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: pharmaflow-cache
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: pharmaflow-cache
+          property: port
+      - key: JDBC_SHOW_SQL
+        value: "false"
+      - key: HIBERNATE_DDL_AUTO
+        value: update
+      - key: HIBERNATE_OPEN_IN_VIEW
+        value: "false"
+      - key: SPRING_SECURITY_USERNAME
+        value: pharmaflow
+      - key: SPRING_SECURITY_PASSWORD
+        value: pharmaflow
+      - key: SPRING_MAIL_HOST
+        value: localhost
+      - key: SPRING_MAIL_PORT
+        value: "1025"
+      - key: SPRING_USER_NAME
+        value: ""
+      - key: SPRING_PASSWORD
+        value: ""
+      - key: AWS_ACCESS_KEY
+        value: ""
+      - key: AWS_SECRET_KEY
+        value: ""
+      - key: AWS_S3_BUCKET
+        value: ""
+      - key: AWS_REGION
+        value: ap-south-1
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MAIL_HEALTH
+        value: "false"
+      - key: REDIS_HEALTH
+        value: "true"
+      - key: PROMETHEUS_METRICS_EXPORT
+        value: "true"
+      - key: CORS_ALLOWED_ORIGIN_PATTERNS
+        value: https://*.onrender.com,http://localhost:3000,http://localhost:3001
+      - key: PHARMAFLOW_BRAND_NAME
+        value: PharmaFlow
+      - key: PHARMAFLOW_BRAND_TAGLINE
+        value: Retail pharmacy operations, billing, and compliance workspace
+      - key: PHARMAFLOW_BRAND_SUPPORT_EMAIL
+        value: support@pharmaflow.in
+      - key: PHARMAFLOW_BRAND_SUPPORT_PHONE
+        value: +91 44 4000 9000
+
+  - type: web
+    name: pharmaflow-frontend
+    runtime: static
+    plan: free
+    buildCommand: cd frontend && npm ci --legacy-peer-deps && npm run build
+    staticPublishPath: ./frontend/build
+    autoDeployTrigger: commit
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        fromService:
+          type: web
+          name: pharmaflow-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: REACT_APP_STORE_NAME
+        value: PharmaFlow
+      - key: REACT_APP_BRAND_NAME
+        value: PharmaFlow
+      - key: REACT_APP_BRAND_TAGLINE
+        value: Retail pharmacy operations, billing, and compliance workspace
+      - key: REACT_APP_BRAND_SUPPORT_EMAIL
+        value: support@pharmaflow.in
+      - key: REACT_APP_BRAND_SUPPORT_PHONE
+        value: +91 44 4000 9000
+      - key: REACT_APP_BRAND_DEPLOYMENT_MODE
+        value: Cloud demo on Render
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  - type: keyvalue
+    name: pharmaflow-cache
+    plan: free
+    region: singapore
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: pharmaflow-db
+    plan: free
+    region: singapore
+    databaseName: pharmaflow
+    user: pharmaflow_user
+    ipAllowList: []

@@ -1,0 +1,732 @@
+# LifePill API Gateway Configuration
+#  API Gateway with Service Discovery,
+# Circuit Breaker, and Centralized Configuration
+# Start Order: Service Registry -> Config Server -> API Gateway
+
+server:
+  port: ${API_GATEWAY_PORT:9191}
+  # Netty configuration for WebSocket support
+  netty:
+    connection-timeout: 30s
+    idle-timeout: 60s
+
+spring:
+  application:
+    name: API-GATEWAY
+  main:
+    web-application-type: reactive
+  
+  # Redis for Rate Limiting (optional - disable if not using Redis)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:2000ms}
+
+# JWT Configuration for token validation
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  
+  # Spring Cloud Gateway Configuration
+  cloud:
+    gateway:
+      # Enable service discovery
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: false
+      
+      # HttpClient configuration for WebSocket support
+      httpclient:
+        websocket:
+          max-frame-payload-length: 1048576
+        connect-timeout: 30000
+        response-timeout: 30s
+      
+      # Default Filters applied to all routes
+      default-filters:
+        - name: DedupeResponseHeader
+          args:
+            name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
+            strategy: RETAIN_FIRST
+        - name: Retry
+          args:
+            retries: ${GATEWAY_RETRY_ATTEMPTS:3}
+            statuses: BAD_GATEWAY,SERVICE_UNAVAILABLE
+            methods: GET
+            backoff:
+              firstBackoff: ${GATEWAY_RETRY_FIRST_BACKOFF:50ms}
+              maxBackoff: ${GATEWAY_RETRY_MAX_BACKOFF:500ms}
+              factor: 2
+              basedOnPreviousValue: false
+      
+      # Route Definitions
+      routes:
+        # WEBSOCKET ROUTE - HIGHEST PRIORITY (must be first)
+        - id: notification-websocket
+          uri: lb:ws://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/ws/**
+          filters:
+            - PreserveHostHeader
+            - RemoveRequestHeader=Sec-WebSocket-Extensions
+          metadata:
+            connect-timeout: 30000
+            response-timeout: 30000
+          order: -1
+        
+        # Notification Service - Device Registration (FCM tokens) - High Priority
+        - id: notification-devices
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/lifepill/v1/notifications/devices/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/notification
+          order: 0
+
+        # IDENTITY SERVICE - DIRECT AUTH (Highest Priority)
+        - id: identity-service-direct-auth
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            # Matches /lifepill/v1/auth/authenticate and other auth endpoints
+            - Path=/lifepill/v1/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: identityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+
+        # IDENTITY SERVICE ROUTES (Employee Authentication)
+        
+        # Identity Service - Auth endpoints
+        - id: identity-service-auth
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/identity/auth/**
+          filters:
+            - RewritePath=/lifepill/v1/identity/auth/(?<segment>.*), /lifepill/v1/auth/${segment}
+            - name: CircuitBreaker
+              args:
+                name: identityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+        
+        # Identity Service - Employer endpoints
+        - id: identity-service-employer
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/identity/employer/**
+          filters:
+            - RewritePath=/lifepill/v1/identity/employer/(?<segment>.*), /lifepill/v1/employer/${segment}
+            - name: CircuitBreaker
+              args:
+                name: identityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+        
+        # Identity Service - Token Validation endpoint
+        - id: identity-service-validate
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/identity/validate/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: identityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+        
+        # MOBILE USER AUTH SERVICE ROUTES
+        
+        # User Authentication Service - Auth endpoints (versioned)
+        - id: mobile-user-auth-service-auth
+          uri: lb://${GATEWAY_USER_AUTH_SERVICE:MOBILE-USER-AUTH-SERVICE}
+          predicates:
+            - Path=/api/${API_VERSION:v1}/user/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userAuthCircuitBreaker
+                fallbackUri: forward:/fallback/auth
+        
+        # User Profile Service - User endpoints (versioned)
+        - id: mobile-user-auth-service-user
+          uri: lb://${GATEWAY_USER_AUTH_SERVICE:MOBILE-USER-AUTH-SERVICE}
+          predicates:
+            - Path=/api/${API_VERSION:v1}/user/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userAuthCircuitBreaker
+                fallbackUri: forward:/fallback/user
+        
+        # AUTHENTICATED PROXY ROUTES (via Order Service)
+        # All branch/inventory requests go through Order Service auth first
+        
+        # Branch Proxy Routes (through Order Service authentication)
+        - id: order-proxy-branch
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/proxy/branch/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Inventory Proxy Routes (through Order Service authentication)
+        - id: order-proxy-inventory
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/proxy/inventory/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+
+        
+        # Branch Service Routes (direct - consider disabling for mobile)
+        - id: branch-service
+          uri: lb://BRANCH-SERVICE
+          predicates:
+            - Path=/lifepill/v1/branch/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: branchServiceCircuitBreaker
+                fallbackUri: forward:/fallback/branch
+        
+        # Branch Summary Routes (new consolidated endpoint)
+        - id: branch-service-summary
+          uri: lb://BRANCH-SERVICE
+          predicates:
+            - Path=/lifepill/v1/branch/summary/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: branchServiceCircuitBreaker
+                fallbackUri: forward:/fallback/branch
+        
+        # Branch Summary Routes (legacy/deprecated - for backward compatibility)
+        - id: branch-service-summary-legacy
+          uri: lb://BRANCH-SERVICE
+          predicates:
+            - Path=/lifepill/v1/branch-summary/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: branchServiceCircuitBreaker
+                fallbackUri: forward:/fallback/branch
+        
+        # Identity Service Employer Routes (singular path)
+        - id: identity-service-employer-direct
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/employer/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: identityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+        
+        # Identity Service Employer Routes (plural path - rewrites to singular)
+        - id: identity-service-employers-plural
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/employers/**
+          filters:
+            - RewritePath=/lifepill/v1/employers/(?<segment>.*), /lifepill/v1/employer/${segment}
+            - name: CircuitBreaker
+              args:
+                name: identityServiceCircuitBreaker
+                fallbackUri: forward:/fallback/identity
+        
+        # Inventory Service - Item Routes (direct - consider disabling for mobile)
+        - id: inventory-service-items
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/item/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: inventoryServiceCircuitBreaker
+                fallbackUri: forward:/fallback/inventory
+        
+        # Inventory Service - Category Routes
+        - id: inventory-service-categories
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/category/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: inventoryServiceCircuitBreaker
+                fallbackUri: forward:/fallback/inventory
+        
+        # Inventory Service - Supplier Company Routes (higher priority - more specific path)
+        - id: inventory-service-supplier-company
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/supplier-company/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: inventoryServiceCircuitBreaker
+                fallbackUri: forward:/fallback/inventory
+        
+        # Inventory Service - Supplier Routes (generic)
+        - id: inventory-service-suppliers
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/lifepill/v1/supplier/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: inventoryServiceCircuitBreaker
+                fallbackUri: forward:/fallback/inventory
+        
+        # Patient Customer Service Routes
+        - id: patient-customer-service
+          uri: lb://PATIENT-CUSTOMER-SERVICE
+          predicates:
+            - Path=/api/customers/**,/api/prescriptions/**,/api/payments/**,/api/prescription-orders/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: customerServiceCircuitBreaker
+                fallbackUri: forward:/fallback/customer
+        
+        # Mobile API Routes (Patient Customer Service)
+        - id: patient-customer-mobile-api
+          uri: lb://PATIENT-CUSTOMER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/mobile/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: customerServiceCircuitBreaker
+                fallbackUri: forward:/fallback/customer
+        
+        # Prescription Image Routes (Patient Customer Service)
+        - id: patient-customer-prescription-images
+          uri: lb://PATIENT-CUSTOMER-SERVICE
+          predicates:
+            - Path=/prescriptionImages/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: customerServiceCircuitBreaker
+                fallbackUri: forward:/fallback/customer
+        
+        # ORDER SERVICE ROUTES (formerly POS System)
+        
+
+        # Order Service Auth Routes (for other auth endpoints)
+        - id: order-service-auth
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Identity Service - Session Management endpoints
+        # MOVED TO PROGRAMMATIC CONFIG (GatewayRouteConfig.java)
+        # - id: identity-service-session
+        #   uri: lb://IDENTITY-SERVICE
+        #   predicates:
+        #     - Path=/lifepill/v1/session/logout/temporary,/lifepill/v1/session/logout/permanent,/lifepill/v1/session/authenticate/cached,/lifepill/v1/session/get-cached-employer/**,/lifepill/v1/session/get-all-cached-employers,/lifepill/v1/session/check/**
+        #   filters:
+        #     - name: CircuitBreaker
+        #       args:
+        #         name: identityServiceCircuitBreaker
+        #         fallbackUri: forward:/fallback/identity
+        
+        # Order Service Session Routes (for other session endpoints)
+        # DISABLED - Identity Service handles all session endpoints
+        # - id: order-service-session
+        #   uri: lb://ORDER-SERVICE
+        #   predicates:
+        #     - Path=/lifepill/v1/session/**
+        #   filters:
+        #     - name: CircuitBreaker
+        #       args:
+        #         name: orderServiceCircuitBreaker
+        #         fallbackUri: forward:/fallback/order
+        
+        # Order Service Order Routes
+        - id: order-service-orders
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/order/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Employer Routes
+        - id: order-service-employer
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/employer-management/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Owner Routes
+        - id: order-service-owner
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/owner/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Manager Routes
+        - id: order-service-manager
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/branch-manager/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Cashier Routes
+        - id: order-service-cashier
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/cashier/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Branch Summary Routes
+        - id: order-service-branch-summary
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/branch-summary/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Item Routes 
+        - id: order-service-items
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/pos/item/**
+          filters:
+            - RewritePath=/lifepill/v1/pos/item/(?<segment>.*), /lifepill/v1/item/${segment}
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Category Routes
+        - id: order-service-categories
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/pos/category/**
+          filters:
+            - RewritePath=/lifepill/v1/pos/category/(?<segment>.*), /lifepill/v1/category/${segment}
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # Order Service Supplier Routes
+        - id: order-service-suppliers
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/lifepill/v1/pos/supplier/**
+          filters:
+            - RewritePath=/lifepill/v1/pos/supplier/(?<segment>.*), /lifepill/v1/supplier/${segment}
+            - name: CircuitBreaker
+              args:
+                name: orderServiceCircuitBreaker
+                fallbackUri: forward:/fallback/order
+        
+        # PRESCRIPTION SERVICE ROUTES
+        
+        # Prescription Service - Main Routes
+        - id: prescription-service
+          uri: lb://PRESCRIPTION-SERVICE
+          predicates:
+            - Path=/lifepill/v1/prescription/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: prescriptionServiceCircuitBreaker
+                fallbackUri: forward:/fallback/prescription
+        
+        # NOTIFICATION SERVICE ROUTES
+        
+        # Notification Service - REST Endpoints
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/api/v1/notifications/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/notification
+        
+        
+        # OPENAPI/SWAGGER DOCUMENTATION ROUTES
+        
+        # User Auth Service - API Docs
+        - id: user-auth-api-docs
+          uri: lb://${GATEWAY_USER_AUTH_SERVICE:MOBILE-USER-AUTH-SERVICE}
+          predicates:
+            - Path=/api/v3/api-docs/**,/api/swagger-ui/**,/api/swagger-ui.html
+        
+        # Identity Service - API Docs
+        - id: identity-service-api-docs
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/identity/v3/api-docs/**,/identity/swagger-ui/**,/identity/swagger-ui.html
+          filters:
+            - RewritePath=/identity/(?<segment>.*), /${segment}
+        
+        # Branch Service - API Docs
+        - id: branch-service-api-docs
+          uri: lb://BRANCH-SERVICE
+          predicates:
+            - Path=/branch/v3/api-docs/**,/branch/swagger-ui/**,/branch/swagger-ui.html
+          filters:
+            - RewritePath=/branch/(?<segment>.*), /${segment}
+        
+        # Inventory Service - API Docs
+        - id: inventory-service-api-docs
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/inventory/v3/api-docs/**,/inventory/swagger-ui/**,/inventory/swagger-ui.html
+          filters:
+            - RewritePath=/inventory/(?<segment>.*), /${segment}
+        
+        # Order Service - API Docs
+        - id: order-service-api-docs
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/order/v3/api-docs/**,/order/swagger-ui/**,/order/swagger-ui.html
+          filters:
+            - RewritePath=/order/(?<segment>.*), /${segment}
+        
+        # Patient Customer Service - API Docs
+        - id: customer-service-api-docs
+          uri: lb://PATIENT-CUSTOMER-SERVICE
+          predicates:
+            - Path=/customer/v3/api-docs/**,/customer/swagger-ui/**,/customer/swagger-ui.html
+          filters:
+            - RewritePath=/customer/(?<segment>.*), /${segment}
+
+# API Versioning Configuration
+api:
+  version: ${API_VERSION:v1}
+
+# Gateway Service Configuration
+gateway:
+  services:
+    user-auth:
+      name: ${GATEWAY_USER_AUTH_SERVICE:MOBILE-USER-AUTH-SERVICE}
+    config-server:
+      name: ${GATEWAY_CONFIG_SERVER:CONFIG-SERVER}
+    eureka:
+      uri: ${EUREKA_DASHBOARD_URI:http://localhost:8761}
+  routes:
+    auth-path: ${GATEWAY_AUTH_PATH:/api/${API_VERSION:v1}/auth/**}
+    user-path: ${GATEWAY_USER_PATH:/api/${API_VERSION:v1}/user/**}
+    retry-count: 3
+  
+  # Service Paths (Externalized for flexibility)
+  paths:
+    identity:
+      auth: ${IDENTITY_AUTH_PATH:/lifepill/v1/auth/**}
+      session: ${IDENTITY_SESSION_PATH:/lifepill/v1/session/**}
+      employer: ${IDENTITY_EMPLOYER_PATH:/lifepill/v1/employer/**}
+  headers:
+    source: ${GATEWAY_HEADER_SOURCE:lifepill-gateway}
+
+# Circuit Breaker Configuration (for Java Config)
+circuitbreaker:
+  default:
+    sliding-window-size: ${CB_DEFAULT_SLIDING_WINDOW_SIZE:10}
+    failure-rate-threshold: ${CB_DEFAULT_FAILURE_RATE_THRESHOLD:50}
+    wait-duration-open-state: ${CB_DEFAULT_WAIT_DURATION_OPEN_STATE:10}
+    permitted-calls-half-open: ${CB_DEFAULT_PERMITTED_CALLS_HALF_OPEN:5}
+    slow-call-rate-threshold: ${CB_DEFAULT_SLOW_CALL_RATE_THRESHOLD:50}
+    slow-call-duration-threshold: ${CB_DEFAULT_SLOW_CALL_DURATION_THRESHOLD:2}
+    timeout-duration: ${CB_DEFAULT_TIMEOUT_DURATION:5}
+  auth:
+    sliding-window-size: ${CB_AUTH_SLIDING_WINDOW_SIZE:5}
+    failure-rate-threshold: ${CB_AUTH_FAILURE_RATE_THRESHOLD:40}
+    wait-duration-open-state: ${CB_AUTH_WAIT_DURATION_OPEN_STATE:15}
+    permitted-calls-half-open: ${CB_AUTH_PERMITTED_CALLS_HALF_OPEN:3}
+    slow-call-rate-threshold: ${CB_AUTH_SLOW_CALL_RATE_THRESHOLD:40}
+    slow-call-duration-threshold: ${CB_AUTH_SLOW_CALL_DURATION_THRESHOLD:3}
+    timeout-duration: ${CB_AUTH_TIMEOUT_DURATION:10}
+
+# CORS Configuration - Externalized
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+  allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,Origin,X-Requested-With,X-XSRF-TOKEN,X-Gateway-Source,Sec-WebSocket-Protocol,Sec-WebSocket-Extensions,Sec-WebSocket-Key,Sec-WebSocket-Version}
+  exposed-headers: ${CORS_EXPOSED_HEADERS:Authorization,X-Response-Time,X-Request-Id}
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:false}
+  max-age: ${CORS_MAX_AGE:3600}
+
+# Eureka Client Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+    register-with-eureka: ${EUREKA_REGISTER:true}
+    fetch-registry: ${EUREKA_FETCH_REGISTRY:true}
+    registry-fetch-interval-seconds: ${EUREKA_FETCH_INTERVAL:30}
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_PREFER_IP:true}
+    instance-id: ${spring.application.name}:${server.port}:${random.value}
+    lease-renewal-interval-in-seconds: ${EUREKA_LEASE_RENEWAL:30}
+    lease-expiration-duration-in-seconds: ${EUREKA_LEASE_EXPIRATION:90}
+    metadata-map:
+      zone: ${ZONE:primary}
+      profile: ${SPRING_PROFILES_ACTIVE:default}
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: ${CB_SLIDING_WINDOW_SIZE:10}
+        failure-rate-threshold: ${CB_FAILURE_RATE_THRESHOLD:50}
+        wait-duration-in-open-state: ${CB_WAIT_DURATION:10s}
+        permitted-number-of-calls-in-half-open-state: ${CB_HALF_OPEN_CALLS:5}
+        register-health-indicator: true
+        automatic-transition-from-open-to-half-open-enabled: true
+    instances:
+      userAuthCircuitBreaker:
+        base-config: default
+        sliding-window-size: ${CB_AUTH_SLIDING_WINDOW_SIZE:5}
+        failure-rate-threshold: ${CB_AUTH_FAILURE_RATE:40}
+        wait-duration-in-open-state: ${CB_AUTH_WAIT_DURATION:15s}
+      identityServiceCircuitBreaker:
+        base-config: default
+        sliding-window-size: ${CB_IDENTITY_SLIDING_WINDOW_SIZE:5}
+        failure-rate-threshold: ${CB_IDENTITY_FAILURE_RATE:40}
+        wait-duration-in-open-state: ${CB_IDENTITY_WAIT_DURATION:15s}
+      branchServiceCircuitBreaker:
+        base-config: default
+      inventoryServiceCircuitBreaker:
+        base-config: default
+      customerServiceCircuitBreaker:
+        base-config: default
+      orderServiceCircuitBreaker:
+        base-config: default
+        sliding-window-size: ${CB_ORDER_SLIDING_WINDOW_SIZE:5}
+        failure-rate-threshold: ${CB_ORDER_FAILURE_RATE:40}
+        wait-duration-in-open-state: ${CB_ORDER_WAIT_DURATION:15s}
+      defaultCircuitBreaker:
+        base-config: default
+      prescriptionServiceCircuitBreaker:
+        base-config: default
+      notificationServiceCircuitBreaker:
+        base-config: default
+  
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: ${TL_TIMEOUT:30s}
+    instances:
+      userAuthCircuitBreaker:
+        timeout-duration: ${TL_AUTH_TIMEOUT:30s}
+      branchServiceCircuitBreaker:
+        timeout-duration: ${TL_TIMEOUT:30s}
+      inventoryServiceCircuitBreaker:
+        timeout-duration: ${TL_INVENTORY_TIMEOUT:30s}
+      customerServiceCircuitBreaker:
+        timeout-duration: ${TL_TIMEOUT:30s}
+      identityServiceCircuitBreaker:
+        timeout-duration: ${TL_IDENTITY_TIMEOUT:30s}
+      orderServiceCircuitBreaker:
+        timeout-duration: ${TL_ORDER_TIMEOUT:30s}
+      prescriptionServiceCircuitBreaker:
+        timeout-duration: ${TL_TIMEOUT:30s}
+      notificationServiceCircuitBreaker:
+        timeout-duration: ${TL_TIMEOUT:30s}
+
+# Actuator Configuration for Production Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info,metrics,prometheus,gateway,circuitbreakers,circuitbreakerevents}
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: ${ACTUATOR_HEALTH_DETAILS:when_authorized}
+      show-components: ${ACTUATOR_HEALTH_COMPONENTS:when_authorized}
+      probes:
+        enabled: true
+    gateway:
+      enabled: true
+    info:
+      enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+    diskspace:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:development}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        resilience4j.circuitbreaker.calls: true
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}  # Sample all requests (100%)
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+
+# Application Info
+info:
+  app:
+    name: ${INFO_APP_NAME:LifePill API Gateway}
+    description: ${INFO_APP_DESC:Production-grade API Gateway for LifePill Microservices}
+    version: ${INFO_APP_VERSION:v1.0.0}
+    encoding: UTF-8
+    java:
+      version: ${java.version}
+
+# Logging Configuration
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    com.lifepill: ${LOG_LEVEL_APP:DEBUG}
+    org.springframework.cloud.gateway: ${LOG_LEVEL_GATEWAY:INFO}
+    io.github.resilience4j: ${LOG_LEVEL_RESILIENCE:DEBUG}
+    reactor.netty: ${LOG_LEVEL_NETTY:INFO}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_PATH:./logs}/api-gateway.log

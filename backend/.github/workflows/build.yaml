@@ -1,0 +1,77 @@
+name: Spring Boot Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Ensure the token has permission to write releases
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history for SonarCloud analysis
+
+      # Step 2: Set up JDK 17 for Spring Boot
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'zulu'  # Change this to any distribution you prefer
+
+      # Step 3: Cache SonarCloud packages (optional)
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      # Step 4: Cache Maven packages for faster builds
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      # Step 5: Build and analyze the code with Maven
+      - name: Build and analyze the Spring Boot project
+        working-directory: pos-system  # Adjust if your backend is in a subdirectory
+        run: mvn -B clean verify -DskipTests
+
+      # Step 6: Get the version from pom.xml (requires jq)
+      - name: Get Version from pom.xml
+        id: get_version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      # Step 7: Generate a unique tag name with timestamp
+      - name: Generate unique tag name
+        id: generate_tag
+        run: |
+          UNIQUE_TAG="${{ env.VERSION }}-$(date +'%Y%m%d%H%M%S')"
+          echo "UNIQUE_TAG=${UNIQUE_TAG}" >> $GITHUB_ENV
+
+      # Step 8: Create a new GitHub release
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ env.UNIQUE_TAG }}  # Use unique tag with version and timestamp
+          release_name: "Release v${{ env.UNIQUE_TAG }}"  # Use unique release name
+          draft: false
+          prerelease: false
+          body: "Automated release created by GitHub Actions"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use the default GITHUB_TOKEN

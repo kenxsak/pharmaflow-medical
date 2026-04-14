@@ -1,0 +1,47 @@
+name: Build and Release Electron App
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_on_win:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3 # Latest version
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3 # Latest version
+        with:
+          node-version: "19.x" # Use a version range for stability
+
+      - name: Install dependencies
+        run: |
+          npm ci  # Clean install (recommended if using package-lock.json)
+
+      - name: Build Electron app for Windows
+        run: npm run electron:package:win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Electron-app
+          path: dist/*.exe
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

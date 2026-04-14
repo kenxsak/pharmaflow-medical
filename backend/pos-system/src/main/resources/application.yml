@@ -1,0 +1,95 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: MAIN-POS-BACKEND
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    jdbc:
+      lob:
+        non_contextual_creation: true
+    show-sql: ${JDBC_SHOW_SQL}
+    open-in-view: ${HIBERNATE_OPEN_IN_VIEW:false}
+  security:
+    user:
+      name: ${SPRING_SECURITY_USERNAME}
+      password: ${SPRING_SECURITY_PASSWORD}
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+  mail:
+    host: ${SPRING_MAIL_HOST}
+    port: ${SPRING_MAIL_PORT}
+    username: ${SPRING_USER_NAME}
+    password: ${SPRING_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# OpenSearch Configuration
+opensearch:
+  enabled: ${OPENSEARCH_ENABLED:false}
+  host: ${OPENSEARCH_HOST:localhost}
+  port: ${OPENSEARCH_PORT:9200}
+  scheme: ${OPENSEARCH_SCHEME:http}
+  username: ${OPENSEARCH_USERNAME:admin}
+  password: ${OPENSEARCH_PASSWORD:admin}
+
+server:
+  port: ${SERVER_PORT:${PORT:8080}}
+
+logging:
+  level:
+    org.springframework.security: ${SECURITY_DEBUG:DEBUG}
+
+aws:
+  access.key: ${AWS_ACCESS_KEY}
+  secret.key: ${AWS_SECRET_KEY}
+  s3.bucket: ${AWS_S3_BUCKET}
+  region: ${AWS_REGION}
+
+# CORS Configuration - All settings loaded from environment variables
+# See CorsFilter.java in filter package for implementation
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+  allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Cache-Control,Content-Type,X-Store-ID,X-Tenant-ID,X-Tenant-Slug,X-Brand-Name,X-Brand-Tagline,X-Brand-Support-Email,X-Brand-Support-Phone}
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  max-age: ${CORS_MAX_AGE:3600}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  health:
+    mail:
+      enabled: ${MAIL_HEALTH}
+    redis:
+      enabled: ${REDIS_HEALTH}
+  metrics:
+    export:
+      prometheus:
+        enabled: ${PROMETHEUS_METRICS_EXPORT}
+
+#twilio:
+#  accountSid: ${TWILIO_ACCOUNT_SID}
+#  authToken: ${TWILIO_AUTH_TOKEN}
+#  fromPhoneNumber: ${TWILIO_FROM_PHONE_NUMBER}
