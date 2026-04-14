@@ -28,6 +28,7 @@ import {
   TenantRecord,
 } from '../../utils/saasAdmin';
 import LegacyModal from '../../shared/legacy/LegacyModal';
+import { getPharmaFlowPersona, usePharmaFlowContext } from '../../utils/pharmaflowContext';
 
 const badgeClasses = {
   Draft: 'border-slate-200 bg-slate-50 text-slate-700',
@@ -136,6 +137,8 @@ interface SaaSControlCenterProps {
 }
 
 const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false }) => {
+  const platformSession = usePharmaFlowContext();
+  const canAccessPlatform = getPharmaFlowPersona(platformSession) === 'saas-admin';
   const [adminState, setAdminState] = useState<SaaSAdminState>(EMPTY_ADMIN_STATE);
   const [tenantDraft, setTenantDraft] = useState<TenantRecord>(() => createEmptyTenant(Date.now()));
   const [planDraft, setPlanDraft] = useState<PlanRecord>(() => createEmptyPlan(Date.now()));
@@ -190,6 +193,12 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
     let active = true;
 
     const loadPlatformState = async () => {
+      if (!canAccessPlatform) {
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       try {
@@ -240,7 +249,21 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
     return () => {
       active = false;
     };
-  }, []);
+  }, [canAccessPlatform]);
+
+  if (!canAccessPlatform) {
+    return (
+      <PharmaFlowShell
+        embedded={embedded}
+        title="SaaS Super Admin"
+        description="Platform controls are only available to the SaaS owner account."
+      >
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+          This login does not have SaaS platform access. Use the SaaS Admin account from the same LifePill login screen to manage tenants, plans, pricing, and entitlements.
+        </section>
+      </PharmaFlowShell>
+    );
+  }
 
   const totalMrr = useMemo(() => calculateTotalMrr(adminState.tenants), [adminState.tenants]);
   const annualRunRate = useMemo(() => calculateAnnualRunRate(totalMrr), [totalMrr]);

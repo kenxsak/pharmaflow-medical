@@ -1,7 +1,16 @@
 import type { IEmployeeInterface } from '../interfaces/IEmployeeInterface';
 
+const hasPharmaFlowToken = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return Boolean(localStorage.getItem('pharmaflow_token'));
+};
+
 export const isPharmaFlowBridgeUser = (user?: IEmployeeInterface | null) =>
-  user?.authSource === 'pharmaflow-bridge';
+  user?.authSource === 'pharmaflow-bridge' ||
+  (!!user && !user.authSource && hasPharmaFlowToken());
 
 export const shouldCallLegacyOnlyApis = (user?: IEmployeeInterface | null) =>
   Boolean(user) && !isPharmaFlowBridgeUser(user);

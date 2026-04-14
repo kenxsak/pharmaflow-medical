@@ -279,9 +279,16 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
       return;
     }
 
+    const normalizedPhone = phoneToLookup.replace(/\D/g, '');
+    if (normalizedPhone.length !== 10) {
+      setCustomer(null);
+      setErrorMessage('Enter a 10-digit mobile number to look up a customer.');
+      return;
+    }
+
     try {
-      const result = await CustomerAPI.lookupByPhone(phoneToLookup);
-      setCustomerPhone(phoneToLookup);
+      const result = await CustomerAPI.lookupByPhone(normalizedPhone);
+      setCustomerPhone(normalizedPhone);
       setCustomer(result);
       if (!doctorName && result.doctorName) {
         setDoctorName(result.doctorName);

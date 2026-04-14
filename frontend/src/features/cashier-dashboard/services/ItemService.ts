@@ -5,6 +5,7 @@ import { useUserContext } from '../../../context/UserContext';
 import { toast } from 'react-toastify';
 import { IMedicine } from '../../../interfaces/IMedicine';
 import { usePaymentContext } from '../layout/MainCashierDashboard';
+import { supportsLegacyRealtime } from '../../../utils/legacySession';
 
 const useItemService = () => {
   const http = useAxiosInstance();
@@ -25,6 +26,7 @@ const useItemService = () => {
   //   }
   // };
   const user = useUserContext();
+  const realtimeEnabled = supportsLegacyRealtime(user.user);
   // const [medicine, setMedicine] = useState<IMedicine[]>([]);
   // const [filteredMedicine, setFilteredMedicine] = useState<IMedicine[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -34,8 +36,10 @@ const useItemService = () => {
 
   const getAllItems = async () => {
     try {
-      if (!user) {
-        toast.error('Not logged in');
+      if (!user || !realtimeEnabled || !user.user?.branchId) {
+        setItems([]);
+        setMedicine([]);
+        setFilteredMedicine([]);
         return;
       }
       setLoading(true);
@@ -47,17 +51,14 @@ const useItemService = () => {
       if (data.length === 0) return [];
       const mappedItems = data.map((item: any) => mapIItemsToIMedicine(item));
       setItems(mappedItems);
-      console.log(res);
       setMedicine(mappedItems);
       setFilteredMedicine(mappedItems);
       return mappedItems;
     } catch (error: any) {
-      if (error.response?.status === 404) {
+      if (error.response?.status === 404 || error.response?.status === 403) {
         setItems([]);
         setMedicine([]);
         setFilteredMedicine([]);
-      } else {
-        console.log(error);
       }
       return [];
     } finally {
@@ -72,7 +73,6 @@ const useItemService = () => {
       const mappedItems = items.map((item: any) => mapIItemsToIMedicine(item));
       return mappedItems;
     } catch (error) {
-      console.log(error);
       return [];
     }
   };

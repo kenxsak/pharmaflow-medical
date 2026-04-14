@@ -10,13 +10,29 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+const hydrateStoredUser = (storedUser: string | null): IEmployeeInterface | null => {
+  if (!storedUser) {
+    return null;
+  }
+
+  const parsedUser = JSON.parse(storedUser) as IEmployeeInterface;
+  if (parsedUser && !parsedUser.authSource && localStorage.getItem('pharmaflow_token')) {
+    return {
+      ...parsedUser,
+      authSource: 'pharmaflow-bridge',
+    };
+  }
+
+  return parsedUser;
+};
+
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<IEmployeeInterface | null>(() => {
     // Initialize user from local storage if available
     const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
+    return hydrateStoredUser(storedUser);
   });
 
   const [cookie, setCookie] = useState<String | null>(() => {
@@ -36,9 +52,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Wrapper function to persist user to localStorage
   const handleSetUser = (newUser: IEmployeeInterface | null) => {
-    setUser(newUser);
-    if (newUser) {
-      localStorage.setItem('user', JSON.stringify(newUser));
+    const normalizedUser =
+      newUser && !newUser.authSource && localStorage.getItem('pharmaflow_token')
+        ? {
+            ...newUser,
+            authSource: 'pharmaflow-bridge' as const,
+          }
+        : newUser;
+
+    setUser(normalizedUser);
+    if (normalizedUser) {
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
     } else {
       localStorage.removeItem('user');
     }

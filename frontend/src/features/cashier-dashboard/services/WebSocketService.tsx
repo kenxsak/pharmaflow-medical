@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import SockJS from 'sockjs-client';
-import { Stomp, CompatClient } from '@stomp/stompjs';
+import { CompatClient } from '@stomp/stompjs';
 import { toast } from 'react-toastify';
 import { getWebSocketUrl } from '../../../utils/apiBaseUrls';
 import { useUserContext } from '../../../context/UserContext';
@@ -47,7 +47,7 @@ const useWebSocketService = () => {
     
     // Create WebSocket connection
     const wsURL = getWebSocketUrl();
-    const client = Stomp.over(() => new SockJS(wsURL) as any);
+    const client = new CompatClient(() => new SockJS(wsURL) as any);
 
     // Disable debug logging
     client.debug = () => {};

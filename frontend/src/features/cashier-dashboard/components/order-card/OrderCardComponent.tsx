@@ -9,6 +9,7 @@ import useAxiosInstance from '../../../login/services/useAxiosInstance';
 import { useUserContext } from '../../../../context/UserContext';
 import { mapIItemsToIMedicine } from '../../utils/mapIItemsToIMedicine';
 import { IMedicine } from '../../../../interfaces/IMedicine';
+import { supportsLegacyRealtime } from '../../../../utils/legacySession';
 
 type Props = {
   onClose: () => void;
@@ -21,11 +22,15 @@ function OrderCardComponent({ onClose }: Props) {
   const user = useUserContext();
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   const [availableMedicines, setAvailableMedicines] = useState<IMedicine[]>([]);
+  const realtimeEnabled = supportsLegacyRealtime(user.user);
 
   useEffect(() => {
     const fetchMedicines = async () => {
       try {
-        if (!user.user?.branchId) return;
+        if (!realtimeEnabled || !user.user?.branchId) {
+          setAvailableMedicines([]);
+          return;
+        }
         const res = await axiosInstance.get(`/item/branched/get-item/${user.user.branchId}`);
         const data = res.data.data;
         if (data.length > 0) {
@@ -33,12 +38,12 @@ function OrderCardComponent({ onClose }: Props) {
           setAvailableMedicines(mappedItems);
         }
       } catch (error) {
-        console.error('Error fetching medicines:', error);
+        setAvailableMedicines([]);
       }
     };
 
-    fetchMedicines();
-  }, []);
+    void fetchMedicines();
+  }, [axiosInstance, realtimeEnabled, user.user?.branchId]);
 
   const handleSubmitResponse = async (
     prescriptionId: string,

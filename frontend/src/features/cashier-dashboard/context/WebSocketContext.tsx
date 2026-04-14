@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import SockJS from 'sockjs-client';
-import { Stomp, CompatClient } from '@stomp/stompjs';
+import { CompatClient } from '@stomp/stompjs';
 import { toast } from 'react-toastify';
 import { getWebSocketUrl } from '../../../utils/apiBaseUrls';
 import { useUserContext } from '../../../context/UserContext';
@@ -68,7 +68,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // Create WebSocket connection
     const wsURL = getWebSocketUrl();
-    const client = Stomp.over(() => new SockJS(wsURL) as any);
+    const client = new CompatClient(() => new SockJS(wsURL) as any);
 
     // Disable debug logging
     client.debug = () => {};
@@ -77,8 +77,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Connect to WebSocket
     client.connect(
       {},
-      (frame: any) => {
-        console.log('✅ Connected to WebSocket: ' + frame);
+      () => {
         setConnected(true);
         setConnecting(false);
         setConnectionFailed(false);
