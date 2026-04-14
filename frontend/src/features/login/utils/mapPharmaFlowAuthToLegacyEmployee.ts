@@ -78,6 +78,7 @@ export const mapPharmaFlowAuthToLegacyEmployee = (
     role: legacyRole,
     pin: legacyRole === 'CASHIER' ? 4321 : 0,
     profileImageUrl: null,
+    authSource: 'pharmaflow-bridge',
   };
 };
 

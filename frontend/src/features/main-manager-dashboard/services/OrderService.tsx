@@ -11,12 +11,10 @@ const useOrderService = () => {
     try {
       setLoading(true);
       const res = await http.get('/order/getAllOrdersWithDetails');
-      console.log(res.data.data);
       setOrderData(res.data.data);
     } catch (error) {
-      console.log(error);
+      setOrderData([]);
     } finally {
-      console.log(orderData);
       setLoading(false);
     }
   };

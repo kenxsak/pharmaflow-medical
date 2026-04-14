@@ -20,5 +20,6 @@ export const mapEmployeeReponseToIEmployee = (
     role: employee.role,
     pin: employee.pin,
     profileImageUrl: employee.profileImageUrl,
+    authSource: 'legacy',
   };
 };

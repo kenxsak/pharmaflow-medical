@@ -7,6 +7,7 @@ import {
   announcePharmaFlowContextChange,
   clearPharmaFlowSession,
 } from '../utils/pharmaflowContext';
+import { shouldCallLegacyLogout } from '../utils/legacySession';
 
 const useAuthenticationService = () => {
   const { user, setUser, setCookie } = useUserContext();
@@ -17,16 +18,11 @@ const useAuthenticationService = () => {
   const logInUsingPin = async (pin: string) => {
     try {
       setLog(true);
-      console.log(user?.employerEmail);
-      console.log(pin);
-      
       const res = await http.post('/session/authenticate/cached', {
         username: user?.employerEmail,
         pin: parseInt(pin),
       });
-      
-      console.log(res);
-      
+
       const { authenticationResponse, employerDetails } = res.data || {};
 
       if (authenticationResponse?.access_token && employerDetails) {
@@ -65,12 +61,12 @@ const useAuthenticationService = () => {
 
     try {
       setLogging(true);
-      console.log(user);
-      await http.post('/session/logout/permanent', {
-        username: user?.employerEmail,
-      });
+      if (shouldCallLegacyLogout(user)) {
+        await http.post('/session/logout/permanent', {
+          username: user?.employerEmail,
+        });
+      }
     } catch (error) {
-      console.log(error);
     } finally {
       clearPharmaFlowSession();
       announcePharmaFlowContextChange();

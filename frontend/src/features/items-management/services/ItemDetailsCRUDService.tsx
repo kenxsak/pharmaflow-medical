@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { useUserContext } from '../../../context/UserContext';
 import { useNavigate } from 'react-router-dom';
 import validateItem from '../utils/validation';
+import { isPharmaFlowBridgeUser } from '../../../utils/legacySession';
 
 const useItemService = () => {
   const http = useAxiosInstance();
@@ -47,20 +48,23 @@ const useItemService = () => {
   });
 
   const fetchAllItems = async () => {
+    if (isPharmaFlowBridgeUser(user)) {
+      setItems([]);
+      setFilteredItems([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await http.get('/item/get-all-items');
       const data: Item[] = res.data.data;
-      console.log(res.data.data);
       setItems(data);
       setFilteredItems(data);
-      // console.log(items);
     } catch (error: any) {
-      if (error.response?.status === 404) {
+      if (error.response?.status === 404 || error.response?.status === 403) {
         setItems([]);
         setFilteredItems([]);
       } else {
-        console.log(error);
         toast.error('Could not fetch medicine');
       }
     } finally {
@@ -125,7 +129,6 @@ const useItemService = () => {
   const [itemImage, setItemImage] = useState<File | null>();
 
   const createItem = async () => {
-    console.log('createItem', item);
     const formData = new FormData();
     formData.append('itemName', item.itemName);
     formData.append('branchId', item.branchId.toString());
@@ -164,19 +167,12 @@ const useItemService = () => {
       formData.append('file', itemImage, itemImage.name);
     }
 
-    for (const pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
-
     setCreating(true);
 
     if (!validateItem(item)) {
       setCreating(false);
       return;
     }
-
-    console.log('Sending request to:', '/item/save-item-with-image');
-    console.log('FormData entries count:', Array.from(formData.entries()).length);
 
     try {
       const res = await http.post('/item/save-item-with-image', formData);
@@ -186,9 +182,7 @@ const useItemService = () => {
       } else {
         toast.error(res.data.message || 'Failed to create item');
       }
-      console.log(res);
     } catch (error: any) {
-      console.error('Item creation error:', error);
       toast.error(error?.response?.data?.message || 'Could not create the item');
     } finally {
       setCreating(false);
@@ -215,12 +209,9 @@ const useItemService = () => {
       try {
         // Send delete request if user confirms
         const res = await http.delete(`/item/delete-item/${itemId}`);
-        console.log(res);
-
         toast.success(`Item deleted successfully: ${itemId}`);
         fetchAllItems();
       } catch (error) {
-        console.log(error);
         toast.error(`Could not delete item: ${itemId}`);
       }
     } else {
@@ -235,7 +226,6 @@ const useItemService = () => {
     try {
       setFetchItemString(true);
       const res = await http.get(`/item/view-item-image/${itemId}`);
-      console.log(res);
       // New API returns { code, message, data: "image-url" }
       if (res.data.code === 200 && res.data.data) {
         setItemString(res.data.data);
@@ -247,7 +237,6 @@ const useItemService = () => {
         toast.error(res.data.message || 'Failed to fetch item image');
       }
     } catch (error: any) {
-      console.log(error);
       // Only show toast for non-404 errors
       if (error?.response?.data?.code !== 404) {
         toast.error('Could not fetch item image');
@@ -278,9 +267,7 @@ const useItemService = () => {
           },
         }
       );
-      console.log(res);
     } catch (error) {
-      console.log(error);
     } finally {
       setUpdatingItemImage(false);
     }

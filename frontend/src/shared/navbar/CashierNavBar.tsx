@@ -5,6 +5,8 @@ import Divider from '../divider/Divider';
 import { useState } from 'react';
 import OrderCardComponent from '../../features/cashier-dashboard/components/order-card/OrderCardComponent';
 import { useWebSocket } from '../../features/cashier-dashboard/context/WebSocketContext';
+import { useUserContext } from '../../context/UserContext';
+import { supportsLegacyRealtime } from '../../utils/legacySession';
 const Logo = require('../../assets/logo/logo.png');
 
 interface CashierNavBarProps {
@@ -14,6 +16,8 @@ interface CashierNavBarProps {
 const CashierNavBar = ({ title = 'Easy Pharmacy Home' }: CashierNavBarProps) => {
   const [showOnlineOrders, setShowOnlineOrders] = useState(false);
   const { prescriptions } = useWebSocket();
+  const { user } = useUserContext();
+  const realtimeEnabled = supportsLegacyRealtime(user);
 
   const handleShowOnlineOrders = () => {
     setShowOnlineOrders(!showOnlineOrders);
@@ -32,6 +36,7 @@ const CashierNavBar = ({ title = 'Easy Pharmacy Home' }: CashierNavBarProps) => 
       {/* Date and time */}
       <DateAndTimeNavBar />
 
+      {realtimeEnabled ? (
       <div className='relative'>
         <button
           type='button'
@@ -51,6 +56,11 @@ const CashierNavBar = ({ title = 'Easy Pharmacy Home' }: CashierNavBarProps) => 
           </span>
         )}
       </div>
+      ) : (
+      <div className='rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500'>
+        Online prescriptions available on branch legacy accounts
+      </div>
+      )}
 
       <Divider />
 

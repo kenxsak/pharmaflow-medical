@@ -3,6 +3,7 @@ import useAxiosInstance from '../../login/services/useAxiosInstance';
 import { IBranchData } from '../interfaces/IBranchData';
 import { useUserContext } from '../../../context/UserContext';
 import { toast } from 'react-toastify';
+import { isPharmaFlowBridgeUser } from '../../../utils/legacySession';
 
 const UseBranchService = () => {
   const http = useAxiosInstance();
@@ -40,7 +41,7 @@ const UseBranchService = () => {
   });
 
   const fetchBranchData = async () => {
-    if (!user.user?.branchId) {
+    if (!user.user?.branchId || isPharmaFlowBridgeUser(user.user)) {
       setBranchData(buildFallbackBranchData());
       return;
     }
@@ -73,7 +74,9 @@ const UseBranchService = () => {
       setBranchData(mappedData);
     } catch (error: any) {
       setBranchData(buildFallbackBranchData());
-      toast.error(`Unable to fetch branch details: ${error.response?.status || 'Network error'}`);
+      if (error.response?.status && error.response.status >= 500) {
+        toast.error('Unable to fetch branch details right now.');
+      }
     } finally {
       setLoading(false);
     }

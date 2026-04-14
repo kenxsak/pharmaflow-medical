@@ -23,17 +23,20 @@ import EnterpriseReadinessDashboard from '../../../pages/pharmaflow/EnterpriseRe
 import LegacyReportsWorkspace, {
   LegacyReportsTab,
 } from '../../../shared/legacy/LegacyReportsWorkspace';
+import { useUserContext } from '../../../context/UserContext';
+import { normalizeManagerWorkspaceKey } from '../../../utils/legacySession';
 
 const MainDashboard = () => {
   const { item } = useParams();
+  const { user } = useUserContext();
   const [selectedItem, setSelectedItem] = useState<String>(item || 'Dashboard');
 
   useEffect(() => {
-    setSelectedItem(item || 'Dashboard');
-  }, [item]);
+    setSelectedItem(normalizeManagerWorkspaceKey(item || 'Dashboard', user));
+  }, [item, user]);
 
   const handleItemClick = (itemName: String) => {
-    setSelectedItem(itemName);
+    setSelectedItem(normalizeManagerWorkspaceKey(itemName.toString(), user));
   };
 
   const renderSelectedItem = () => {

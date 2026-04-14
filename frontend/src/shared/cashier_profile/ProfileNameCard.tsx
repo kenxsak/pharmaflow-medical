@@ -1,8 +1,12 @@
 import React from 'react';
 import { useUserContext } from '../../context/UserContext';
 import { toLegacyApiUrl } from '../../utils/apiBaseUrls';
+import { isPharmaFlowBridgeUser } from '../../utils/legacySession';
 
 type Props = {};
+
+const DEFAULT_PROFILE_IMAGE =
+  'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png';
 
 const ProfileNameCard = (props: Props) => {
   const { user } = useUserContext();
@@ -15,6 +19,12 @@ const ProfileNameCard = (props: Props) => {
   // console.log(`ProfileNameCard: ${user}`);
 
 
+  const profileImageSrc = user?.profileImageUrl
+    ? user.profileImageUrl
+    : user && !isPharmaFlowBridgeUser(user)
+    ? toLegacyApiUrl(`/employers/view-profile-image/${user.employerId}`)
+    : DEFAULT_PROFILE_IMAGE;
+
   return (
     <div className='flex items-center justify-center space-x-2'>
       {/* Details */}
@@ -25,13 +35,9 @@ const ProfileNameCard = (props: Props) => {
       {/* Image */}
       <div className='w-[60px] h-[60px] rounded-full overflow-hidden relative'>
         <img
-          src={
-            user
-              ? toLegacyApiUrl(`/employers/view-profile-image/${user.employerId}`)
-              : 'https://static-00.iconduck.com/assets.00/person-icon-1901x2048-a9h70k71.png'
-          }
+          src={profileImageSrc}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png';
+            (e.target as HTMLImageElement).src = DEFAULT_PROFILE_IMAGE;
           }}
           alt='Profile'
           className='w-full h-full object-cover'

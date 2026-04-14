@@ -3,6 +3,8 @@ import SockJS from 'sockjs-client';
 import { Stomp, CompatClient } from '@stomp/stompjs';
 import { toast } from 'react-toastify';
 import { getWebSocketUrl } from '../../../utils/apiBaseUrls';
+import { useUserContext } from '../../../context/UserContext';
+import { supportsLegacyRealtime } from '../../../utils/legacySession';
 
 export interface PrescriptionData {
   prescriptionId: string;
@@ -45,10 +47,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [connectionFailed, setConnectionFailed] = useState(false);
   const stompClientRef = useRef<CompatClient | null>(null);
   const hasShownToastRef = useRef(false);
+  const { user } = useUserContext();
+  const realtimeEnabled = supportsLegacyRealtime(user);
 
   const connectWebSocket = useCallback(() => {
+    if (!realtimeEnabled) {
+      setConnected(false);
+      setConnecting(false);
+      setConnectionFailed(false);
+      return;
+    }
+
     if (stompClientRef.current?.connected) {
-      console.log('⚠️ Already connected to WebSocket');
       return;
     }
 
@@ -58,11 +68,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // Create WebSocket connection
     const wsURL = getWebSocketUrl();
-    const socket = new SockJS(wsURL);
-    const client = Stomp.over(socket);
+    const client = Stomp.over(() => new SockJS(wsURL) as any);
 
     // Disable debug logging
     client.debug = () => {};
+    client.reconnectDelay = 5000;
 
     // Connect to WebSocket
     client.connect(
@@ -83,17 +93,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
 
         // Subscribe to prescription topic
-        client.subscribe('/topic/prescriptions', (message) => {
-          console.log('🔔 New Prescription Received:');
+      client.subscribe('/topic/prescriptions', (message) => {
           const prescription = JSON.parse(message.body);
-          console.log(prescription);
 
           // Add new prescription to the list (prevent duplicates)
           setPrescriptions((prev) => {
             // Check if prescription already exists
             const exists = prev.some(p => p.prescriptionId === prescription.prescriptionId);
             if (exists) {
-              console.log('⚠️ Duplicate prescription ignored:', prescription.prescriptionId);
               return prev;
             }
             
@@ -111,8 +118,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           });
         });
       },
-      (error: any) => {
-        console.error('❌ WebSocket connection error:', error);
+      () => {
         setConnected(false);
         setConnecting(false);
         setConnectionFailed(true);
@@ -126,23 +132,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     );
 
     stompClientRef.current = client;
-  }, []);
+  }, [realtimeEnabled]);
 
   const disconnectWebSocket = useCallback(() => {
-    if (stompClientRef.current && stompClientRef.current.connected) {
+    if (stompClientRef.current) {
       stompClientRef.current.disconnect(() => {
-        console.log('🔌 Disconnected from WebSocket');
         setConnected(false);
         setConnectionFailed(false);
         stompClientRef.current = null;
         hasShownToastRef.current = false;
-        
-        // Show disconnect toast
-        toast.info('Disconnected from prescription service', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
       });
+    } else {
+      setConnected(false);
+      setConnectionFailed(false);
     }
   }, []);
 
@@ -158,16 +160,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Auto-connect on mount
   useEffect(() => {
-    connectWebSocket();
+    if (realtimeEnabled) {
+      connectWebSocket();
+    } else {
+      disconnectWebSocket();
+    }
 
     // Cleanup on unmount - disconnect when app closes
     return () => {
       if (stompClientRef.current?.connected) {
-        console.log('App unmounting, disconnecting WebSocket');
         disconnectWebSocket();
       }
     };
-  }, []);
+  }, [connectWebSocket, disconnectWebSocket, realtimeEnabled]);
 
   const value: WebSocketContextType = {
     prescriptions,

@@ -15,4 +15,5 @@ export interface IEmployeeInterface {
   role: string;
   pin: number;
   profileImageUrl: string | null;
+  authSource?: 'legacy' | 'pharmaflow-bridge';
 }

@@ -7,6 +7,7 @@ import {
   announcePharmaFlowContextChange,
   clearPharmaFlowSession,
 } from '../../../utils/pharmaflowContext';
+import { shouldCallLegacyLogout } from '../../../utils/legacySession';
 
 const useAuthService = () => {
   const { user, setUser, setCookie } = useUserContext();
@@ -20,11 +21,12 @@ const useAuthService = () => {
     if (confirm) {
       try {
         setLogging(true);
-        await http.post('/session/logout/permanent', {
-          username: user?.employerEmail,
-        });
+        if (shouldCallLegacyLogout(user)) {
+          await http.post('/session/logout/permanent', {
+            username: user?.employerEmail,
+          });
+        }
       } catch (error) {
-        console.log(error);
       } finally {
         clearPharmaFlowSession();
         announcePharmaFlowContextChange();
