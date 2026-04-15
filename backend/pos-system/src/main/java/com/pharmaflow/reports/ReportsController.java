@@ -7,6 +7,7 @@ import com.pharmaflow.reports.dto.ExpiryLossRow;
 import com.pharmaflow.reports.dto.GSTR1Row;
 import com.pharmaflow.reports.dto.GSTR3BReport;
 import com.pharmaflow.reports.dto.MedicinePerformanceRow;
+import com.pharmaflow.reports.dto.OperationsOverviewResponse;
 import com.pharmaflow.reports.dto.ProfitReportResponse;
 import com.pharmaflow.reports.dto.SalesSummaryResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class ReportsController {
 
     private final GSTReportService gstReportService;
     private final ReportService reportService;
+    private final OperationsOverviewService operationsOverviewService;
 
     @GetMapping("/gstr1")
     public List<GSTR1Row> getGSTR1(
@@ -125,5 +127,13 @@ public class ReportsController {
             @RequestParam(defaultValue = "10") int limit
     ) {
         return reportService.getExpiryLossReport(storeId, limit);
+    }
+
+    @GetMapping("/operations-overview")
+    public OperationsOverviewResponse getOperationsOverview(
+            @RequestParam int month,
+            @RequestParam int year
+    ) {
+        return operationsOverviewService.getOverview(month, year);
     }
 }

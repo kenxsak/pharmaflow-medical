@@ -26,6 +26,17 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
                                      @Param("start") LocalDateTime start,
                                      @Param("end") LocalDateTime end);
 
+    @Query("select i from Invoice i " +
+            "join fetch i.store s " +
+            "where s.storeId in :storeIds " +
+            "and i.invoiceDate >= :start " +
+            "and i.invoiceDate < :end " +
+            "and i.isCancelled = false " +
+            "order by i.invoiceDate desc")
+    List<Invoice> findActiveInvoicesForStores(@Param("storeIds") List<UUID> storeIds,
+                                              @Param("start") LocalDateTime start,
+                                              @Param("end") LocalDateTime end);
+
     @EntityGraph(attributePaths = {"customer", "billedBy", "store"})
     List<Invoice> findByStoreStoreIdOrderByInvoiceDateDesc(UUID storeId, Pageable pageable);
 

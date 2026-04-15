@@ -6,6 +6,8 @@ import com.pharmaflow.procurement.dto.PurchaseImportRowRequest;
 import com.pharmaflow.procurement.dto.PurchaseOrderSummaryResponse;
 import com.pharmaflow.procurement.dto.CreditNoteCreateRequest;
 import com.pharmaflow.procurement.dto.CreditNoteResponse;
+import com.pharmaflow.procurement.dto.ReorderDraftRequest;
+import com.pharmaflow.procurement.dto.ReorderDraftResponse;
 import com.pharmaflow.procurement.dto.SupplierCreateRequest;
 import com.pharmaflow.procurement.dto.SupplierResponse;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +61,11 @@ public class PurchaseImportController {
             @RequestParam(defaultValue = "50") int limit
     ) {
         return procurementService.listPurchaseOrders(storeId, limit);
+    }
+
+    @PostMapping("/orders/draft")
+    public ReorderDraftResponse createReorderDraft(@Valid @RequestBody ReorderDraftRequest request) {
+        return procurementService.createReorderDraft(request);
     }
 
     @PostMapping("/import/json")

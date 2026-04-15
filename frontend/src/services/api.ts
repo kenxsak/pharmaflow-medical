@@ -283,6 +283,140 @@ export interface StoreSummary {
   gstin?: string;
 }
 
+export interface StoreOperationsKpiRow {
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  storeType: string;
+  tenantId?: string;
+  tenantName?: string;
+  city?: string;
+  state?: string;
+  todaySales: number;
+  monthSales: number;
+  monthInvoiceCount: number;
+  lowStockSkuCount: number;
+  expiring30BatchCount: number;
+  stockValue: number;
+  nearExpiryValue: number;
+  pendingTransferIn: number;
+  pendingTransferOut: number;
+}
+
+export interface OperationsOverviewResponse {
+  scopeLevel: string;
+  scopeLabel: string;
+  businessDate: string;
+  month: number;
+  year: number;
+  storeCount: number;
+  retailStoreCount: number;
+  warehouseCount: number;
+  headOfficeCount: number;
+  totalSalesMonth: number;
+  totalSalesToday: number;
+  totalInvoiceCountMonth: number;
+  lowStockSkuCount: number;
+  expiring30BatchCount: number;
+  stockValue: number;
+  nearExpiryValue: number;
+  pendingTransferCount: number;
+  stores: StoreOperationsKpiRow[];
+}
+
+export interface TransferRecommendation {
+  fromStoreId: string;
+  fromStoreCode: string;
+  fromStoreName: string;
+  batchId: string;
+  batchNumber: string;
+  expiryDate: string;
+  transferableQuantityStrips: number;
+}
+
+export interface ReplenishmentRecommendation {
+  targetStoreId: string;
+  targetStoreCode: string;
+  targetStoreName: string;
+  medicineId: string;
+  brandName: string;
+  genericName?: string;
+  manufacturerName?: string;
+  reorderLevel: number;
+  currentQuantityStrips: number;
+  shortageQuantityStrips: number;
+  nearestExpiryDate?: string;
+  preferredAction: string;
+  recommendedTransferQuantityStrips: number;
+  recommendedOrderQuantityStrips: number;
+  supplierId?: string;
+  supplierName?: string;
+  lastPurchaseRate?: number;
+  mrp?: number;
+  gstRate?: number;
+  estimatedOrderValue?: number;
+  transferOptions: TransferRecommendation[];
+}
+
+export interface ReplenishmentInsightResponse {
+  scopeLevel: string;
+  scopeLabel: string;
+  businessDate: string;
+  recommendationCount: number;
+  recommendations: ReplenishmentRecommendation[];
+}
+
+export interface StockTransferCreateRequest {
+  fromStoreId: string;
+  toStoreId: string;
+  medicineId: string;
+  batchId: string;
+  quantityStrips: number;
+  quantityLoose?: number;
+}
+
+export interface StockTransferActionResponse {
+  transferId: string;
+  status: string;
+  fromStoreId: string;
+  fromStoreCode: string;
+  toStoreId: string;
+  toStoreCode: string;
+  medicineId: string;
+  brandName: string;
+  batchId: string;
+  batchNumber: string;
+  quantityStrips: number;
+  quantityLoose: number;
+  createdAt: string;
+}
+
+export interface ReorderDraftRequest {
+  storeId: string;
+  medicineId: string;
+  supplierId?: string;
+  quantity: number;
+}
+
+export interface ReorderDraftResponse {
+  purchaseOrderId: string;
+  poNumber: string;
+  poDate: string;
+  status: string;
+  storeId: string;
+  storeCode: string;
+  medicineId: string;
+  brandName: string;
+  supplierId?: string;
+  supplierName?: string;
+  quantity: number;
+  purchaseRate: number;
+  mrp: number;
+  gstRate: number;
+  subtotal: number;
+  totalAmount: number;
+}
+
 export interface PharmaRoleOption {
   role: string;
   label: string;
@@ -727,6 +861,26 @@ export const InventoryAPI = {
         headers: getHeaders(),
       }
     ),
+
+  getReplenishmentInsights: (
+    storeId?: string,
+    limit = 15
+  ): Promise<ReplenishmentInsightResponse> =>
+    fetchJson(
+      `${BASE_URL}/inventory/replenishment?limit=${limit}${storeId ? `&storeId=${encodeURIComponent(storeId)}` : ''}`,
+      {
+        headers: getHeaders(),
+      }
+    ),
+
+  requestTransfer: (
+    payload: StockTransferCreateRequest
+  ): Promise<StockTransferActionResponse> =>
+    fetchJson(`${BASE_URL}/inventory/transfers`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
 };
 
 export const BillingAPI = {
@@ -984,6 +1138,11 @@ export const ComplianceAPI = {
 };
 
 export const ReportsAPI = {
+  getOperationsOverview: (month: number, year: number): Promise<OperationsOverviewResponse> =>
+    fetchJson(`${BASE_URL}/reports/operations-overview?month=${month}&year=${year}`, {
+      headers: getHeaders(),
+    }),
+
   getGSTR1: (storeId: string, month: number, year: number): Promise<GSTR1Row[]> =>
     fetchJson(`${BASE_URL}/reports/gstr1?storeId=${storeId}&month=${month}&year=${year}`, {
       headers: getHeaders(),
@@ -1067,6 +1226,13 @@ export const PurchaseAPI = {
   listPurchaseOrders: (limit = 50): Promise<PurchaseOrderSummary[]> =>
     fetchJson(`${BASE_URL}/purchases/orders?limit=${limit}`, {
       headers: getHeaders(),
+    }),
+
+  createReorderDraft: (payload: ReorderDraftRequest): Promise<ReorderDraftResponse> =>
+    fetchJson(`${BASE_URL}/purchases/orders/draft`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     }),
 
   importJson: (payload: PurchaseImportRequest): Promise<PurchaseImportResponse> =>

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface StockTransferRepository extends JpaRepository<StockTransfer, UUID> {
@@ -32,4 +33,15 @@ public interface StockTransferRepository extends JpaRepository<StockTransfer, UU
     Page<StockTransfer> searchByStoreId(@Param("storeId") UUID storeId,
                                         @Param("query") String query,
                                         Pageable pageable);
+
+    @Query("select st from StockTransfer st " +
+            "join fetch st.fromStore fs " +
+            "join fetch st.toStore ts " +
+            "join fetch st.medicine m " +
+            "left join fetch st.batch b " +
+            "where (fs.storeId in :storeIds or ts.storeId in :storeIds) " +
+            "and (:status is null or lower(coalesce(st.status, '')) = lower(:status)) " +
+            "order by st.createdAt desc")
+    List<StockTransfer> findByStoreIds(@Param("storeIds") List<UUID> storeIds,
+                                       @Param("status") String status);
 }

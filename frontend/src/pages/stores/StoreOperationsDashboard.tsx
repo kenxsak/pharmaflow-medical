@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
-import { StoreAPI, StoreSummary } from '../../services/api';
+import {
+  InventoryAPI,
+  type OperationsOverviewResponse,
+  PurchaseAPI,
+  ReportsAPI,
+  type ReplenishmentInsightResponse,
+  type ReplenishmentRecommendation,
+  type TransferRecommendation,
+} from '../../services/api';
 import { useBranding } from '../../utils/branding';
 import {
   announcePharmaFlowContextChange,
   canAccessCompanyControls,
-  getVisibleStoresForContext,
+  getPharmaFlowRoleLabel,
   usePharmaFlowContext,
 } from '../../utils/pharmaflowContext';
 
@@ -14,91 +22,171 @@ interface StoreOperationsDashboardProps {
   embedded?: boolean;
 }
 
+const formatCurrency = (value?: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+
+const formatDate = (value?: string) => {
+  if (!value) {
+    return '—';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const getScopeNote = (scopeLevel?: string) => {
+  switch (scopeLevel) {
+    case 'SAAS_ADMIN':
+      return 'You are seeing the full platform network. Company performance and replenishment actions are aggregated across tenants.';
+    case 'COMPANY':
+      return 'You are seeing the full company network. Switch the active branch to focus transfers and purchase drafts on a specific store.';
+    default:
+      return 'You are seeing only your assigned branch. Transfers and reorders created here stay scoped to your store.';
+  }
+};
+
 const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ embedded = false }) => {
   const context = usePharmaFlowContext();
   const branding = useBranding();
-  const [stores, setStores] = useState<StoreSummary[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [activeStoreId, setActiveStoreId] = useState(context.storeId);
-  const [activeStoreCode, setActiveStoreCode] = useState(context.storeCode);
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const year = today.getFullYear();
   const canManageStores = canAccessCompanyControls(context);
 
-  const storeCount = stores.filter((store) => store.storeType === 'STORE').length;
-  const warehouseCount = stores.filter((store) => store.storeType === 'WAREHOUSE').length;
-  const headOfficeCount = stores.filter((store) => store.storeType === 'HO').length;
+  const [overview, setOverview] = useState<OperationsOverviewResponse | null>(null);
+  const [insights, setInsights] = useState<ReplenishmentInsightResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [activeStoreId, setActiveStoreId] = useState(context.storeId);
+  const [activeStoreCode, setActiveStoreCode] = useState(context.storeCode);
 
   useEffect(() => {
     setActiveStoreId(context.storeId);
     setActiveStoreCode(context.storeCode);
   }, [context.storeCode, context.storeId]);
 
+  const loadDashboard = async () => {
+    const focusStoreId = canManageStores ? activeStoreId || undefined : context.storeId || undefined;
+
+    try {
+      const [overviewResponse, insightResponse] = await Promise.all([
+        ReportsAPI.getOperationsOverview(month, year),
+        InventoryAPI.getReplenishmentInsights(focusStoreId, 15),
+      ]);
+      setOverview(overviewResponse);
+      setInsights(insightResponse);
+      setError(null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load operations data.');
+    }
+  };
+
   useEffect(() => {
-    if (!canManageStores) {
-      setStores([]);
+    loadDashboard();
+  }, [activeStoreId, canManageStores, context.storeId, month, year]);
+
+  const makeActive = (storeId: string, storeCode: string) => {
+    setActiveStoreId(storeId);
+    setActiveStoreCode(storeCode);
+    localStorage.setItem('pharmaflow_store_id', storeId);
+    localStorage.setItem('pharmaflow_store_code', storeCode);
+    announcePharmaFlowContextChange();
+    setActionMessage(`Active store switched to ${storeCode}.`);
+  };
+
+  const handleTransferRequest = async (
+    recommendation: ReplenishmentRecommendation,
+    option: TransferRecommendation
+  ) => {
+    const quantity = Math.min(
+      recommendation.recommendedTransferQuantityStrips || recommendation.shortageQuantityStrips,
+      option.transferableQuantityStrips
+    );
+
+    if (!window.confirm(`Create a transfer request for ${quantity} strip(s) of ${recommendation.brandName}?`)) {
       return;
     }
-    StoreAPI.list()
-      .then((items) => {
-        setStores(getVisibleStoresForContext(items, context));
-        setError(null);
-      })
-      .catch((loadError) => {
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load store list.');
+
+    try {
+      setBusyKey(`transfer-${recommendation.targetStoreId}-${recommendation.medicineId}`);
+      const response = await InventoryAPI.requestTransfer({
+        fromStoreId: option.fromStoreId,
+        toStoreId: recommendation.targetStoreId,
+        medicineId: recommendation.medicineId,
+        batchId: option.batchId,
+        quantityStrips: quantity,
       });
-  }, [canManageStores, context]);
-
-  if (!canManageStores) {
-    return (
-      <PharmaFlowShell
-        embedded={embedded}
-        title="Multi-Store Operations"
-        description="Company and SaaS admins use this area to manage store directories and multi-store rollout."
-      >
-        <section className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-5 text-sm text-amber-950 shadow-sm">
-          <div className="text-lg font-semibold">This area is limited to company and SaaS admins.</div>
-          <p className="mt-2 max-w-3xl leading-6">
-            Store logins stay focused on their assigned branch. Use Billing, Customers, Stock, Purchases,
-            Compliance, and Reports for daily operations.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              to="/lifepill/help"
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-            >
-              Open help center
-            </Link>
-            <Link
-              to="/lifepill/billing"
-              className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700"
-            >
-              Open billing
-            </Link>
-          </div>
-        </section>
-      </PharmaFlowShell>
-    );
-  }
-
-  const makeActive = (store: StoreSummary) => {
-    setActiveStoreId(store.storeId);
-    setActiveStoreCode(store.storeCode);
-    localStorage.setItem('pharmaflow_store_id', store.storeId);
-    localStorage.setItem('pharmaflow_store_code', store.storeCode);
-    announcePharmaFlowContextChange();
+      setActionMessage(
+        `Transfer request ${response.transferId.slice(0, 8)} created from ${response.fromStoreCode} to ${response.toStoreCode}.`
+      );
+      await loadDashboard();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to create transfer request.');
+    } finally {
+      setBusyKey(null);
+    }
   };
+
+  const handleReorderDraft = async (recommendation: ReplenishmentRecommendation) => {
+    const quantity = recommendation.recommendedOrderQuantityStrips || recommendation.shortageQuantityStrips;
+    if (quantity <= 0) {
+      setActionMessage('This item is already covered by transfer stock. No purchase draft was needed.');
+      return;
+    }
+
+    if (!window.confirm(`Create a draft purchase order for ${quantity} strip(s) of ${recommendation.brandName}?`)) {
+      return;
+    }
+
+    try {
+      setBusyKey(`reorder-${recommendation.targetStoreId}-${recommendation.medicineId}`);
+      const response = await PurchaseAPI.createReorderDraft({
+        storeId: recommendation.targetStoreId,
+        medicineId: recommendation.medicineId,
+        supplierId: recommendation.supplierId,
+        quantity,
+      });
+      setActionMessage(
+        `Draft purchase order ${response.poNumber} created for ${response.brandName}${response.supplierName ? ` via ${response.supplierName}` : ''}.`
+      );
+      await loadDashboard();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to create draft purchase order.');
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const visibleRows = overview?.stores || [];
+  const roleLabel = getPharmaFlowRoleLabel(context.role, context.platformOwner);
 
   return (
     <PharmaFlowShell
       embedded={embedded}
-      title="Multi-Store Operations"
-      description={`Central store directory, tenant rollout view, and active branch context for ${branding.brandName}.`}
+      title="Operations Command Center"
+      description={`Network KPIs, branch health, transfer opportunities, and reorder actions for ${branding.brandName}.`}
       actions={
-        <Link
-          to="/lifepill/enterprise"
-          className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
-        >
-          Open enterprise guide
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            to="/lifepill/help"
+            className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
+          >
+            Open help center
+          </Link>
+          <Link
+            to="/lifepill/billing"
+            className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Open billing
+          </Link>
+        </div>
       }
     >
       <div className="space-y-5">
@@ -108,139 +196,165 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
           </div>
         )}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-[2rem] bg-white p-5 shadow-sm">
-            <div className="text-sm text-slate-500">Retail Branches</div>
-            <div className="mt-2 text-3xl font-semibold">{storeCount}</div>
-            <div className="mt-1 text-sm text-slate-500">Store locations configured today</div>
+        {actionMessage && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            {actionMessage}
           </div>
-          <div className="rounded-[2rem] bg-white p-5 shadow-sm">
-            <div className="text-sm text-slate-500">Warehouse / HO</div>
-            <div className="mt-2 text-3xl font-semibold">
-              {warehouseCount + headOfficeCount}
-            </div>
-            <div className="mt-1 text-sm text-slate-500">
-              {warehouseCount} warehouse, {headOfficeCount} head office
-            </div>
-          </div>
-          <div className="rounded-[2rem] bg-white p-5 shadow-sm">
-            <div className="text-sm text-slate-500">Active Store</div>
-            <div className="mt-2 text-3xl font-semibold">{activeStoreCode || 'Not set'}</div>
-            <div className="mt-1 text-sm text-slate-500">{activeStoreId || 'No active store selected'}</div>
-          </div>
-        </section>
+        )}
 
-        <section className="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
+        <section className="grid gap-4 xl:grid-cols-[1.1fr,0.9fr]">
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold">Rollout Story for Chain Management</h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Use this view when the client asks whether the platform can support HO, warehouse, and a large branch network.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                  Scoped Access
+                </div>
+                <h2 className="mt-2 text-2xl font-semibold">{overview?.scopeLabel || roleLabel}</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                  {getScopeNote(overview?.scopeLevel)}
+                </p>
+              </div>
+              <div className="rounded-3xl bg-slate-100 px-4 py-3 text-sm text-slate-700">
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Role</div>
+                <div className="mt-1 font-semibold">{roleLabel}</div>
+              </div>
+            </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
-                <div className="font-semibold">Live now</div>
-                <p className="mt-2">
-                  Branch switching, store-scoped inventory, store-scoped billing, GST reports, compliance, and audit visibility.
-                </p>
+                <div className="font-semibold">Sales this month</div>
+                <div className="mt-2 text-3xl font-semibold">{formatCurrency(overview?.totalSalesMonth)}</div>
+                <div className="mt-1 text-sm text-emerald-800">
+                  {overview?.totalInvoiceCountMonth || 0} invoices across the visible network
+                </div>
               </div>
               <div className="rounded-3xl bg-sky-50 p-4 text-sm text-sky-900">
-                <div className="font-semibold">White-label ready</div>
-                <p className="mt-2">
-                  {branding.brandName} branding, support identity, and tenant-facing workspace copy are configurable per deployment.
-                </p>
-              </div>
-              <div className="rounded-3xl bg-violet-50 p-4 text-sm text-violet-900">
-                <div className="font-semibold">Deployment positioning</div>
-                <p className="mt-2">{branding.deploymentMode}</p>
+                <div className="font-semibold">Sales today</div>
+                <div className="mt-2 text-3xl font-semibold">{formatCurrency(overview?.totalSalesToday)}</div>
+                <div className="mt-1 text-sm text-sky-800">Same-day visibility for owner, company, or store scope</div>
               </div>
               <div className="rounded-3xl bg-amber-50 p-4 text-sm text-amber-900">
-                <div className="font-semibold">Next scale-up layer</div>
-                <p className="mt-2">
-                  Inter-branch transfers, indent approvals, and deeper sync automation should be added as the enterprise rollout layer.
-                </p>
+                <div className="font-semibold">Low-stock SKUs</div>
+                <div className="mt-2 text-3xl font-semibold">{overview?.lowStockSkuCount || 0}</div>
+                <div className="mt-1 text-sm text-amber-800">
+                  {insights?.recommendationCount || 0} replenishment actions ready now
+                </div>
+              </div>
+              <div className="rounded-3xl bg-rose-50 p-4 text-sm text-rose-900">
+                <div className="font-semibold">Near-expiry capital</div>
+                <div className="mt-2 text-3xl font-semibold">{formatCurrency(overview?.nearExpiryValue)}</div>
+                <div className="mt-1 text-sm text-rose-800">
+                  {overview?.expiring30BatchCount || 0} batches expiring inside 30 days
+                </div>
               </div>
             </div>
           </div>
 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-semibold">Operations Overview</h2>
-            <div className="mt-4 space-y-3 text-sm text-slate-600">
+            <h2 className="text-xl font-semibold">Network Snapshot</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl bg-slate-50 p-4">
-                Multi-location management: show HO, warehouse, branch directory, and active-branch switching.
+                <div className="text-sm text-slate-500">Visible stores</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{overview?.storeCount || 0}</div>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                Cloud vs local: position the rollout as hybrid cloud plus branch-local operations.
+                <div className="text-sm text-slate-500">Retail / Warehouse / HO</div>
+                <div className="mt-1 text-lg font-semibold text-slate-900">
+                  {overview?.retailStoreCount || 0} / {overview?.warehouseCount || 0} / {overview?.headOfficeCount || 0}
+                </div>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                White-labelling: show that the product can carry the chain brand, support contact, and deployment identity.
+                <div className="text-sm text-slate-500">Pending transfer requests</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{overview?.pendingTransferCount || 0}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="text-sm text-slate-500">Stock capital</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{formatCurrency(overview?.stockValue)}</div>
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link
-                to="/lifepill/enterprise"
-                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-              >
-                Open rollout guide
-              </Link>
-              <Link
-                to="/lifepill/billing"
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
-              >
-                Open counter workspace
-              </Link>
+            <div className="mt-5 rounded-3xl bg-slate-950 p-4 text-sm text-white">
+              <div className="font-semibold">Active branch focus</div>
+              <div className="mt-2 text-slate-200">
+                {activeStoreCode || 'Not set'} {activeStoreId ? `• ${activeStoreId}` : ''}
+              </div>
+              <p className="mt-2 text-slate-300">
+                Transfer and reorder actions below are focused on the active store when you have company-wide access.
+              </p>
             </div>
           </div>
         </section>
 
         <section className="rounded-[2rem] bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Store Directory</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Use this as the central chain directory for branch context, HO visibility, and rollout conversations.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">Store Performance</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                This is the real owner/company/store KPI view for the current scope, not a static readiness card.
+              </p>
+            </div>
+            <div className="text-sm text-slate-500">
+              Business date: <span className="font-medium text-slate-700">{formatDate(overview?.businessDate)}</span>
+            </div>
+          </div>
 
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-slate-500">
                 <tr>
                   <th className="px-3 py-2 text-left">Store</th>
-                  <th className="px-3 py-2 text-left">Code</th>
-                  <th className="px-3 py-2 text-left">Type</th>
-                  <th className="px-3 py-2 text-left">City</th>
-                  <th className="px-3 py-2 text-left">State</th>
-                  <th className="px-3 py-2 text-left">GSTIN</th>
-                  <th className="px-3 py-2 text-right">Action</th>
+                  <th className="px-3 py-2 text-left">Today</th>
+                  <th className="px-3 py-2 text-left">Month</th>
+                  <th className="px-3 py-2 text-left">Invoices</th>
+                  <th className="px-3 py-2 text-left">Low stock</th>
+                  <th className="px-3 py-2 text-left">Expiry 30d</th>
+                  <th className="px-3 py-2 text-left">Transfers</th>
+                  {canManageStores && <th className="px-3 py-2 text-right">Action</th>}
                 </tr>
               </thead>
               <tbody>
-                {stores.map((store) => (
-                  <tr key={store.storeId} className="border-t border-slate-100">
-                    <td className="px-3 py-3 font-medium">{store.storeName}</td>
-                    <td className="px-3 py-3">{store.storeCode}</td>
-                    <td className="px-3 py-3">{store.storeType}</td>
-                    <td className="px-3 py-3">{store.city || '—'}</td>
-                    <td className="px-3 py-3">{store.state || '—'}</td>
-                    <td className="px-3 py-3">{store.gstin || '—'}</td>
-                    <td className="px-3 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => makeActive(store)}
-                        className={`rounded-2xl px-3 py-2 text-sm font-medium ${
-                          activeStoreId === store.storeId
-                            ? 'bg-slate-900 text-white'
-                            : 'border border-slate-300 bg-white text-slate-700'
-                        }`}
-                      >
-                        {activeStoreId === store.storeId ? 'Active' : 'Set Active'}
-                      </button>
+                {visibleRows.map((row) => (
+                  <tr key={row.storeId} className="border-t border-slate-100">
+                    <td className="px-3 py-3">
+                      <div className="font-medium">{row.storeName}</div>
+                      <div className="text-xs text-slate-500">
+                        {row.storeCode} • {row.storeType} • {row.city || '—'}
+                      </div>
                     </td>
+                    <td className="px-3 py-3 font-medium">{formatCurrency(row.todaySales)}</td>
+                    <td className="px-3 py-3">{formatCurrency(row.monthSales)}</td>
+                    <td className="px-3 py-3">{row.monthInvoiceCount}</td>
+                    <td className="px-3 py-3">{row.lowStockSkuCount}</td>
+                    <td className="px-3 py-3">{row.expiring30BatchCount}</td>
+                    <td className="px-3 py-3">
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                        In {row.pendingTransferIn}
+                      </span>
+                      <span className="ml-2 rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                        Out {row.pendingTransferOut}
+                      </span>
+                    </td>
+                    {canManageStores && (
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => makeActive(row.storeId, row.storeCode)}
+                          className={`rounded-2xl px-3 py-2 text-sm font-medium ${
+                            activeStoreId === row.storeId
+                              ? 'bg-slate-900 text-white'
+                              : 'border border-slate-300 bg-white text-slate-700'
+                          }`}
+                        >
+                          {activeStoreId === row.storeId ? 'Active' : 'Focus'}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
-                {!stores.length && (
+                {!visibleRows.length && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
-                      No stores loaded yet.
+                    <td colSpan={canManageStores ? 8 : 7} className="px-3 py-10 text-center text-slate-400">
+                      No store KPI rows are available yet.
                     </td>
                   </tr>
                 )}
@@ -250,26 +364,167 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
         </section>
 
         <section className="rounded-[2rem] bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Current Multi-Store Readiness</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            <div className="rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
-              <div className="font-semibold">Available now</div>
-              <p className="mt-2">
-                Store-scoped inventory, billing, reports, and role-aware access with active store switching.
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">Replenishment Actions</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Low-stock items now suggest real intra-network transfers first, then purchase drafts when the shortage remains.
               </p>
             </div>
-            <div className="rounded-3xl bg-amber-50 p-4 text-sm text-amber-900">
-              <div className="font-semibold">Partially available</div>
-              <p className="mt-2">
-                HO and warehouse entities exist, but the operational dashboards are still early.
-              </p>
+            <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm text-slate-700">
+              {insights?.recommendationCount || 0} actionable recommendations
             </div>
-            <div className="rounded-3xl bg-slate-100 p-4 text-sm text-slate-700">
-              <div className="font-semibold">Still to build</div>
-              <p className="mt-2">
-                Real-time stock synchronization, transfer workflow depth, indent approval, and offline branch conflict handling.
-              </p>
-            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4">
+            {insights?.recommendations.map((recommendation) => {
+              const firstTransfer = recommendation.transferOptions[0];
+              const transferBusy =
+                busyKey === `transfer-${recommendation.targetStoreId}-${recommendation.medicineId}`;
+              const reorderBusy =
+                busyKey === `reorder-${recommendation.targetStoreId}-${recommendation.medicineId}`;
+
+              return (
+                <article
+                  key={`${recommendation.targetStoreId}-${recommendation.medicineId}`}
+                  className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                        {recommendation.targetStoreCode}
+                      </div>
+                      <h3 className="mt-2 text-xl font-semibold text-slate-900">{recommendation.brandName}</h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {recommendation.genericName || 'Generic name unavailable'}
+                        {recommendation.manufacturerName ? ` • ${recommendation.manufacturerName}` : ''}
+                      </p>
+                    </div>
+                    <div
+                      className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                        recommendation.preferredAction === 'TRANSFER'
+                          ? 'bg-emerald-100 text-emerald-900'
+                          : recommendation.preferredAction === 'HYBRID'
+                          ? 'bg-amber-100 text-amber-900'
+                          : 'bg-sky-100 text-sky-900'
+                      }`}
+                    >
+                      {recommendation.preferredAction}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Current / reorder</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900">
+                        {recommendation.currentQuantityStrips} / {recommendation.reorderLevel}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Shortage</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900">
+                        {recommendation.shortageQuantityStrips} strips
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Transfer cover</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900">
+                        {recommendation.recommendedTransferQuantityStrips || 0} strips
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Order draft</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900">
+                        {recommendation.recommendedOrderQuantityStrips || 0} strips
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr,0.85fr]">
+                    <div className="rounded-3xl bg-white p-4">
+                      <div className="text-sm font-semibold text-slate-900">Transfer options</div>
+                      {recommendation.transferOptions.length ? (
+                        <div className="mt-3 space-y-3">
+                          {recommendation.transferOptions.map((option) => (
+                            <div
+                              key={option.batchId}
+                              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3"
+                            >
+                              <div className="text-sm text-slate-700">
+                                <div className="font-medium">
+                                  {option.fromStoreCode} • {option.fromStoreName}
+                                </div>
+                                <div className="mt-1 text-slate-500">
+                                  Batch {option.batchNumber} • Exp {formatDate(option.expiryDate)} • Up to{' '}
+                                  {option.transferableQuantityStrips} strips
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={transferBusy}
+                                onClick={() => handleTransferRequest(recommendation, option)}
+                                className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {transferBusy ? 'Creating…' : 'Create transfer'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-slate-500">
+                          No safe donor branch was found in the visible network. Use a purchase draft instead.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="rounded-3xl bg-white p-4">
+                      <div className="text-sm font-semibold text-slate-900">Supplier-led reorder</div>
+                      <div className="mt-3 space-y-2 text-sm text-slate-600">
+                        <div>
+                          Preferred supplier:{' '}
+                          <span className="font-medium text-slate-900">
+                            {recommendation.supplierName || 'No supplier linked yet'}
+                          </span>
+                        </div>
+                        <div>
+                          Last purchase rate:{' '}
+                          <span className="font-medium text-slate-900">
+                            {formatCurrency(recommendation.lastPurchaseRate)}
+                          </span>
+                        </div>
+                        <div>
+                          Estimated order value:{' '}
+                          <span className="font-medium text-slate-900">
+                            {formatCurrency(recommendation.estimatedOrderValue)}
+                          </span>
+                        </div>
+                        <div>
+                          Nearest expiry in target store:{' '}
+                          <span className="font-medium text-slate-900">
+                            {formatDate(recommendation.nearestExpiryDate)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={reorderBusy || recommendation.recommendedOrderQuantityStrips <= 0}
+                        onClick={() => handleReorderDraft(recommendation)}
+                        className="mt-4 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {reorderBusy ? 'Creating…' : 'Create draft purchase order'}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+
+            {!insights?.recommendations.length && (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+                No replenishment actions are pending for the current scope.
+              </div>
+            )}
           </div>
         </section>
       </div>

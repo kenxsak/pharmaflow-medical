@@ -1,7 +1,9 @@
 package com.pharmaflow.store;
 
 import com.pharmaflow.auth.CurrentPharmaUserService;
+import com.pharmaflow.auth.PharmaRoleName;
 import com.pharmaflow.auth.PharmaUser;
+import com.pharmaflow.common.ForbiddenActionException;
 import com.pharmaflow.store.dto.StoreResponse;
 import com.pharmaflow.tenant.Tenant;
 import com.pharmaflow.tenant.TenantAccessService;
@@ -9,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,14 +24,7 @@ public class StoreService {
 
     public List<StoreResponse> getActiveStores() {
         PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
-        List<Store> stores;
-
-        if (currentUser.isPlatformOwner()) {
-            stores = storeRepository.findAllByIsActiveTrueOrderByStoreNameAsc();
-        } else {
-            Tenant tenant = tenantAccessService.resolveTenantForUser(currentUser);
-            stores = storeRepository.findAllByTenantTenantIdAndIsActiveTrueOrderByStoreNameAsc(tenant.getTenantId());
-        }
+        List<Store> stores = getAccessibleStoresForUser(currentUser);
 
         return stores
                 .stream()
@@ -43,7 +39,51 @@ public class StoreService {
                         .city(store.getCity())
                         .state(store.getState())
                         .gstin(store.getGstin())
-                        .build())
+                .build())
                 .collect(Collectors.toList());
+    }
+
+    public List<Store> getAccessibleStoreEntities() {
+        return getAccessibleStoresForUser(currentPharmaUserService.requireCurrentUser());
+    }
+
+    public Store requireAccessibleStore(UUID storeId) {
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+
+        return getAccessibleStoresForUser(currentUser)
+                .stream()
+                .filter(store -> store.getStoreId().equals(storeId))
+                .findFirst()
+                .orElseThrow(() -> new ForbiddenActionException("Selected store is not accessible for the current user"));
+    }
+
+    public List<Store> getAccessibleStoresForUser(PharmaUser currentUser) {
+        if (currentUser.isPlatformOwner()) {
+            return storeRepository.findAllByIsActiveTrueOrderByStoreNameAsc();
+        }
+
+        Tenant tenant = tenantAccessService.resolveTenantForUser(currentUser);
+        if (hasTenantWideAccess(currentUser) || currentUser.getStore() == null) {
+            return storeRepository.findAllByTenantTenantIdAndIsActiveTrueOrderByStoreNameAsc(tenant.getTenantId());
+        }
+
+        Store assignedStore = storeRepository.findByStoreIdAndTenantTenantId(
+                        currentUser.getStore().getStoreId(),
+                        tenant.getTenantId()
+                )
+                .filter(store -> Boolean.TRUE.equals(store.getIsActive()))
+                .orElse(null);
+
+        if (assignedStore != null) {
+            return List.of(assignedStore);
+        }
+
+        throw new ForbiddenActionException("No active store is assigned to the current user");
+    }
+
+    public boolean hasTenantWideAccess(PharmaUser currentUser) {
+        return currentUser.isPlatformOwner()
+                || currentUser.hasRole(PharmaRoleName.SUPER_ADMIN)
+                || currentUser.hasRole(PharmaRoleName.STORE_MANAGER);
     }
 }

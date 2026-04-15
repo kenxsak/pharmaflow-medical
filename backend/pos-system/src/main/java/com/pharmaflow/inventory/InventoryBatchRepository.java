@@ -60,11 +60,21 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
 
     @Query("select ib from InventoryBatch ib " +
             "join fetch ib.medicine m " +
+            "join fetch ib.store s " +
             "left join fetch m.manufacturer mf " +
             "left join fetch m.saltComposition sc " +
             "where ib.store.storeId = :storeId and ib.isActive = true " +
             "order by ib.expiryDate asc")
     List<InventoryBatch> findActiveStockForStore(@Param("storeId") UUID storeId);
+
+    @Query("select ib from InventoryBatch ib " +
+            "join fetch ib.store s " +
+            "join fetch ib.medicine m " +
+            "left join fetch m.manufacturer mf " +
+            "left join fetch m.saltComposition sc " +
+            "where s.storeId in :storeIds and ib.isActive = true " +
+            "order by s.storeCode asc, ib.expiryDate asc")
+    List<InventoryBatch> findActiveStockForStores(@Param("storeIds") List<UUID> storeIds);
 
     @Query("select ib from InventoryBatch ib where ib.store.storeId = :storeId and ib.expiryDate < :today and ib.isActive = true order by ib.expiryDate asc")
     List<InventoryBatch> findExpiredBatches(@Param("storeId") UUID storeId, @Param("today") LocalDate today);

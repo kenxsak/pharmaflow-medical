@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrderItem, UUID> {
@@ -26,4 +27,15 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
     Page<PurchaseOrderItem> searchByStoreId(@Param("storeId") UUID storeId,
                                             @Param("query") String query,
                                             Pageable pageable);
+
+    @Query("select poi from PurchaseOrderItem poi " +
+            "join fetch poi.purchaseOrder po " +
+            "join fetch po.store st " +
+            "left join fetch po.supplier s " +
+            "where poi.medicine.medicineId = :medicineId " +
+            "and st.tenant.tenantId = :tenantId " +
+            "order by po.poDate desc")
+    List<PurchaseOrderItem> findRecentByTenantAndMedicine(@Param("tenantId") UUID tenantId,
+                                                          @Param("medicineId") UUID medicineId,
+                                                          Pageable pageable);
 }
