@@ -12,18 +12,18 @@ const formatDateTime = (value: string) =>
 
 const complianceSteps = [
   {
-    title: 'Choose month and schedule',
-    summary: 'Pick the reporting window first so the register shows the exact compliance period.',
+    title: 'Choose the reporting period',
+    summary: 'Start with the right month and schedule so the register shows only the exact compliance window.',
     tone: 'border-sky-200 bg-sky-50 text-sky-900',
   },
   {
-    title: 'Review patient and doctor capture',
-    summary: 'Show that the system preserves prescription medicine traceability for audits.',
+    title: 'Check patient and doctor details',
+    summary: 'Make sure every controlled-drug sale still shows the people and prescription behind it.',
     tone: 'border-amber-200 bg-amber-50 text-amber-900',
   },
   {
-    title: 'Export inspector register',
-    summary: 'Download the register or narcotic report directly from the filtered result.',
+    title: 'Export what the inspector needs',
+    summary: 'Download the filtered register or narcotic report directly when the review is complete.',
     tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
   },
 ];
@@ -143,8 +143,8 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
   return (
     <PharmaFlowShell
       embedded={embedded}
-      title="Controlled Drug Compliance"
-      description="Monitor Schedule H / H1 / X sales, prescriptions, and monthly narcotic movement."
+      title="Compliance Desk"
+      description="Review controlled-drug sales, prescription proof, and monthly registers in one clean place."
     >
       <div className="space-y-5">
         <section className="rounded-[2rem] border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-rose-50 p-6 shadow-sm">
@@ -154,35 +154,34 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                 Compliance Desk
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                Show regulator-facing controls in one clean screen
+                Keep controlled-drug proof easy to review
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Use this page to prove that controlled medicines are not just billed, but also tracked with patient,
-                doctor, prescription, and monthly reporting details. It keeps compliance evidence visible for real
-                operational reviews.
+                This page should feel simple for branch staff: check the month, review patient and doctor details,
+                confirm prescription proof, and export the register when needed.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Register Entries</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Visible entries</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{filteredInspectorRows.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Visible for the chosen filter</div>
+                <div className="mt-1 text-sm text-slate-500">Rows shown for the current filters</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Prescriptions Linked</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Prescription proof</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{prescriptionAttachedCount}</div>
-                <div className="mt-1 text-sm text-slate-500">Entries with a stored reference</div>
+                <div className="mt-1 text-sm text-slate-500">Entries that already have a stored file</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Narcotic Movements</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Narcotic entries</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{narcoticRows.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Monthly narcotic-specific movements</div>
+                <div className="mt-1 text-sm text-slate-500">Rows in the monthly narcotic register</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Archive Hits</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Archive results</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{archiveRows.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Searchable prescription archive entries</div>
+                <div className="mt-1 text-sm text-slate-500">Prescription history rows found in search</div>
               </div>
             </div>
           </div>
@@ -201,9 +200,9 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
         <section className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Compliance Filters</h2>
+              <h2 className="text-lg font-semibold">Filter the compliance view</h2>
               <p className="text-sm text-slate-500">
-                Narrow the register by month, year, tracked schedule, or patient-facing search.
+                Narrow the register by month, year, schedule, or quick search so staff only see what matters now.
               </p>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
@@ -251,23 +250,23 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="font-medium text-slate-700">Search patient / doctor / medicine</span>
+              <span className="font-medium text-slate-700">Search register</span>
               <input
                 type="text"
                 value={patientFilter}
                 onChange={(event) => setPatientFilter(event.target.value)}
-                placeholder="Type to filter register"
+                placeholder="Patient, doctor, or medicine"
                 className="w-full rounded-2xl border border-slate-300 px-3 py-2"
               />
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="font-medium text-slate-700">Archive search</span>
+              <span className="font-medium text-slate-700">Search prescription history</span>
               <input
                 type="text"
                 value={archiveQuery}
                 onChange={(event) => setArchiveQuery(event.target.value)}
-                placeholder="Prescription archive lookup"
+                placeholder="Patient, doctor, medicine, or schedule"
                 className="w-full rounded-2xl border border-slate-300 px-3 py-2"
               />
             </label>
@@ -280,12 +279,17 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
           </div>
         )}
 
+        <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Simple rule: every controlled-drug row should clearly show the sale date, medicine, patient, doctor, batch,
+          and prescription proof wherever the schedule requires it.
+        </div>
+
         <section className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Drug Inspector Register</h2>
+              <h2 className="text-lg font-semibold">Inspector-ready sale register</h2>
               <p className="text-sm text-slate-500">
-                Exportable monthly sale register for Schedule H / H1 / X medicines.
+                Monthly controlled-drug sales register for Schedule H, H1, and X medicines.
               </p>
             </div>
             <button
@@ -294,7 +298,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
               disabled={!filteredInspectorRows.length}
               className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Export CSV
+              Download register
             </button>
           </div>
 
@@ -335,11 +339,11 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                           onClick={() => void DocumentAPI.openProtectedDocument(entry.prescriptionUrl!)}
                           className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
                         >
-                          Open attached
+                          Open prescription
                         </button>
                       ) : (
                         <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                          Missing
+                          Not attached
                         </span>
                       )}
                     </td>
@@ -348,7 +352,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                 {!loading && !filteredInspectorRows.length && (
                   <tr>
                     <td colSpan={9} className="px-3 py-10 text-center text-slate-400">
-                      No compliance entries found for the selected period.
+                      No controlled-drug entries were found for this filter.
                     </td>
                   </tr>
                 )}
@@ -360,9 +364,9 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
         <section className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Monthly Narcotic Report</h2>
+              <h2 className="text-lg font-semibold">Monthly narcotic register</h2>
               <p className="text-sm text-slate-500">
-                Focused monthly register for medicines flagged as narcotics.
+                Separate monthly view for medicines that need narcotic-specific reporting.
               </p>
             </div>
             <button
@@ -371,7 +375,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
               disabled={!narcoticRows.length}
               className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Export CSV
+              Download register
             </button>
           </div>
 
@@ -401,7 +405,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                 {!loading && !narcoticRows.length && (
                   <tr>
                     <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
-                      No narcotic entries found for this month.
+                      No narcotic entries were found for this month.
                     </td>
                   </tr>
                 )}
@@ -413,9 +417,9 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
         <section className="rounded-3xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Searchable Prescription Archive</h2>
+              <h2 className="text-lg font-semibold">Prescription history</h2>
               <p className="text-sm text-slate-500">
-                Search by patient, medicine, doctor, or schedule to retrieve historical controlled-drug evidence fast.
+                Search by patient, medicine, doctor, or schedule to retrieve prescription proof quickly.
               </p>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
@@ -456,11 +460,11 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                           onClick={() => void DocumentAPI.openProtectedDocument(entry.prescriptionUrl!)}
                           className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
                         >
-                          Open archive file
+                          Open prescription
                         </button>
                       ) : (
                         <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-700">
-                          Missing
+                          Not attached
                         </span>
                       )}
                     </td>
@@ -469,7 +473,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                 {!loading && !archiveRows.length && (
                   <tr>
                     <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
-                      No archive entries found for the current search.
+                      No prescription history matched the current search.
                     </td>
                   </tr>
                 )}
