@@ -69,8 +69,18 @@ public class StockTransfer {
     @JoinColumn(name = "approved_by")
     private PharmaUser approvedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "received_by")
+    private PharmaUser receivedBy;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "dispatched_at")
+    private LocalDateTime dispatchedAt;
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;

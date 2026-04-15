@@ -384,15 +384,27 @@ export interface StockTransferActionResponse {
   status: string;
   fromStoreId: string;
   fromStoreCode: string;
+  fromStoreName?: string;
   toStoreId: string;
   toStoreCode: string;
+  toStoreName?: string;
   medicineId: string;
   brandName: string;
+  genericName?: string;
+  medicineForm?: string;
+  packSize?: number;
+  packSizeLabel?: string;
   batchId: string;
   batchNumber: string;
   quantityStrips: number;
   quantityLoose: number;
+  requestedByName?: string;
+  approvedByName?: string;
+  receivedByName?: string;
   createdAt: string;
+  approvedAt?: string;
+  dispatchedAt?: string;
+  completedAt?: string;
 }
 
 export interface ReorderDraftRequest {
@@ -903,6 +915,20 @@ export const InventoryAPI = {
       }
     ),
 
+  getTransfers: (
+    storeId?: string,
+    limit = 12,
+    status?: string
+  ): Promise<StockTransferActionResponse[]> =>
+    fetchJson(
+      `${BASE_URL}/inventory/transfers?limit=${limit}${storeId ? `&storeId=${encodeURIComponent(storeId)}` : ''}${
+        status ? `&status=${encodeURIComponent(status)}` : ''
+      }`,
+      {
+        headers: getHeaders(),
+      }
+    ),
+
   requestTransfer: (
     payload: StockTransferCreateRequest
   ): Promise<StockTransferActionResponse> =>
@@ -910,6 +936,36 @@ export const InventoryAPI = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
+    }),
+
+  approveTransfer: (transferId: string): Promise<StockTransferActionResponse> =>
+    fetchJson(`${BASE_URL}/inventory/transfers/${transferId}/approve`, {
+      method: 'POST',
+      headers: getHeaders(),
+    }),
+
+  rejectTransfer: (transferId: string): Promise<StockTransferActionResponse> =>
+    fetchJson(`${BASE_URL}/inventory/transfers/${transferId}/reject`, {
+      method: 'POST',
+      headers: getHeaders(),
+    }),
+
+  cancelTransfer: (transferId: string): Promise<StockTransferActionResponse> =>
+    fetchJson(`${BASE_URL}/inventory/transfers/${transferId}/cancel`, {
+      method: 'POST',
+      headers: getHeaders(),
+    }),
+
+  dispatchTransfer: (transferId: string): Promise<StockTransferActionResponse> =>
+    fetchJson(`${BASE_URL}/inventory/transfers/${transferId}/dispatch`, {
+      method: 'POST',
+      headers: getHeaders(),
+    }),
+
+  receiveTransfer: (transferId: string): Promise<StockTransferActionResponse> =>
+    fetchJson(`${BASE_URL}/inventory/transfers/${transferId}/receive`, {
+      method: 'POST',
+      headers: getHeaders(),
     }),
 };
 

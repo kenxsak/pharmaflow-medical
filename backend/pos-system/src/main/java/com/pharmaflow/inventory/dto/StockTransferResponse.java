@@ -20,13 +20,25 @@ public class StockTransferResponse {
     private String status;
     private UUID fromStoreId;
     private String fromStoreCode;
+    private String fromStoreName;
     private UUID toStoreId;
     private String toStoreCode;
+    private String toStoreName;
     private UUID medicineId;
     private String brandName;
+    private String genericName;
+    private String medicineForm;
+    private Integer packSize;
+    private String packSizeLabel;
     private UUID batchId;
     private String batchNumber;
     private Integer quantityStrips;
     private Integer quantityLoose;
+    private String requestedByName;
+    private String approvedByName;
+    private String receivedByName;
     private LocalDateTime createdAt;
+    private LocalDateTime approvedAt;
+    private LocalDateTime dispatchedAt;
+    private LocalDateTime completedAt;
 }

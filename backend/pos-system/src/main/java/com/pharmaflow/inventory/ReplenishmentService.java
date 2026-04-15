@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -243,20 +244,357 @@ public class ReplenishmentService {
                         + "\",\"quantityStrips\":\"" + requestedStrips + "\"}"
         );
 
+        return toTransferResponse(transfer);
+    }
+
+    public List<StockTransferResponse> listTransfers(UUID focusStoreId, int limit, String status) {
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+        List<Store> accessibleStores = storeService.getAccessibleStoresForUser(currentUser);
+        if (accessibleStores.isEmpty()) {
+            return List.of();
+        }
+
+        UUID scopedStoreId = focusStoreId != null
+                ? storeService.requireAccessibleStore(focusStoreId).getStoreId()
+                : null;
+        String normalizedStatus = status == null || status.isBlank()
+                ? null
+                : status.trim().toUpperCase();
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+
+        List<UUID> accessibleStoreIds = accessibleStores.stream()
+                .map(Store::getStoreId)
+                .collect(Collectors.toList());
+
+        return stockTransferRepository.findByStoreIds(accessibleStoreIds, null)
+                .stream()
+                .filter(transfer -> scopedStoreId == null
+                        || matchesStore(transfer.getFromStore(), scopedStoreId)
+                        || matchesStore(transfer.getToStore(), scopedStoreId))
+                .filter(transfer -> normalizedStatus == null
+                        || normalizedStatus.equalsIgnoreCase(transfer.getStatus()))
+                .sorted(Comparator
+                        .comparing(StockTransfer::getCreatedAt, Comparator.nullsLast(LocalDateTime::compareTo))
+                        .reversed())
+                .limit(safeLimit)
+                .map(this::toTransferResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public StockTransferResponse approveTransfer(UUID transferId) {
+        StockTransfer transfer = getTransferOrThrow(transferId);
+        ensureSourceStoreAccess(transfer);
+        requireTransferStatus(transfer, List.of("PENDING"), "Only pending requests can be approved");
+
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+        LocalDateTime now = LocalDateTime.now();
+        transfer.setStatus("APPROVED");
+        transfer.setApprovedBy(currentUser);
+        transfer.setApprovedAt(now);
+        stockTransferRepository.save(transfer);
+
+        auditLogService.log(
+                transfer.getFromStore(),
+                currentUser,
+                "TRANSFER_APPROVED",
+                "STOCK_TRANSFER",
+                transfer.getTransferId().toString(),
+                null,
+                "{\"fromStore\":\"" + transfer.getFromStore().getStoreCode()
+                        + "\",\"toStore\":\"" + transfer.getToStore().getStoreCode()
+                        + "\",\"medicine\":\"" + transfer.getMedicine().getBrandName() + "\"}"
+        );
+
+        return toTransferResponse(transfer);
+    }
+
+    @Transactional
+    public StockTransferResponse rejectTransfer(UUID transferId) {
+        StockTransfer transfer = getTransferOrThrow(transferId);
+        ensureSourceStoreAccess(transfer);
+        requireTransferStatus(transfer, List.of("PENDING", "APPROVED"), "Only open transfer requests can be rejected");
+
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+        transfer.setStatus("REJECTED");
+        transfer.setCompletedAt(LocalDateTime.now());
+        stockTransferRepository.save(transfer);
+
+        auditLogService.log(
+                transfer.getFromStore(),
+                currentUser,
+                "TRANSFER_REJECTED",
+                "STOCK_TRANSFER",
+                transfer.getTransferId().toString(),
+                null,
+                "{\"fromStore\":\"" + transfer.getFromStore().getStoreCode()
+                        + "\",\"toStore\":\"" + transfer.getToStore().getStoreCode()
+                        + "\",\"medicine\":\"" + transfer.getMedicine().getBrandName() + "\"}"
+        );
+
+        return toTransferResponse(transfer);
+    }
+
+    @Transactional
+    public StockTransferResponse cancelTransfer(UUID transferId) {
+        StockTransfer transfer = getTransferOrThrow(transferId);
+        ensureParticipantAccess(transfer);
+        requireTransferStatus(transfer, List.of("PENDING", "APPROVED"), "Only open transfer requests can be cancelled");
+
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+        transfer.setStatus("CANCELLED");
+        transfer.setCompletedAt(LocalDateTime.now());
+        stockTransferRepository.save(transfer);
+
+        auditLogService.log(
+                transfer.getToStore(),
+                currentUser,
+                "TRANSFER_CANCELLED",
+                "STOCK_TRANSFER",
+                transfer.getTransferId().toString(),
+                null,
+                "{\"fromStore\":\"" + transfer.getFromStore().getStoreCode()
+                        + "\",\"toStore\":\"" + transfer.getToStore().getStoreCode()
+                        + "\",\"medicine\":\"" + transfer.getMedicine().getBrandName() + "\"}"
+        );
+
+        return toTransferResponse(transfer);
+    }
+
+    @Transactional
+    public StockTransferResponse dispatchTransfer(UUID transferId) {
+        StockTransfer transfer = getTransferOrThrow(transferId);
+        ensureSourceStoreAccess(transfer);
+        requireTransferStatus(transfer, List.of("PENDING", "APPROVED"), "Only open transfer requests can be dispatched");
+
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+        InventoryBatch batch = inventoryBatchRepository.findByIdForUpdate(transfer.getBatch().getBatchId())
+                .orElseThrow(() -> new IllegalArgumentException("Transfer batch not found"));
+        validateTransferBatch(transfer, batch);
+
+        int requestedLooseUnits = toLooseUnits(transfer.getQuantityStrips(), transfer.getQuantityLoose(), batch.getMedicine());
+        int availableLooseUnits = toLooseUnits(batch.getQuantityStrips(), batch.getQuantityLoose(), batch.getMedicine());
+        if (requestedLooseUnits > availableLooseUnits) {
+            throw new BusinessRuleException("Requested transfer exceeds the current batch stock");
+        }
+
+        int donorLooseUnits = inventoryBatchRepository.findSellableBatches(
+                        transfer.getFromStore().getStoreId(),
+                        transfer.getMedicine().getMedicineId(),
+                        LocalDate.now()
+                )
+                .stream()
+                .mapToInt(candidate -> toLooseUnits(candidate.getQuantityStrips(), candidate.getQuantityLoose(), candidate.getMedicine()))
+                .sum();
+        int reorderThresholdLooseUnits = safePackSize(batch.getMedicine())
+                * (batch.getMedicine().getReorderLevel() == null ? 0 : batch.getMedicine().getReorderLevel());
+        if (donorLooseUnits - requestedLooseUnits < reorderThresholdLooseUnits) {
+            throw new BusinessRuleException("Dispatch would drop the source store below reorder level");
+        }
+
+        applyLooseUnits(batch, availableLooseUnits - requestedLooseUnits);
+        inventoryBatchRepository.save(batch);
+
+        LocalDateTime now = LocalDateTime.now();
+        if (transfer.getApprovedAt() == null) {
+            transfer.setApprovedAt(now);
+        }
+        if (transfer.getApprovedBy() == null) {
+            transfer.setApprovedBy(currentUser);
+        }
+        transfer.setStatus("IN_TRANSIT");
+        transfer.setDispatchedAt(now);
+        stockTransferRepository.save(transfer);
+
+        auditLogService.log(
+                transfer.getFromStore(),
+                currentUser,
+                "TRANSFER_DISPATCHED",
+                "STOCK_TRANSFER",
+                transfer.getTransferId().toString(),
+                null,
+                "{\"fromStore\":\"" + transfer.getFromStore().getStoreCode()
+                        + "\",\"toStore\":\"" + transfer.getToStore().getStoreCode()
+                        + "\",\"medicine\":\"" + transfer.getMedicine().getBrandName()
+                        + "\",\"quantityStrips\":\"" + transfer.getQuantityStrips() + "\"}"
+        );
+
+        return toTransferResponse(transfer);
+    }
+
+    @Transactional
+    public StockTransferResponse receiveTransfer(UUID transferId) {
+        StockTransfer transfer = getTransferOrThrow(transferId);
+        ensureDestinationStoreAccess(transfer);
+        requireTransferStatus(transfer, List.of("IN_TRANSIT"), "Only in-transit stock can be received");
+
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+        InventoryBatch sourceBatch = inventoryBatchRepository.findByIdForUpdate(transfer.getBatch().getBatchId())
+                .orElseThrow(() -> new IllegalArgumentException("Transfer batch not found"));
+        InventoryBatch destinationBatch = inventoryBatchRepository
+                .findByStoreAndMedicineAndBatchNumberForUpdate(
+                        transfer.getToStore().getStoreId(),
+                        transfer.getMedicine().getMedicineId(),
+                        sourceBatch.getBatchNumber()
+                )
+                .orElse(null);
+
+        int transferredLooseUnits = toLooseUnits(transfer.getQuantityStrips(), transfer.getQuantityLoose(), sourceBatch.getMedicine());
+        if (destinationBatch == null) {
+            destinationBatch = InventoryBatch.builder()
+                    .store(transfer.getToStore())
+                    .medicine(sourceBatch.getMedicine())
+                    .batchNumber(sourceBatch.getBatchNumber())
+                    .manufactureDate(sourceBatch.getManufactureDate())
+                    .expiryDate(sourceBatch.getExpiryDate())
+                    .purchaseRate(sourceBatch.getPurchaseRate())
+                    .mrp(sourceBatch.getMrp())
+                    .quantityStrips(0)
+                    .quantityLoose(0)
+                    .isActive(true)
+                    .build();
+        }
+
+        int destinationLooseUnits = toLooseUnits(
+                destinationBatch.getQuantityStrips(),
+                destinationBatch.getQuantityLoose(),
+                sourceBatch.getMedicine()
+        );
+        applyLooseUnits(destinationBatch, destinationLooseUnits + transferredLooseUnits);
+        destinationBatch.setManufactureDate(sourceBatch.getManufactureDate());
+        destinationBatch.setExpiryDate(sourceBatch.getExpiryDate());
+        destinationBatch.setPurchaseRate(sourceBatch.getPurchaseRate());
+        destinationBatch.setMrp(sourceBatch.getMrp());
+        inventoryBatchRepository.save(destinationBatch);
+
+        transfer.setStatus("RECEIVED");
+        transfer.setReceivedBy(currentUser);
+        transfer.setCompletedAt(LocalDateTime.now());
+        stockTransferRepository.save(transfer);
+
+        auditLogService.log(
+                transfer.getToStore(),
+                currentUser,
+                "TRANSFER_RECEIVED",
+                "STOCK_TRANSFER",
+                transfer.getTransferId().toString(),
+                null,
+                "{\"fromStore\":\"" + transfer.getFromStore().getStoreCode()
+                        + "\",\"toStore\":\"" + transfer.getToStore().getStoreCode()
+                        + "\",\"medicine\":\"" + transfer.getMedicine().getBrandName()
+                        + "\",\"quantityStrips\":\"" + transfer.getQuantityStrips() + "\"}"
+        );
+
+        return toTransferResponse(transfer);
+    }
+
+    private StockTransfer getTransferOrThrow(UUID transferId) {
+        return stockTransferRepository.findById(transferId)
+                .orElseThrow(() -> new IllegalArgumentException("Transfer request not found"));
+    }
+
+    private void ensureSourceStoreAccess(StockTransfer transfer) {
+        if (transfer.getFromStore() == null || transfer.getFromStore().getStoreId() == null) {
+            throw new BusinessRuleException("Transfer source store is missing");
+        }
+        storeService.requireAccessibleStore(transfer.getFromStore().getStoreId());
+    }
+
+    private void ensureDestinationStoreAccess(StockTransfer transfer) {
+        if (transfer.getToStore() == null || transfer.getToStore().getStoreId() == null) {
+            throw new BusinessRuleException("Transfer destination store is missing");
+        }
+        storeService.requireAccessibleStore(transfer.getToStore().getStoreId());
+    }
+
+    private void ensureParticipantAccess(StockTransfer transfer) {
+        List<UUID> accessibleStoreIds = storeService.getAccessibleStoreEntities()
+                .stream()
+                .map(Store::getStoreId)
+                .collect(Collectors.toList());
+        UUID fromStoreId = transfer.getFromStore() != null ? transfer.getFromStore().getStoreId() : null;
+        UUID toStoreId = transfer.getToStore() != null ? transfer.getToStore().getStoreId() : null;
+        boolean hasAccess = (fromStoreId != null && accessibleStoreIds.contains(fromStoreId))
+                || (toStoreId != null && accessibleStoreIds.contains(toStoreId));
+        if (!hasAccess) {
+            throw new ForbiddenActionException("This transfer is not accessible for the current user");
+        }
+    }
+
+    private void requireTransferStatus(StockTransfer transfer, List<String> allowedStatuses, String message) {
+        String currentStatus = transfer.getStatus() == null ? "" : transfer.getStatus().trim().toUpperCase();
+        boolean allowed = allowedStatuses.stream()
+                .anyMatch(status -> status.equalsIgnoreCase(currentStatus));
+        if (!allowed) {
+            throw new BusinessRuleException(message);
+        }
+    }
+
+    private void validateTransferBatch(StockTransfer transfer, InventoryBatch batch) {
+        if (batch.getStore() == null || batch.getStore().getStoreId() == null
+                || !batch.getStore().getStoreId().equals(transfer.getFromStore().getStoreId())) {
+            throw new BusinessRuleException("Selected batch no longer belongs to the source store");
+        }
+        if (batch.getMedicine() == null || batch.getMedicine().getMedicineId() == null
+                || !batch.getMedicine().getMedicineId().equals(transfer.getMedicine().getMedicineId())) {
+            throw new BusinessRuleException("Selected batch no longer matches the requested medicine");
+        }
+        if (batch.getExpiryDate() == null || !batch.getExpiryDate().isAfter(LocalDate.now())) {
+            throw new BusinessRuleException("Expired or same-day-expiry stock cannot be transferred");
+        }
+    }
+
+    private boolean matchesStore(Store store, UUID storeId) {
+        return store != null && store.getStoreId() != null && store.getStoreId().equals(storeId);
+    }
+
+    private int toLooseUnits(Integer quantityStrips, Integer quantityLoose, Medicine medicine) {
+        return safe(quantityStrips) * safePackSize(medicine) + safe(quantityLoose);
+    }
+
+    private int safePackSize(Medicine medicine) {
+        return medicine == null || medicine.getPackSize() == null || medicine.getPackSize() <= 0
+                ? 1
+                : medicine.getPackSize();
+    }
+
+    private void applyLooseUnits(InventoryBatch batch, int totalLooseUnits) {
+        int packSize = safePackSize(batch.getMedicine());
+        int normalizedTotal = Math.max(totalLooseUnits, 0);
+        batch.setQuantityStrips(normalizedTotal / packSize);
+        batch.setQuantityLoose(normalizedTotal % packSize);
+        batch.setIsActive(normalizedTotal > 0);
+    }
+
+    private StockTransferResponse toTransferResponse(StockTransfer transfer) {
+        InventoryBatch batch = transfer.getBatch();
+        Medicine medicine = transfer.getMedicine();
         return StockTransferResponse.builder()
                 .transferId(transfer.getTransferId())
                 .status(transfer.getStatus())
-                .fromStoreId(fromStore.getStoreId())
-                .fromStoreCode(fromStore.getStoreCode())
-                .toStoreId(toStore.getStoreId())
-                .toStoreCode(toStore.getStoreCode())
-                .medicineId(batch.getMedicine().getMedicineId())
-                .brandName(batch.getMedicine().getBrandName())
-                .batchId(batch.getBatchId())
-                .batchNumber(batch.getBatchNumber())
+                .fromStoreId(transfer.getFromStore() != null ? transfer.getFromStore().getStoreId() : null)
+                .fromStoreCode(transfer.getFromStore() != null ? transfer.getFromStore().getStoreCode() : null)
+                .fromStoreName(transfer.getFromStore() != null ? transfer.getFromStore().getStoreName() : null)
+                .toStoreId(transfer.getToStore() != null ? transfer.getToStore().getStoreId() : null)
+                .toStoreCode(transfer.getToStore() != null ? transfer.getToStore().getStoreCode() : null)
+                .toStoreName(transfer.getToStore() != null ? transfer.getToStore().getStoreName() : null)
+                .medicineId(medicine != null ? medicine.getMedicineId() : null)
+                .brandName(medicine != null ? medicine.getBrandName() : null)
+                .genericName(medicine != null ? medicine.getGenericName() : null)
+                .medicineForm(medicine != null ? medicine.getMedicineForm() : null)
+                .packSize(medicine != null ? medicine.getPackSize() : null)
+                .packSizeLabel(medicine != null ? medicine.getPackSizeLabel() : null)
+                .batchId(batch != null ? batch.getBatchId() : null)
+                .batchNumber(batch != null ? batch.getBatchNumber() : null)
                 .quantityStrips(transfer.getQuantityStrips())
                 .quantityLoose(transfer.getQuantityLoose())
+                .requestedByName(transfer.getRequestedBy() != null ? transfer.getRequestedBy().getFullName() : null)
+                .approvedByName(transfer.getApprovedBy() != null ? transfer.getApprovedBy().getFullName() : null)
+                .receivedByName(transfer.getReceivedBy() != null ? transfer.getReceivedBy().getFullName() : null)
                 .createdAt(transfer.getCreatedAt())
+                .approvedAt(transfer.getApprovedAt())
+                .dispatchedAt(transfer.getDispatchedAt())
+                .completedAt(transfer.getCompletedAt())
                 .build();
     }
 
@@ -476,6 +814,10 @@ public class ReplenishmentService {
 
     private BigDecimal safe(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private int safe(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private BigDecimal scale(BigDecimal value) {

@@ -8,6 +8,7 @@ import {
   ReportsAPI,
   type ReplenishmentInsightResponse,
   type ReplenishmentRecommendation,
+  type StockTransferActionResponse,
   type TransferRecommendation,
 } from '../../services/api';
 import { useBranding } from '../../utils/branding';
@@ -17,7 +18,11 @@ import {
   getPharmaFlowRoleLabel,
   usePharmaFlowContext,
 } from '../../utils/pharmaflowContext';
-import { formatPrimaryQuantity, getMedicineUnitProfile } from '../../utils/medicineUnits';
+import {
+  formatPrimaryQuantity,
+  formatSecondaryQuantity,
+  getMedicineUnitProfile,
+} from '../../utils/medicineUnits';
 
 interface StoreOperationsDashboardProps {
   embedded?: boolean;
@@ -41,6 +46,30 @@ const formatDate = (value?: string) => {
   return parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+const getTransferStatusTone = (status?: string) => {
+  switch ((status || '').toUpperCase()) {
+    case 'APPROVED':
+      return 'bg-amber-100 text-amber-900';
+    case 'IN_TRANSIT':
+      return 'bg-sky-100 text-sky-900';
+    case 'RECEIVED':
+      return 'bg-emerald-100 text-emerald-900';
+    case 'REJECTED':
+    case 'CANCELLED':
+      return 'bg-rose-100 text-rose-900';
+    default:
+      return 'bg-slate-100 text-slate-800';
+  }
+};
+
+const formatTransferQuantity = (transfer: StockTransferActionResponse) => {
+  const primary = formatPrimaryQuantity(transfer.quantityStrips, transfer);
+  if (!transfer.quantityLoose) {
+    return primary;
+  }
+  return `${primary} + ${formatSecondaryQuantity(transfer.quantityLoose, transfer)}`;
+};
+
 const getScopeNote = (scopeLevel?: string) => {
   switch (scopeLevel) {
     case 'SAAS_ADMIN':
@@ -62,6 +91,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
 
   const [overview, setOverview] = useState<OperationsOverviewResponse | null>(null);
   const [insights, setInsights] = useState<ReplenishmentInsightResponse | null>(null);
+  const [transfers, setTransfers] = useState<StockTransferActionResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -77,12 +107,14 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
     const focusStoreId = canManageStores ? activeStoreId || undefined : context.storeId || undefined;
 
     try {
-      const [overviewResponse, insightResponse] = await Promise.all([
+      const [overviewResponse, insightResponse, transferResponse] = await Promise.all([
         ReportsAPI.getOperationsOverview(month, year),
         InventoryAPI.getReplenishmentInsights(focusStoreId, 15),
+        InventoryAPI.getTransfers(focusStoreId, 12),
       ]);
       setOverview(overviewResponse);
       setInsights(insightResponse);
+      setTransfers(transferResponse);
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load operations data.');
@@ -100,6 +132,55 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
     localStorage.setItem('pharmaflow_store_code', storeCode);
     announcePharmaFlowContextChange();
     setActionMessage(`Active store switched to ${storeCode}.`);
+  };
+
+  const handleTransferLifecycle = async (
+    transfer: StockTransferActionResponse,
+    action: 'approve' | 'reject' | 'cancel' | 'dispatch' | 'receive'
+  ) => {
+    const actionLabel =
+      action === 'approve'
+        ? 'approve'
+        : action === 'reject'
+        ? 'reject'
+        : action === 'cancel'
+        ? 'cancel'
+        : action === 'dispatch'
+        ? 'dispatch'
+        : 'receive';
+
+    if (!window.confirm(`${actionLabel.charAt(0).toUpperCase()}${actionLabel.slice(1)} transfer ${transfer.transferId.slice(0, 8)} for ${transfer.brandName}?`)) {
+      return;
+    }
+
+    try {
+      setBusyKey(`transfer-action-${transfer.transferId}-${action}`);
+      const response =
+        action === 'approve'
+          ? await InventoryAPI.approveTransfer(transfer.transferId)
+          : action === 'reject'
+          ? await InventoryAPI.rejectTransfer(transfer.transferId)
+          : action === 'cancel'
+          ? await InventoryAPI.cancelTransfer(transfer.transferId)
+          : action === 'dispatch'
+          ? await InventoryAPI.dispatchTransfer(transfer.transferId)
+          : await InventoryAPI.receiveTransfer(transfer.transferId);
+
+      const actionMessages = {
+        approve: `Transfer ${response.transferId.slice(0, 8)} approved for dispatch from ${response.fromStoreCode}.`,
+        reject: `Transfer ${response.transferId.slice(0, 8)} was rejected.`,
+        cancel: `Transfer ${response.transferId.slice(0, 8)} was cancelled.`,
+        dispatch: `Transfer ${response.transferId.slice(0, 8)} is now in transit to ${response.toStoreCode}.`,
+        receive: `Transfer ${response.transferId.slice(0, 8)} was received into ${response.toStoreCode}.`,
+      } as const;
+
+      setActionMessage(actionMessages[action]);
+      await loadDashboard();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to update transfer.');
+    } finally {
+      setBusyKey(null);
+    }
   };
 
   const handleTransferRequest = async (
@@ -168,6 +249,16 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
 
   const visibleRows = overview?.stores || [];
   const roleLabel = getPharmaFlowRoleLabel(context.role, context.platformOwner);
+  const focusedStoreId = canManageStores ? activeStoreId || undefined : context.storeId || undefined;
+  const pendingTransferCount = transfers.filter((transfer) =>
+    ['PENDING', 'APPROVED'].includes((transfer.status || '').toUpperCase())
+  ).length;
+  const inTransitTransferCount = transfers.filter(
+    (transfer) => (transfer.status || '').toUpperCase() === 'IN_TRANSIT'
+  ).length;
+  const receivedTransferCount = transfers.filter(
+    (transfer) => (transfer.status || '').toUpperCase() === 'RECEIVED'
+  ).length;
 
   return (
     <PharmaFlowShell
@@ -368,6 +459,175 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
         <section className="rounded-[2rem] bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
+              <h2 className="text-xl font-semibold">Transfer Desk</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Track branch-to-branch stock requests through approval, dispatch, and receipt inside the same operating screen.
+              </p>
+            </div>
+            <div className="text-sm text-slate-500">
+              Focused store:{' '}
+              <span className="font-medium text-slate-700">{activeStoreCode || 'All visible stores'}</span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl bg-amber-50 p-4">
+              <div className="text-sm text-amber-800">Awaiting source action</div>
+              <div className="mt-1 text-2xl font-semibold text-amber-950">{pendingTransferCount}</div>
+            </div>
+            <div className="rounded-2xl bg-sky-50 p-4">
+              <div className="text-sm text-sky-800">In transit</div>
+              <div className="mt-1 text-2xl font-semibold text-sky-950">{inTransitTransferCount}</div>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-4">
+              <div className="text-sm text-emerald-800">Recently received in scope</div>
+              <div className="mt-1 text-2xl font-semibold text-emerald-950">{receivedTransferCount}</div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4">
+            {transfers.map((transfer) => {
+              const normalizedStatus = (transfer.status || '').toUpperCase();
+              const isSourceSide = !focusedStoreId || transfer.fromStoreId === focusedStoreId;
+              const isDestinationSide = !focusedStoreId || transfer.toStoreId === focusedStoreId;
+              const canApprove = isSourceSide && normalizedStatus === 'PENDING';
+              const canReject = isSourceSide && ['PENDING', 'APPROVED'].includes(normalizedStatus);
+              const canDispatch = isSourceSide && ['PENDING', 'APPROVED'].includes(normalizedStatus);
+              const canCancel =
+                ['PENDING', 'APPROVED'].includes(normalizedStatus) && (isSourceSide || isDestinationSide);
+              const canReceive = isDestinationSide && normalizedStatus === 'IN_TRANSIT';
+
+              return (
+                <article
+                  key={transfer.transferId}
+                  className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                        {transfer.fromStoreCode} to {transfer.toStoreCode}
+                      </div>
+                      <h3 className="mt-2 text-lg font-semibold text-slate-900">{transfer.brandName}</h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {transfer.genericName || 'Generic name unavailable'}
+                        {transfer.packSizeLabel ? ` • ${transfer.packSizeLabel}` : ''}
+                        {transfer.batchNumber ? ` • Batch ${transfer.batchNumber}` : ''}
+                      </p>
+                    </div>
+                    <div
+                      className={`rounded-full px-4 py-2 text-sm font-semibold ${getTransferStatusTone(
+                        transfer.status
+                      )}`}
+                    >
+                      {normalizedStatus || 'PENDING'}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Transfer quantity</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900">
+                        {formatTransferQuantity(transfer)}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Requested</div>
+                      <div className="mt-1 text-sm font-medium text-slate-900">
+                        {formatDate(transfer.createdAt)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">{transfer.requestedByName || 'System'}</div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Approved / dispatched</div>
+                      <div className="mt-1 text-sm font-medium text-slate-900">
+                        {formatDate(transfer.dispatchedAt || transfer.approvedAt)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {transfer.approvedByName || 'Awaiting source confirmation'}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white p-4">
+                      <div className="text-sm text-slate-500">Received</div>
+                      <div className="mt-1 text-sm font-medium text-slate-900">
+                        {formatDate(transfer.completedAt)}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {transfer.receivedByName || 'Awaiting destination receipt'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {canApprove && (
+                      <button
+                        type="button"
+                        disabled={busyKey === `transfer-action-${transfer.transferId}-approve`}
+                        onClick={() => handleTransferLifecycle(transfer, 'approve')}
+                        className="rounded-2xl border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {busyKey === `transfer-action-${transfer.transferId}-approve` ? 'Approving…' : 'Approve'}
+                      </button>
+                    )}
+
+                    {canDispatch && (
+                      <button
+                        type="button"
+                        disabled={busyKey === `transfer-action-${transfer.transferId}-dispatch`}
+                        onClick={() => handleTransferLifecycle(transfer, 'dispatch')}
+                        className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {busyKey === `transfer-action-${transfer.transferId}-dispatch` ? 'Dispatching…' : 'Dispatch'}
+                      </button>
+                    )}
+
+                    {canReceive && (
+                      <button
+                        type="button"
+                        disabled={busyKey === `transfer-action-${transfer.transferId}-receive`}
+                        onClick={() => handleTransferLifecycle(transfer, 'receive')}
+                        className="rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {busyKey === `transfer-action-${transfer.transferId}-receive` ? 'Receiving…' : 'Receive into stock'}
+                      </button>
+                    )}
+
+                    {canReject && (
+                      <button
+                        type="button"
+                        disabled={busyKey === `transfer-action-${transfer.transferId}-reject`}
+                        onClick={() => handleTransferLifecycle(transfer, 'reject')}
+                        className="rounded-2xl border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {busyKey === `transfer-action-${transfer.transferId}-reject` ? 'Rejecting…' : 'Reject'}
+                      </button>
+                    )}
+
+                    {canCancel && (
+                      <button
+                        type="button"
+                        disabled={busyKey === `transfer-action-${transfer.transferId}-cancel`}
+                        onClick={() => handleTransferLifecycle(transfer, 'cancel')}
+                        className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {busyKey === `transfer-action-${transfer.transferId}-cancel` ? 'Cancelling…' : 'Cancel'}
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+
+            {!transfers.length && (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+                No stock transfers are active for the current scope.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
               <h2 className="text-xl font-semibold">Replenishment Actions</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Low-stock items now suggest real intra-network transfers first, then purchase drafts when the shortage remains.
@@ -380,7 +640,6 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
 
           <div className="mt-4 grid gap-4">
             {insights?.recommendations.map((recommendation) => {
-              const firstTransfer = recommendation.transferOptions[0];
               const transferBusy =
                 busyKey === `transfer-${recommendation.targetStoreId}-${recommendation.medicineId}`;
               const reorderBusy =

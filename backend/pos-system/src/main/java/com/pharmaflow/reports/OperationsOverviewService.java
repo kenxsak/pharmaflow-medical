@@ -76,7 +76,10 @@ public class OperationsOverviewService {
         List<Invoice> monthInvoices = invoiceRepository.findActiveInvoicesForStores(storeIds, monthStart, monthEnd);
         List<Invoice> todayInvoices = invoiceRepository.findActiveInvoicesForStores(storeIds, dayStart, dayEnd);
         List<InventoryBatch> activeBatches = inventoryBatchRepository.findActiveStockForStores(storeIds);
-        List<StockTransfer> pendingTransfers = stockTransferRepository.findByStoreIds(storeIds, "PENDING");
+        List<StockTransfer> activeTransfers = stockTransferRepository.findByStoreIds(storeIds, null)
+                .stream()
+                .filter(this::isOpenTransfer)
+                .collect(Collectors.toList());
 
         Map<UUID, StoreAccumulator> storeAccumulators = new LinkedHashMap<>();
         for (Store store : stores) {
@@ -106,7 +109,7 @@ public class OperationsOverviewService {
             accumulator.todaySales = accumulator.todaySales.add(safe(invoice.getTotalAmount()));
         }
 
-        for (StockTransfer transfer : pendingTransfers) {
+        for (StockTransfer transfer : activeTransfers) {
             if (transfer.getFromStore() != null && transfer.getFromStore().getStoreId() != null) {
                 StoreAccumulator fromAccumulator = storeAccumulators.get(transfer.getFromStore().getStoreId());
                 if (fromAccumulator != null) {
@@ -198,7 +201,7 @@ public class OperationsOverviewService {
                 .expiring30BatchCount(rows.stream().mapToInt(StoreOperationsKpiRow::getExpiring30BatchCount).sum())
                 .stockValue(scale(rows.stream().map(StoreOperationsKpiRow::getStockValue).reduce(BigDecimal.ZERO, BigDecimal::add)))
                 .nearExpiryValue(scale(rows.stream().map(StoreOperationsKpiRow::getNearExpiryValue).reduce(BigDecimal.ZERO, BigDecimal::add)))
-                .pendingTransferCount(pendingTransfers.size())
+                .pendingTransferCount(activeTransfers.size())
                 .stores(rows)
                 .build();
     }
@@ -220,6 +223,16 @@ public class OperationsOverviewService {
                 ? accumulator.medicine.getReorderLevel()
                 : 0;
         return accumulator.totalStrips < reorderLevel;
+    }
+
+    private boolean isOpenTransfer(StockTransfer transfer) {
+        if (transfer == null || transfer.getStatus() == null) {
+            return false;
+        }
+        String normalized = transfer.getStatus().trim().toUpperCase();
+        return "PENDING".equals(normalized)
+                || "APPROVED".equals(normalized)
+                || "IN_TRANSIT".equals(normalized);
     }
 
     private BigDecimal estimateInventoryValue(InventoryBatch batch) {

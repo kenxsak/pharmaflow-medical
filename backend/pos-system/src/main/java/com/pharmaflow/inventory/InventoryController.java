@@ -69,4 +69,38 @@ public class InventoryController {
     public StockTransferResponse createTransferRequest(@Valid @RequestBody StockTransferCreateRequest request) {
         return replenishmentService.createTransferRequest(request);
     }
+
+    @GetMapping("/transfers")
+    public List<StockTransferResponse> getTransfers(
+            @RequestParam(value = "storeId", required = false) UUID storeId,
+            @RequestParam(defaultValue = "12") int limit,
+            @RequestParam(value = "status", required = false) String status
+    ) {
+        return replenishmentService.listTransfers(storeId, limit, status);
+    }
+
+    @PostMapping("/transfers/{transferId}/approve")
+    public StockTransferResponse approveTransfer(@PathVariable UUID transferId) {
+        return replenishmentService.approveTransfer(transferId);
+    }
+
+    @PostMapping("/transfers/{transferId}/reject")
+    public StockTransferResponse rejectTransfer(@PathVariable UUID transferId) {
+        return replenishmentService.rejectTransfer(transferId);
+    }
+
+    @PostMapping("/transfers/{transferId}/cancel")
+    public StockTransferResponse cancelTransfer(@PathVariable UUID transferId) {
+        return replenishmentService.cancelTransfer(transferId);
+    }
+
+    @PostMapping("/transfers/{transferId}/dispatch")
+    public StockTransferResponse dispatchTransfer(@PathVariable UUID transferId) {
+        return replenishmentService.dispatchTransfer(transferId);
+    }
+
+    @PostMapping("/transfers/{transferId}/receive")
+    public StockTransferResponse receiveTransfer(@PathVariable UUID transferId) {
+        return replenishmentService.receiveTransfer(transferId);
+    }
 }

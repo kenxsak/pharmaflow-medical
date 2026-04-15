@@ -15,6 +15,10 @@ import java.util.UUID;
 
 public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, UUID> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select ib from InventoryBatch ib where ib.batchId = :batchId")
+    Optional<InventoryBatch> findByIdForUpdate(@Param("batchId") UUID batchId);
+
     @Query("select ib from InventoryBatch ib where ib.store.storeId = :storeId order by ib.expiryDate asc")
     Page<InventoryBatch> findByStoreId(@Param("storeId") UUID storeId, Pageable pageable);
 
@@ -34,6 +38,15 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             UUID medicineId,
             String batchNumber
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select ib from InventoryBatch ib " +
+            "where ib.store.storeId = :storeId " +
+            "and ib.medicine.medicineId = :medicineId " +
+            "and lower(ib.batchNumber) = lower(:batchNumber)")
+    Optional<InventoryBatch> findByStoreAndMedicineAndBatchNumberForUpdate(@Param("storeId") UUID storeId,
+                                                                           @Param("medicineId") UUID medicineId,
+                                                                           @Param("batchNumber") String batchNumber);
 
     List<InventoryBatch> findByStoreStoreIdAndMedicineMedicineIdAndIsActiveTrueOrderByExpiryDateAsc(UUID storeId, UUID medicineId);
 
