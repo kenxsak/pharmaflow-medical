@@ -704,6 +704,15 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
               </div>
             </div>
           )}
+
+          {cartItems.length > 0 && substituteSuggestionGroups.length === 0 && (
+            <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-lg font-semibold text-slate-900">Suggested Substitutes</div>
+              <div className="mt-2 text-sm leading-6 text-slate-500">
+                No sellable salt-based substitute is currently available for the medicines in this bill in the active store.
+              </div>
+            </div>
+          )}
         </section>
 
         <aside className="w-full rounded-3xl bg-white p-5 shadow-sm lg:w-96">
