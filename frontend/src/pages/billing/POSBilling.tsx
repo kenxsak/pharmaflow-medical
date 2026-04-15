@@ -51,18 +51,26 @@ const demoCustomers = [
 
 const counterHighlights = [
   {
-    title: 'Barcode search',
-    summary: 'Type or scan a barcode and press Enter to add the first stocked match instantly.',
+    title: 'Scan or search',
+    summary: 'Type a name or scan a barcode, then press Enter to add the first stocked match quickly.',
   },
   {
-    title: 'Pack and loose sales',
-    summary: 'Switch unit per item so strips, bottles, capsules, tablets, and ml-based products are billed correctly.',
+    title: 'Switch unit easily',
+    summary: 'Bill by strip, pack, bottle, tablet, capsule, or ml without leaving the billing screen.',
   },
   {
-    title: 'Schedule compliance',
-    summary: 'Schedule H, H1, and X drugs automatically ask for patient, doctor, and prescription details.',
+    title: 'Controlled-drug checks',
+    summary: 'Patient, doctor, and prescription details are asked only when the selected medicine requires them.',
   },
 ];
+
+const formatPriceDifference = (priceDiffPct?: number) => {
+  const diff = priceDiffPct ?? 0;
+  if (Math.abs(diff) < 0.5) {
+    return 'about same price';
+  }
+  return diff > 0 ? `${Math.abs(diff)}% higher` : `${Math.abs(diff)}% lower`;
+};
 
 interface POSBillingProps {
   embedded?: boolean;
@@ -135,7 +143,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
   }, [cartItems]);
 
   const searchablePlaceholder = useMemo(
-    () => 'Search by brand name, generic, salt, or barcode',
+    () => 'Search medicine or scan barcode',
     []
   );
 
@@ -446,8 +454,8 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
   return (
     <PharmaFlowShell
       embedded={embedded}
-      title="POS Billing"
-      description="Create GST-compliant pharmacy bills with substitute suggestions, controlled-drug checks, and credit-aware billing."
+      title="Billing Counter"
+      description="Create clean pharmacy bills with same-salt options, controlled-drug checks, and simple customer lookup."
     >
       <div className="flex flex-col gap-6 xl:flex-row">
         <section className="flex-1">
@@ -456,8 +464,8 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
               <div>
                 <div className="text-sm font-semibold text-sky-900">Counter starter flow</div>
                 <div className="mt-1 text-sm text-sky-800">
-                  Start with a barcode or one of the stocked medicines below, then switch unit, add a customer,
-                  or verify a controlled-drug workflow.
+                  Start with a scan, a search, or one of the stocked medicines below. Then adjust the unit, add a
+                  customer if needed, and finish the bill.
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -654,7 +662,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
 
           {!cartItems.length && (
             <div className="px-6 py-20 text-center text-slate-400">
-              Start a bill by searching for a medicine above.
+              Search or scan a medicine to start this bill.
             </div>
           )}
           </div>
@@ -662,22 +670,22 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
           {substituteSuggestionGroups.length > 0 && (
             <div className="mt-4 rounded-3xl bg-white p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Suggested Substitutes</h3>
-                <span className="text-xs text-slate-500">Replace the current line or add an alternate directly</span>
+                <h3 className="text-lg font-semibold">Same-salt options in this store</h3>
+                <span className="text-xs text-slate-500">Use these when the requested brand is unavailable</span>
               </div>
               <div className="space-y-4">
                 {substituteSuggestionGroups.map((group) => (
                   <div key={`${group.sourceItem.medicineId}-${group.sourceIndex}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                       <div>
-                        <div className="text-xs uppercase tracking-wide text-slate-500">Current billed item</div>
+                        <div className="text-xs uppercase tracking-wide text-slate-500">Current line</div>
                         <div className="mt-1 font-semibold text-slate-900">{group.sourceItem.medicineLabel}</div>
                         <div className="text-sm text-slate-500">
                           Batch {group.sourceItem.batchNumber} • Qty {group.sourceItem.quantity}
                         </div>
                       </div>
                       <div className="text-xs text-slate-500">
-                        Salt-based alternates that are sellable in this store right now
+                        Same salt, in stock, ready to bill now
                       </div>
                     </div>
 
@@ -700,7 +708,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
                           <div className="mt-3 flex items-center justify-between text-sm">
                             <span className="text-emerald-700">₹{substitute.mrp.toFixed(2)}</span>
                             <span className="rounded-full bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                              {substitute.isGeneric ? 'Generic' : 'Branded'} • {substitute.priceDiffPct ?? 0}% diff
+                              {substitute.isGeneric ? 'Generic' : 'Branded'} • {formatPriceDifference(substitute.priceDiffPct)}
                             </span>
                           </div>
                           <div className="mt-4 flex gap-2">
@@ -709,14 +717,14 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
                               onClick={() => replaceCartItemWithSubstitute(group.sourceIndex, substitute)}
                               className="flex-1 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
                             >
-                              Replace
+                              Use instead
                             </button>
                             <button
                               type="button"
                               onClick={() => addSubstituteToCart(substitute)}
                               className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700"
                             >
-                              Add
+                              Add too
                             </button>
                           </div>
                         </div>
@@ -730,9 +738,9 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
 
           {cartItems.length > 0 && substituteSuggestionGroups.length === 0 && (
             <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-lg font-semibold text-slate-900">Suggested Substitutes</div>
+              <div className="text-lg font-semibold text-slate-900">Same-salt options in this store</div>
               <div className="mt-2 text-sm leading-6 text-slate-500">
-                No sellable salt-based substitute is currently available for the medicines in this bill in the active store.
+                No in-stock same-salt option is available for the medicines in this bill right now.
               </div>
             </div>
           )}

@@ -22,18 +22,18 @@ const sectionStyles: Record<string, string> = {
 
 const expirySteps = [
   {
-    title: 'Check expired stock first',
-    summary: 'Use the red bucket to identify items that must be removed from sale immediately.',
+    title: 'Stop unsafe stock first',
+    summary: 'Anything already expired should be blocked from billing before the next customer is served.',
     tone: 'border-rose-200 bg-rose-50 text-rose-900',
   },
   {
-    title: 'Review 30 / 60 / 90 day risk',
-    summary: 'Show proactive expiry visibility instead of finding problems only after stock ages out.',
+    title: 'Recover value while there is still time',
+    summary: 'Use the near-expiry queue to return stock to the supplier before it becomes dead loss.',
     tone: 'border-amber-200 bg-amber-50 text-amber-900',
   },
   {
-    title: 'Use shortage with expiry',
-    summary: 'Pair expiry buckets with reorder alerts to make smarter inward decisions.',
+    title: 'Reorder only after checking ageing stock',
+    summary: 'Compare shortages with expiry buckets so new inward does not pile up on old stock.',
     tone: 'border-sky-200 bg-sky-50 text-sky-900',
   },
 ];
@@ -59,6 +59,38 @@ const formatDaysToExpiry = (daysToExpiry: number) => {
   return `${daysToExpiry} days left`;
 };
 
+const formatCurrency = (value: number) => `₹${value.toFixed(2)}`;
+
+const getFriendlyActionTitle = (recommendation: ExpiryActionRecommendation) => {
+  switch (recommendation.recommendedAction) {
+    case 'QUARANTINE_NOW':
+      return 'Stop sale now';
+    case 'RTV_NOW':
+      return 'Return to supplier now';
+    case 'DUMP_NOW':
+      return 'Write off now';
+    case 'TRANSFER_REVIEW':
+      return 'Check another store before expiry';
+    case 'MONITOR_CLOSELY':
+      return 'Watch this batch closely';
+    default:
+      return 'Keep this batch in view';
+  }
+};
+
+const getFriendlyInventoryState = (inventoryState?: string) => {
+  switch ((inventoryState || '').toUpperCase()) {
+    case 'SELLABLE':
+      return 'Still available for billing';
+    case 'QUARANTINED':
+      return 'Already blocked from billing';
+    case 'DUMPED':
+      return 'Already written off';
+    default:
+      return inventoryState || 'State not set';
+  }
+};
+
 const AlertSection: React.FC<{
   title: string;
   items: StockBatchResponse[];
@@ -77,7 +109,7 @@ const AlertSection: React.FC<{
         disabled={!items.length}
         className="rounded-2xl border border-black/10 bg-white/80 px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Export CSV
+        Download list
       </button>
     </div>
 
@@ -229,9 +261,9 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
       setBusyKey(`quarantine-${recommendation.batchId}`);
       await InventoryAPI.quarantineBatch(recommendation.batchId, {
         reasonCode: 'EXPIRY_BLOCK',
-        notes: 'Blocked from sale via expiry action cockpit.',
+        notes: 'Blocked from sale from the expiry desk.',
       });
-      setMessage(`Batch ${recommendation.batchNumber} was quarantined from the expiry dashboard.`);
+      setMessage(`Batch ${recommendation.batchNumber} is now blocked from sale.`);
       setError(null);
       await loadDashboard();
     } catch (actionError) {
@@ -253,14 +285,14 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
         cnType,
         notes:
           cnType === 'VENDOR_RETURN'
-            ? 'Created from expiry action cockpit to recover near-expiry stock.'
-            : 'Created from expiry action cockpit to write off unrecoverable stock.',
+            ? 'Created from the expiry desk to recover near-expiry stock.'
+            : 'Created from the expiry desk to write off unrecoverable stock.',
         items: buildCreditNoteItems(recommendation),
       });
       setMessage(
         cnType === 'VENDOR_RETURN'
-          ? `RTV claim created for batch ${recommendation.batchNumber}.`
-          : `Dump note created for batch ${recommendation.batchNumber}.`
+          ? `Supplier return note created for batch ${recommendation.batchNumber}.`
+          : `Write-off note created for batch ${recommendation.batchNumber}.`
       );
       setError(null);
       await loadDashboard();
@@ -275,8 +307,8 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
   return (
     <PharmaFlowShell
       embedded={embedded}
-      title="Expiry Management Dashboard"
-      description="Monitor expiring stock, expiry exposure, and replenishment gaps across the selected store."
+      title="Expiry Desk"
+      description="See what must leave sale now, what can go back to the supplier, and what needs closer watch in the active store."
     >
       <div className="space-y-5">
         <section className="rounded-[2rem] border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-rose-50 p-6 shadow-sm">
@@ -286,40 +318,40 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                 Expiry Desk
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                Easy visibility into expiry exposure and reorder risk
+                One clear place for expiry decisions
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                This is the page to prove proactive expiry management. Show the red bucket first, then move through
-                the 30, 60, and 90 day windows and finish with the shortage list for branch action.
+                Start with batches that should not stay on the billing counter. Then return recoverable stock to the
+                supplier, watch the next expiry window, and only reorder after you understand what is already ageing.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Expired Value</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Already expired</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">
-                  ₹{(alerts?.totalExpiredValue ?? 0).toFixed(2)}
+                  {formatCurrency(alerts?.totalExpiredValue ?? 0)}
                 </div>
-                <div className="mt-1 text-sm text-slate-500">Current expired stock exposure</div>
+                <div className="mt-1 text-sm text-slate-500">Stock value that should not stay on sale</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">30-Day Risk</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Next 30 days</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">
-                  ₹{(alerts?.totalAtRiskValue ?? 0).toFixed(2)}
+                  {formatCurrency(alerts?.totalAtRiskValue ?? 0)}
                 </div>
-                <div className="mt-1 text-sm text-slate-500">Value at near-term expiry risk</div>
+                <div className="mt-1 text-sm text-slate-500">Value that may soon turn into loss</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Shortage Items</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Low stock items</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageItems.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Reorder alerts in the active store</div>
+                <div className="mt-1 text-sm text-slate-500">Medicines that still need reorder attention</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Urgent Recovery Actions</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Needs action today</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">
                   {actionQueue?.immediateActionCount ?? 0}
                 </div>
-                <div className="mt-1 text-sm text-slate-500">Batches needing quarantine, RTV, or dump now</div>
+                <div className="mt-1 text-sm text-slate-500">Batches that need a staff decision right away</div>
               </div>
             </div>
           </div>
@@ -334,19 +366,6 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
             </div>
           ))}
         </section>
-
-        {alerts && (
-          <section className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-3xl bg-white p-5 shadow-sm">
-              <div className="text-sm text-slate-500">Expired Stock Value</div>
-              <div className="mt-2 text-3xl font-semibold">₹{alerts.totalExpiredValue.toFixed(2)}</div>
-            </div>
-            <div className="rounded-3xl bg-white p-5 shadow-sm">
-              <div className="text-sm text-slate-500">30-Day At-Risk Value</div>
-              <div className="mt-2 text-3xl font-semibold">₹{alerts.totalAtRiskValue.toFixed(2)}</div>
-            </div>
-          </section>
-        )}
 
         {error && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
@@ -370,37 +389,46 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
           <section className="rounded-3xl bg-white p-5 shadow-sm">
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Expiry Action Queue</h2>
+                <h2 className="text-lg font-semibold">Today&apos;s action board</h2>
                 <p className="text-sm text-slate-500">
-                  Convert visibility into action: block expired stock, raise RTV claims, and write off unrecoverable batches.
+                  Start with stock that should leave billing today. Then recover what you can from the supplier before
+                  it becomes a pure write-off.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-xs uppercase tracking-wide text-slate-500">Quarantine now</div>
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Remove from billing</div>
                   <div className="mt-1 text-xl font-semibold text-slate-950">
                     {actionQueue.quarantineCandidateCount}
                   </div>
+                  <div className="mt-1 text-xs text-slate-500">Batches that should be blocked before the next sale</div>
                 </div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-xs uppercase tracking-wide text-slate-500">RTV candidate value</div>
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Supplier return value</div>
                   <div className="mt-1 text-xl font-semibold text-slate-950">
-                    ₹{actionQueue.rtvCandidateValue.toFixed(2)}
+                    {formatCurrency(actionQueue.rtvCandidateValue)}
                   </div>
+                  <div className="mt-1 text-xs text-slate-500">Value that may still be recovered from suppliers</div>
                 </div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-xs uppercase tracking-wide text-slate-500">Dump candidate value</div>
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Write-off value</div>
                   <div className="mt-1 text-xl font-semibold text-slate-950">
-                    ₹{actionQueue.dumpCandidateValue.toFixed(2)}
+                    {formatCurrency(actionQueue.dumpCandidateValue)}
                   </div>
+                  <div className="mt-1 text-xs text-slate-500">Stock likely heading to dump if not handled in time</div>
                 </div>
               </div>
+            </div>
+
+            <div className="mb-5 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              Plain rule: stop expired sale first, return near-expiry stock when supplier recovery is possible, and
+              write off only when recovery is no longer realistic.
             </div>
 
             <div className="space-y-5">
               <div>
                 <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  Immediate action
+                  Do these now
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2">
                   {immediateActions.map((recommendation) => {
@@ -422,23 +450,30 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                               {formatDaysToExpiry(recommendation.daysToExpiry)}
                             </div>
                             <div className="mt-2 text-sm text-slate-600">
-                              Qty {recommendation.quantityStrips} strips / {recommendation.quantityLoose} loose • Value ₹
-                              {recommendation.stockValue.toFixed(2)}
+                              Qty {recommendation.quantityStrips} strips / {recommendation.quantityLoose} loose • Value{' '}
+                              {formatCurrency(recommendation.stockValue)}
                             </div>
                             <div className="mt-2 inline-flex rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
-                              {recommendation.actionLabel}
+                              {getFriendlyActionTitle(recommendation)}
                             </div>
                           </div>
                           <div className="rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-700">
-                            <div className="font-semibold">{recommendation.inventoryState}</div>
+                            <div className="text-xs uppercase tracking-wide text-slate-500">Current stock state</div>
+                            <div className="mt-1 font-semibold">{getFriendlyInventoryState(recommendation.inventoryState)}</div>
+                            <div className="mt-3 text-xs uppercase tracking-wide text-slate-500">Expiry status</div>
                             <div className="mt-1">{recommendation.expiryStatus}</div>
                             {recommendation.suggestedSupplierName && (
-                              <div className="mt-2">Supplier: {recommendation.suggestedSupplierName}</div>
+                              <>
+                                <div className="mt-3 text-xs uppercase tracking-wide text-slate-500">Recent supplier</div>
+                                <div className="mt-1">{recommendation.suggestedSupplierName}</div>
+                              </>
                             )}
                           </div>
                         </div>
 
-                        <p className="mt-3 text-sm leading-6 text-slate-700">{recommendation.actionReason}</p>
+                        <div className="mt-3 rounded-2xl bg-white/70 px-4 py-3 text-sm leading-6 text-slate-700">
+                          <span className="font-semibold text-slate-900">Why this is suggested:</span> {recommendation.actionReason}
+                        </div>
 
                         <div className="mt-4 flex flex-wrap gap-3">
                           {recommendation.canQuarantine && (
@@ -448,7 +483,7 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                               disabled={quarantineBusy}
                               className={`${actionButtonStyles} border-rose-300 bg-white text-rose-900`}
                             >
-                              {quarantineBusy ? 'Blocking…' : 'Block from sale'}
+                              {quarantineBusy ? 'Stopping sale…' : 'Stop sale'}
                             </button>
                           )}
                           {recommendation.canCreateRtv && (
@@ -458,7 +493,7 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                               disabled={rtvBusy || !recommendation.suggestedSupplierId}
                               className={`${actionButtonStyles} border-amber-300 bg-white text-amber-900`}
                             >
-                              {rtvBusy ? 'Creating RTV…' : 'Create RTV claim'}
+                              {rtvBusy ? 'Creating supplier return…' : 'Return to supplier'}
                             </button>
                           )}
                           {recommendation.canCreateDump && (
@@ -468,7 +503,7 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                               disabled={dumpBusy}
                               className={`${actionButtonStyles} border-slate-300 bg-white text-slate-900`}
                             >
-                              {dumpBusy ? 'Writing off…' : 'Create dump note'}
+                              {dumpBusy ? 'Creating write-off…' : 'Write off stock'}
                             </button>
                           )}
                         </div>
@@ -477,7 +512,7 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                   })}
                   {!immediateActions.length && (
                     <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-500 lg:col-span-2">
-                      No urgent expiry actions are currently queued for this store.
+                      Nothing urgent is waiting in this store right now.
                     </div>
                   )}
                 </div>
@@ -486,7 +521,7 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
               {!!planningActions.length && (
                 <div>
                   <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Planning and review
+                    Watch next
                   </div>
                   <div className="grid gap-4 lg:grid-cols-2">
                     {planningActions.map((recommendation) => (
@@ -500,13 +535,13 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                             </div>
                           </div>
                           <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                            {recommendation.actionLabel}
+                            {getFriendlyActionTitle(recommendation)}
                           </div>
                         </div>
                         <p className="mt-3 text-sm leading-6 text-slate-600">{recommendation.actionReason}</p>
                         {recommendation.suggestedSupplierName && (
                           <div className="mt-3 text-sm text-slate-500">
-                            Recent supplier context: {recommendation.suggestedSupplierName}
+                            Recent supplier: {recommendation.suggestedSupplierName}
                           </div>
                         )}
                       </div>
@@ -521,25 +556,25 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
         {alerts && (
           <div className="grid gap-5">
             <AlertSection
-              title="Expired"
+              title="Expired - stop sale"
               items={alerts.expired}
               tone="expired"
               onExport={() => exportBatchBucket('expired-stock.csv', alerts.expired)}
             />
             <AlertSection
-              title="Expiring within 30 days"
+              title="30 days - urgent review"
               items={alerts.expiring30Days}
               tone="warning"
               onExport={() => exportBatchBucket('expiring-30-days.csv', alerts.expiring30Days)}
             />
             <AlertSection
-              title="Expiring within 60 days"
+              title="60 days - plan next move"
               items={alerts.expiring60Days}
               tone="info"
               onExport={() => exportBatchBucket('expiring-60-days.csv', alerts.expiring60Days)}
             />
             <AlertSection
-              title="Expiring within 90 days"
+              title="90 days - early watch"
               items={alerts.expiring90Days}
               tone="info"
               onExport={() => exportBatchBucket('expiring-90-days.csv', alerts.expiring90Days)}
