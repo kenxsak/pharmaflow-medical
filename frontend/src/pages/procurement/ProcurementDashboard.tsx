@@ -41,18 +41,18 @@ const createEmptyRow = (): PurchaseImportRow => ({
 
 const procurementSteps = [
   {
-    title: 'Create or choose supplier',
-    summary: 'Add the distributor once, then reuse the same supplier for every inward invoice.',
+    title: 'Choose the supplier first',
+    summary: 'Pick the distributor once so every inward invoice and return stays linked to the right party.',
     tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
   },
   {
-    title: 'Enter invoice details',
-    summary: 'Set the supplier invoice number, PO number, and inward date before importing rows.',
+    title: 'Enter the invoice header',
+    summary: 'Add invoice number, PO number, and purchase date before you start entering line items.',
     tone: 'border-sky-200 bg-sky-50 text-sky-900',
   },
   {
-    title: 'Import rows or CSV',
-    summary: 'Use manual rows for quick inward entry or upload a distributor CSV when the invoice is large.',
+    title: 'Receive stock your way',
+    summary: 'Use manual rows for quick entry or upload CSV when the distributor invoice is large.',
     tone: 'border-violet-200 bg-violet-50 text-violet-900',
   },
 ];
@@ -66,6 +66,79 @@ const formatDate = (value?: string) => {
     return value;
   }
   return parsed.toLocaleDateString('en-IN', { dateStyle: 'medium' });
+};
+
+const formatCurrency = (value?: number) => `₹${Number(value || 0).toFixed(2)}`;
+
+const humanizeStatus = (value?: string) => {
+  if (!value) {
+    return '—';
+  }
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
+const getReceiptStateLabel = (state?: string) => {
+  switch ((state || '').toUpperCase()) {
+    case 'RECEIVED':
+      return 'Fully received';
+    case 'PARTIALLY_RECEIVED':
+      return 'Part received';
+    case 'SHORT_CLOSED':
+      return 'Not coming';
+    case 'PLANNED':
+      return 'Waiting inward';
+    default:
+      return humanizeStatus(state);
+  }
+};
+
+const getInvoiceMatchLabel = (state?: string) => {
+  switch ((state || '').toUpperCase()) {
+    case 'MATCHED':
+      return 'Checked';
+    case 'PARTIALLY_MATCHED':
+      return 'Part checked';
+    case 'SHORT_CLOSED':
+      return 'Closed';
+    case 'INVOICE_MISSING':
+      return 'Invoice missing';
+    default:
+      return humanizeStatus(state);
+  }
+};
+
+const getSettlementLabel = (state?: string) => {
+  switch ((state || '').toUpperCase()) {
+    case 'CURRENT':
+      return 'No issue';
+    case 'RECEIPT_IN_PROGRESS':
+      return 'Receipt open';
+    case 'CLAIM_PENDING':
+      return 'Claim follow-up';
+    case 'SHORT_CLOSED':
+      return 'Closed';
+    default:
+      return humanizeStatus(state);
+  }
+};
+
+const getCreditNoteTypeLabel = (type?: string) => {
+  switch ((type || '').toUpperCase()) {
+    case 'VENDOR_RETURN':
+      return 'Supplier return';
+    case 'EXPIRY_RETURN':
+      return 'Expiry return';
+    case 'DAMAGE_RETURN':
+      return 'Damage return';
+    case 'DUMP':
+      return 'Write-off';
+    default:
+      return humanizeStatus(type);
+  }
 };
 
 const getReceiptStateTone = (state?: string) => {
@@ -370,9 +443,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       setMessage(
         response.linkedToExistingPlan
           ? response.receiptState === 'PARTIALLY_RECEIVED'
-            ? `Receipt ${response.receiptNumber} posted to planned PO ${response.poNumber}. ${response.receivedLineCount || 0} lines are now received and ${response.pendingLineCount || 0} are still pending.`
-            : `Receipt ${response.receiptNumber} completed planned PO ${response.poNumber}.`
-          : `Receipt ${response.receiptNumber} posted successfully for invoice ${response.invoiceNumber}.`
+            ? `Receipt ${response.receiptNumber} was saved against PO ${response.poNumber}. ${response.receivedLineCount || 0} lines are now received and ${response.pendingLineCount || 0} are still waiting.`
+            : `Receipt ${response.receiptNumber} completed PO ${response.poNumber}.`
+          : `Receipt ${response.receiptNumber} was saved for invoice ${response.invoiceNumber}.`
       );
       resetManualForm();
       await loadData();
@@ -410,9 +483,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       setMessage(
         response.linkedToExistingPlan
           ? response.receiptState === 'PARTIALLY_RECEIVED'
-            ? `CSV receipt ${response.receiptNumber} posted to planned PO ${response.poNumber}. ${response.pendingLineCount || 0} planned lines are still pending receipt.`
-            : `CSV receipt ${response.receiptNumber} completed planned PO ${response.poNumber}.`
-          : `CSV receipt ${response.receiptNumber} completed for invoice ${response.invoiceNumber}.`
+            ? `CSV receipt ${response.receiptNumber} was saved against PO ${response.poNumber}. ${response.pendingLineCount || 0} planned lines are still waiting.`
+            : `CSV receipt ${response.receiptNumber} completed PO ${response.poNumber}.`
+          : `CSV receipt ${response.receiptNumber} was saved for invoice ${response.invoiceNumber}.`
       );
       setCsvFile(null);
       setInvoiceNumber('');
@@ -576,8 +649,8 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   return (
     <PharmaFlowShell
       embedded={embedded}
-      title="Purchases and Inward Stock"
-      description="Create suppliers, import distributor invoices, and bring stock into the branch without manual bill-by-bill entry."
+      title="Inward Stock Desk"
+      description="Receive supplier stock, track invoice checks, and stay on top of returns without confusing branch staff."
     >
       <div className="space-y-5">
         <section className="rounded-[2rem] border border-violet-200 bg-gradient-to-r from-violet-50 via-white to-sky-50 p-6 shadow-sm">
@@ -587,42 +660,41 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                 Procurement Desk
               </div>
               <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                Simple inward workflow for a first-store rollout
+                Receive supplier stock in one clean flow
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                This page is designed for real pharmacy staff: create the supplier, enter the distributor invoice
-                header, and then import the rows manually or through CSV. It keeps inward stock work organized for
-                regular branch operations as well as rollout presentations.
+                Branch staff should be able to choose the supplier, enter invoice details, receive stock, and follow up
+                returns from the same page without learning ERP language.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Suppliers</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Suppliers ready</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{suppliers.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Configured for the active workspace</div>
+                <div className="mt-1 text-sm text-slate-500">Suppliers available in this store workspace</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Planned Orders</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Orders waiting</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{plannedOrders.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Supplier orders waiting for inward receipt</div>
+                <div className="mt-1 text-sm text-slate-500">Supplier orders still waiting for inward receipt</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Partial Receipts</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Part received</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{partiallyReceivedOrders.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Orders received in stages and still open</div>
+                <div className="mt-1 text-sm text-slate-500">Orders received in stages and still not finished</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Settlement Review</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Claim follow-up</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{supplierSettlementReviewCount}</div>
-                <div className="mt-1 text-sm text-slate-500">Supplier orders with unresolved claim follow-up</div>
+                <div className="mt-1 text-sm text-slate-500">Orders that still need supplier credit follow-up</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Pipeline + Credit Value</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Open supplier value</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">
-                  ₹{(plannedOrderValue + recentCreditValue).toFixed(2)}
+                  {formatCurrency(plannedOrderValue + recentCreditValue)}
                 </div>
-                <div className="mt-1 text-sm text-slate-500">Open supplier pipeline plus credit-note value</div>
+                <div className="mt-1 text-sm text-slate-500">Pending orders plus return / credit note value</div>
               </div>
             </div>
           </div>
@@ -642,11 +714,12 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
         {importResult && (
           <section className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-            <div className="font-semibold">Latest inward receipt</div>
+            <div className="font-semibold">Latest inward update</div>
             <div className="mt-1">
-              Receipt {importResult.receiptNumber} • PO {importResult.poNumber} • {importResult.receiptState || importResult.status} • invoices{' '}
-              {importResult.invoiceCount || 0} • received lines {importResult.receivedLineCount || importResult.importedRows}
-              {typeof importResult.pendingLineCount === 'number' ? ` • pending lines ${importResult.pendingLineCount}` : ''}
+              Receipt {importResult.receiptNumber} • PO {importResult.poNumber || 'Direct receipt'} •{' '}
+              {getReceiptStateLabel(importResult.receiptState || importResult.status)} • invoice files {importResult.invoiceCount || 0} •
+              received lines {importResult.receivedLineCount || importResult.importedRows}
+              {typeof importResult.pendingLineCount === 'number' ? ` • still waiting ${importResult.pendingLineCount}` : ''}
             </div>
           </section>
         )}
@@ -665,9 +738,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Supplier Setup</h2>
+                <h2 className="text-xl font-semibold">Suppliers</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Create the supplier master once so inward invoices can be mapped correctly.
+                  Add each supplier once so inward invoices and returns always stay mapped correctly.
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
@@ -676,11 +749,11 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
             </div>
             <div className="mt-4 grid gap-3">
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-950">What this flow captures</div>
+                <div className="text-sm font-semibold text-slate-950">What gets saved here</div>
                 <div className="mt-3 grid gap-2 text-sm text-slate-600">
-                  <div>Distributor name, contact person, phone, and GSTIN in one clean supplier master.</div>
-                  <div>Reusable supplier selection for inward invoices, credit notes, and procurement history.</div>
-                  <div>Consistent supplier mapping so branch teams do not retype vendor details every time.</div>
+                  <div>Distributor name, contact person, phone number, and GSTIN in one reusable supplier record.</div>
+                  <div>The same supplier can be reused for inward invoices, return notes, and follow-up history.</div>
+                  <div>Branch teams do not need to re-enter vendor details every time stock is received.</div>
                 </div>
               </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-4">
@@ -748,9 +821,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Import Header</h2>
+                <h2 className="text-xl font-semibold">Invoice details</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  These invoice details are applied to the inward batch rows below.
+                  These header details apply to all inward rows entered below.
                 </p>
               </div>
               <div className="rounded-2xl bg-sky-50 px-4 py-2 text-sm text-sky-900">
@@ -791,7 +864,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   className="w-full rounded-2xl border border-slate-300 px-3 py-2"
                 />
                 <span className="text-xs text-slate-500">
-                  If this matches a planned PO, the inward import will complete that supplier order instead of creating a separate receipt.
+                  If this matches an open PO, the inward receipt will attach to that order instead of creating a separate loose receipt.
                 </span>
               </label>
               <label className="space-y-1 text-sm">
@@ -807,14 +880,14 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
             {importResult && (
               <div className="mt-4 rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
-                <div className="font-semibold">Last import summary</div>
+                <div className="font-semibold">Last inward summary</div>
                 <div className="mt-2">Receipt: {importResult.receiptNumber}</div>
                 <div className="mt-2">Rows imported: {importResult.importedRows}</div>
                 <div>Created batches: {importResult.createdBatches}</div>
                 <div>Updated batches: {importResult.updatedBatches}</div>
-                <div>Status: {importResult.status}</div>
-                <div>Source: {importResult.linkedToExistingPlan ? 'Matched planned PO' : 'Direct inward receipt'}</div>
-                <div>Total value: ₹{importResult.totalAmount.toFixed(2)}</div>
+                <div>Status: {getReceiptStateLabel(importResult.status)}</div>
+                <div>Source: {importResult.linkedToExistingPlan ? 'Matched open PO' : 'Direct inward receipt'}</div>
+                <div>Total value: {formatCurrency(importResult.totalAmount)}</div>
               </div>
             )}
           </div>
@@ -823,13 +896,13 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
         <section className="rounded-[2rem] bg-white p-6 shadow-sm">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Manual Import</h2>
+              <h2 className="text-xl font-semibold">Enter invoice lines</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Fast row-based entry for distributor invoices with bottles, strips, syrups, loose units, and bulk SKU loads.
+                Use this for fast row entry when the invoice is small or staff are typing it directly.
               </p>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
-              Preview subtotal: ₹{totalPreview.toFixed(2)}
+              Preview subtotal: {formatCurrency(totalPreview)}
             </div>
           </div>
 
@@ -1021,8 +1094,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           </div>
 
           <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-            Recommended workflow: download the template, confirm the expected columns, then import a distributor
-            file to show how bulk inward support works.
+            Best flow: download the template once, confirm the column names, then import the distributor file when the invoice is too large to type comfortably.
           </div>
         </section>
 
@@ -1030,13 +1102,13 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-xl font-semibold">Credit Note Builder</h2>
+                <h2 className="text-xl font-semibold">Return and write-off builder</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Search live stock, add return lines, and create a vendor return note from the purchase desk.
+                  Search live stock, add return lines, and create a supplier return or write-off from the same desk.
                 </p>
               </div>
               <div className="rounded-2xl bg-amber-50 px-4 py-2 text-sm text-amber-900">
-                Preview total: ₹{creditNotePreviewTotal.toFixed(2)}
+                Preview total: {formatCurrency(creditNotePreviewTotal)}
               </div>
             </div>
 
@@ -1069,7 +1141,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   type="text"
                   value={stockSearchQuery}
                   onChange={(event) => void handleCreditBatchSearch(event.target.value)}
-                  placeholder="Search by brand, generic, or batch number"
+                  placeholder="Search medicine, generic, or batch number"
                   className="w-full rounded-2xl border border-slate-300 px-3 py-2"
                 />
               </label>
@@ -1101,7 +1173,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                           Batch {item.batchNumber} • Exp {item.expiryDate} • {item.quantityStrips} strips
                         </div>
                       </div>
-                      <div className="text-sm font-medium text-slate-700">Add line</div>
+                      <div className="text-sm font-medium text-slate-700">Add to note</div>
                     </button>
                   ))}
                 </div>
@@ -1188,16 +1260,16 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               onClick={handleCreateCreditNote}
               className="mt-4 rounded-2xl bg-amber-600 px-4 py-3 text-sm font-medium text-white"
             >
-              Create Credit Note
+              Save return note
             </button>
           </div>
 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-xl font-semibold">Recent Credit Notes</h2>
+                <h2 className="text-xl font-semibold">Return and supplier follow-up</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Vendor returns and stock reversals created from this store.
+                  See which return notes are waiting, dispatched, acknowledged, or already settled.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -1219,13 +1291,13 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
             </div>
 
             <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
-              Use this area to show that RTV and supplier-credit workflows are visible operational steps, not hidden back-office work.
+              This is the owner-trust section: staff can see what was returned, what is still pending with the supplier, and what has already been settled.
             </div>
 
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Pending claim value</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-950">₹{pendingClaimValue.toFixed(2)}</div>
+                <div className="mt-2 text-2xl font-semibold text-slate-950">{formatCurrency(pendingClaimValue)}</div>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Unresolved actions</div>
@@ -1243,11 +1315,11 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <th className="px-3 py-2 text-left">Credit Note</th>
+                    <th className="px-3 py-2 text-left">Return note</th>
                     <th className="px-3 py-2 text-left">Type</th>
                     <th className="px-3 py-2 text-left">Created</th>
                     <th className="px-3 py-2 text-left">Status</th>
-                    <th className="px-3 py-2 text-left">Claim</th>
+                    <th className="px-3 py-2 text-left">Claim progress</th>
                     <th className="px-3 py-2 text-right">Total</th>
                     <th className="px-3 py-2 text-right">Action</th>
                   </tr>
@@ -1256,33 +1328,33 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   {creditNotes.map((note) => (
                     <tr key={note.creditNoteId} className="border-t border-slate-100">
                       <td className="px-3 py-3 font-medium">{note.cnNumber}</td>
-                      <td className="px-3 py-3">{note.cnType || '—'}</td>
+                      <td className="px-3 py-3">{getCreditNoteTypeLabel(note.cnType)}</td>
                       <td className="px-3 py-3">
                         {new Date(note.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                       </td>
                       <td className="px-3 py-3">
                         <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">
-                          {note.status}
+                          {humanizeStatus(note.status)}
                         </span>
                       </td>
                       <td className="px-3 py-3">
-                        <div className="text-sm font-medium text-slate-900">{note.claimState || '—'}</div>
+                        <div className="text-sm font-medium text-slate-900">{humanizeStatus(note.claimState)}</div>
                         <div className="text-xs text-slate-500">
-                          Claim ₹{Number(note.claimAmount || note.totalAmount || 0).toFixed(2)}
-                          {note.settledAmount ? ` • Settled ₹${Number(note.settledAmount || 0).toFixed(2)}` : ''}
+                          Claim {formatCurrency(Number(note.claimAmount || note.totalAmount || 0))}
+                          {note.settledAmount ? ` • Settled ${formatCurrency(Number(note.settledAmount || 0))}` : ''}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-right">₹{Number(note.totalAmount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right">{formatCurrency(Number(note.totalAmount || 0))}</td>
                       <td className="px-3 py-3 text-right">
                         <div className="flex flex-wrap justify-end gap-2">
                           {note.cnType !== 'DUMP' && note.status === 'PENDING' && (
                             <>
                               <button
                                 type="button"
-                                onClick={() => void handleDispatchCreditNote(note.creditNoteId)}
-                                className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700"
-                              >
-                                Dispatch
+                              onClick={() => void handleDispatchCreditNote(note.creditNoteId)}
+                              className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700"
+                            >
+                                Send to supplier
                               </button>
                               <button
                                 type="button"
@@ -1297,17 +1369,17 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                             <>
                               <button
                                 type="button"
-                                onClick={() => void handleAcknowledgeCreditNote(note.creditNoteId)}
-                                className="rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700"
-                              >
-                                Acknowledge
+                              onClick={() => void handleAcknowledgeCreditNote(note.creditNoteId)}
+                              className="rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700"
+                            >
+                                Mark received
                               </button>
                               <button
                                 type="button"
-                                onClick={() => void handleSettleCreditNote(note)}
-                                className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
-                              >
-                                Settle
+                              onClick={() => void handleSettleCreditNote(note)}
+                              className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                            >
+                                Mark settled
                               </button>
                             </>
                           )}
@@ -1317,7 +1389,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                               onClick={() => void handleSettleCreditNote(note)}
                               className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
                             >
-                              Settle
+                              Mark settled
                             </button>
                           )}
                           {note.cnType === 'DUMP' && (
@@ -1346,17 +1418,17 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Supplier Order Pipeline</h2>
+                <h2 className="text-xl font-semibold">Supplier orders waiting for stock</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Planned purchase orders can now be inwarded in stages against the same PO until every planned line is received.
+                  Keep using the same PO number until every planned line is received or the remaining balance is closed.
                 </p>
               </div>
               <div className="rounded-2xl bg-violet-50 px-4 py-2 text-sm text-violet-900">
-                Open value: ₹{plannedOrderValue.toFixed(2)}
+                Open value: {formatCurrency(plannedOrderValue)}
               </div>
             </div>
             <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
-              Replenishment drafts now create proper planned purchase orders. Use the same PO number during inward receipt and the system will keep the PO open until all planned lines are received and invoice matched.
+              Replenishment drafts now create real planned orders. Use the same PO number during inward receipt and the system will keep the order open until all planned lines are received and invoice checked.
             </div>
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -1364,11 +1436,11 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   <tr>
                     <th className="px-3 py-2 text-left">PO</th>
                     <th className="px-3 py-2 text-left">Supplier</th>
-                    <th className="px-3 py-2 text-left">Line preview</th>
+                    <th className="px-3 py-2 text-left">What is coming in</th>
                     <th className="px-3 py-2 text-left">ETA</th>
-                    <th className="px-3 py-2 text-left">Receipt</th>
-                    <th className="px-3 py-2 text-left">Invoice match</th>
-                    <th className="px-3 py-2 text-left">Settlement</th>
+                    <th className="px-3 py-2 text-left">Receipt status</th>
+                    <th className="px-3 py-2 text-left">Invoice check</th>
+                    <th className="px-3 py-2 text-left">Supplier follow-up</th>
                     <th className="px-3 py-2 text-right">Action</th>
                     <th className="px-3 py-2 text-right">Value</th>
                   </tr>
@@ -1392,24 +1464,24 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                       <td className="px-3 py-3">{order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : '—'}</td>
                       <td className="px-3 py-3">
                         <span className={`rounded-full px-2 py-1 text-xs font-medium ${getReceiptStateTone(order.receiptState || order.status)}`}>
-                          {order.receiptState || order.status}
+                          {getReceiptStateLabel(order.receiptState || order.status)}
                         </span>
                       </td>
                       <td className="px-3 py-3">
                         <div className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getInvoiceMatchTone(order.invoiceMatchState)}`}>
-                          {order.invoiceMatchState || '—'}
+                          {getInvoiceMatchLabel(order.invoiceMatchState)}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
-                          {order.invoiceCount || 0} invoices
+                          {order.invoiceCount || 0} invoice files
                         </div>
                       </td>
                       <td className="px-3 py-3">
                         <div className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getSettlementTone(order.supplierSettlementState)}`}>
-                          {order.supplierSettlementState || '—'}
+                          {getSettlementLabel(order.supplierSettlementState)}
                         </div>
                         {(order.unresolvedClaimAmount || 0) > 0 && (
                           <div className="mt-1 text-xs text-rose-600">
-                            Claim ₹{Number(order.unresolvedClaimAmount || 0).toFixed(2)}
+                            Claim {formatCurrency(Number(order.unresolvedClaimAmount || 0))}
                           </div>
                         )}
                       </td>
@@ -1419,10 +1491,10 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                           onClick={() => void handleCloseShortReceipt(order)}
                           className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
                         >
-                          Close short
+                          Stop waiting
                         </button>
                       </td>
-                      <td className="px-3 py-3 text-right">₹{Number(order.totalAmount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right">{formatCurrency(Number(order.totalAmount || 0))}</td>
                     </tr>
                   ))}
                   {!plannedOrders.length && (
@@ -1440,13 +1512,13 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Receipt Register</h2>
+                <h2 className="text-xl font-semibold">Inward receipt register</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Confirm that each inward event now has its own GRN-style receipt header instead of only showing rolled-up PO rows.
+                  Every inward event appears here as its own receipt so staff can see what was received and when.
                 </p>
               </div>
               <div className="rounded-2xl bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
-                Received value: ₹{receivedPurchaseValue.toFixed(2)}
+                Received value: {formatCurrency(receivedPurchaseValue)}
               </div>
             </div>
             <div className="mt-4 overflow-x-auto">
@@ -1459,8 +1531,8 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     <th className="px-3 py-2 text-left">Supplier</th>
                     <th className="px-3 py-2 text-left">Received</th>
                     <th className="px-3 py-2 text-left">Lines</th>
-                    <th className="px-3 py-2 text-left">Match</th>
-                    <th className="px-3 py-2 text-left">Settlement</th>
+                    <th className="px-3 py-2 text-left">Invoice check</th>
+                    <th className="px-3 py-2 text-left">Supplier follow-up</th>
                     <th className="px-3 py-2 text-right">Total</th>
                   </tr>
                 </thead>
@@ -1471,7 +1543,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                         <div>{receipt.receiptNumber}</div>
                         <div className="text-xs text-slate-500">
                           <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${getReceiptStateTone(receipt.status)}`}>
-                            {receipt.status}
+                            {getReceiptStateLabel(receipt.status)}
                           </span>
                         </div>
                       </td>
@@ -1492,15 +1564,15 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                       </td>
                       <td className="px-3 py-3">
                         <span className={`rounded-full px-2 py-1 text-xs font-medium ${getInvoiceMatchTone(receipt.invoiceMatchState)}`}>
-                          {receipt.invoiceMatchState || receipt.status}
+                          {getInvoiceMatchLabel(receipt.invoiceMatchState || receipt.status)}
                         </span>
                       </td>
                       <td className="px-3 py-3">
                         <span className={`rounded-full px-2 py-1 text-xs font-medium ${getSettlementTone(receipt.supplierSettlementState)}`}>
-                          {receipt.supplierSettlementState || '—'}
+                          {getSettlementLabel(receipt.supplierSettlementState)}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-right">₹{Number(receipt.totalAmount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right">{formatCurrency(Number(receipt.totalAmount || 0))}</td>
                     </tr>
                   ))}
                   {!purchaseReceipts.length && (
