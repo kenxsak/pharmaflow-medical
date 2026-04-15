@@ -32,6 +32,14 @@ public class PurchaseOrderSummaryResponse {
     private String notes;
     private Integer itemCount;
     private String summaryText;
+    private String receiptState;
+    private Integer receivedLineCount;
+    private Integer pendingLineCount;
+    private Integer receiptCount;
+    private Integer invoiceCount;
+    private String invoiceMatchState;
+    private String supplierSettlementState;
+    private BigDecimal unresolvedClaimAmount;
     private BigDecimal subtotal;
     private BigDecimal totalAmount;
 }

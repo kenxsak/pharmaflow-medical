@@ -40,6 +40,7 @@ public class ProcurementService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final PurchaseOrderPlanLineRepository purchaseOrderPlanLineRepository;
+    private final CreditNoteRepository creditNoteRepository;
     private final MedicineRepository medicineRepository;
     private final StoreRepository storeRepository;
     private final StoreService storeService;
@@ -96,6 +97,19 @@ public class ProcurementService {
         List<UUID> purchaseOrderIds = orders.stream()
                 .map(PurchaseOrder::getPoId)
                 .collect(Collectors.toList());
+        List<CreditNote> creditNotes = creditNoteRepository.findByStoreStoreIdOrderByCreatedAtDesc(store.getStoreId());
+        Map<UUID, BigDecimal> unresolvedClaimAmountBySupplier = creditNotes.stream()
+                .filter(this::isUnresolvedSupplierClaim)
+                .filter(creditNote -> creditNote.getSupplierId() != null)
+                .collect(Collectors.groupingBy(
+                        CreditNote::getSupplierId,
+                        LinkedHashMap::new,
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                creditNote -> safe(creditNote.getClaimAmount()),
+                                BigDecimal::add
+                        )
+                ));
 
         Map<UUID, List<PurchaseOrderItem>> receiptLinesByOrder = purchaseOrderIds.isEmpty()
                 ? Map.of()
@@ -111,11 +125,17 @@ public class ProcurementService {
 
         return orders.stream()
                 .map(order -> {
+                    List<PurchaseOrderItem> receiptLines = receiptLinesByOrder.getOrDefault(order.getPoId(), List.of());
+                    List<PurchaseOrderPlanLine> plannedLines = plannedLinesByOrder.getOrDefault(order.getPoId(), List.of());
                     LineSummary summary = buildLineSummary(
                             order,
-                            receiptLinesByOrder.getOrDefault(order.getPoId(), List.of()),
-                            plannedLinesByOrder.getOrDefault(order.getPoId(), List.of())
+                            receiptLines,
+                            plannedLines
                     );
+                    ReceiptProgressSummary receiptProgress = summarizeReceiptProgress(order, plannedLines, receiptLines);
+                    BigDecimal unresolvedClaimAmount = order.getSupplier() != null && order.getSupplier().getSupplierId() != null
+                            ? safe(unresolvedClaimAmountBySupplier.get(order.getSupplier().getSupplierId()))
+                            : BigDecimal.ZERO;
                     return PurchaseOrderSummaryResponse.builder()
                             .purchaseOrderId(order.getPoId())
                             .poNumber(order.getPoNumber())
@@ -131,6 +151,14 @@ public class ProcurementService {
                             .notes(order.getNotes())
                             .itemCount(summary.itemCount)
                             .summaryText(summary.summaryText)
+                            .receiptState(receiptProgress.receiptState)
+                            .receivedLineCount(receiptProgress.receivedLineCount)
+                            .pendingLineCount(receiptProgress.pendingLineCount)
+                            .receiptCount(receiptProgress.receiptCount)
+                            .invoiceCount(receiptProgress.invoiceCount)
+                            .invoiceMatchState(receiptProgress.invoiceMatchState)
+                            .supplierSettlementState(resolveSupplierSettlementState(order, unresolvedClaimAmount))
+                            .unresolvedClaimAmount(unresolvedClaimAmount)
                             .subtotal(order.getSubtotal())
                             .totalAmount(order.getTotalAmount())
                             .build();
@@ -339,6 +367,127 @@ public class ProcurementService {
         return new LineSummary(0, "No line items");
     }
 
+    private ReceiptProgressSummary summarizeReceiptProgress(PurchaseOrder order,
+                                                            List<PurchaseOrderPlanLine> plannedLines,
+                                                            List<PurchaseOrderItem> receiptLines) {
+        int invoiceCount = (int) receiptLines.stream()
+                .map(PurchaseOrderItem::getSupplierInvoiceNumber)
+                .filter(invoiceNumber -> invoiceNumber != null && !invoiceNumber.isBlank())
+                .distinct()
+                .count();
+
+        if (plannedLines.isEmpty()) {
+            String receiptState = "RECEIVED".equalsIgnoreCase(order.getStatus()) ? "RECEIVED" : order.getStatus();
+            String invoiceMatchState = invoiceCount > 0 ? "MATCHED" : "INVOICE_MISSING";
+            return new ReceiptProgressSummary(
+                    receiptState,
+                    receiptLines.isEmpty() ? 0 : 1,
+                    0,
+                    Math.max(invoiceCount, receiptLines.isEmpty() ? 0 : 1),
+                    Math.max(invoiceCount, receiptLines.isEmpty() ? 0 : 1),
+                    invoiceMatchState
+            );
+        }
+
+        Map<UUID, BigDecimal> receivedByMedicine = new LinkedHashMap<>();
+        for (PurchaseOrderItem receiptLine : receiptLines) {
+            if (receiptLine.getMedicine() == null || receiptLine.getMedicine().getMedicineId() == null) {
+                continue;
+            }
+            receivedByMedicine.merge(
+                    receiptLine.getMedicine().getMedicineId(),
+                    toPackEquivalentQuantity(receiptLine.getMedicine(), receiptLine.getQuantity(), receiptLine.getQuantityLoose()),
+                    BigDecimal::add
+            );
+        }
+
+        Map<UUID, BigDecimal> remainingByMedicine = new LinkedHashMap<>(receivedByMedicine);
+        int receivedLineCount = 0;
+        int pendingLineCount = 0;
+        for (PurchaseOrderPlanLine plannedLine : plannedLines) {
+            Medicine medicine = plannedLine.getMedicine();
+            BigDecimal plannedQuantity = toPackEquivalentQuantity(medicine, plannedLine.getQuantity(), plannedLine.getQuantityLoose());
+            BigDecimal remainingReceived = medicine != null && medicine.getMedicineId() != null
+                    ? remainingByMedicine.getOrDefault(medicine.getMedicineId(), BigDecimal.ZERO)
+                    : BigDecimal.ZERO;
+
+            if (remainingReceived.compareTo(BigDecimal.ZERO) <= 0) {
+                pendingLineCount++;
+                continue;
+            }
+            receivedLineCount++;
+            if (remainingReceived.compareTo(plannedQuantity) < 0) {
+                pendingLineCount++;
+                if (medicine != null && medicine.getMedicineId() != null) {
+                    remainingByMedicine.put(medicine.getMedicineId(), BigDecimal.ZERO);
+                }
+                continue;
+            }
+            if (medicine != null && medicine.getMedicineId() != null) {
+                remainingByMedicine.put(medicine.getMedicineId(), remainingReceived.subtract(plannedQuantity));
+            }
+        }
+
+        String receiptState = pendingLineCount == 0 ? "RECEIVED" : receivedLineCount > 0 ? "PARTIALLY_RECEIVED" : "PLANNED";
+        String invoiceMatchState;
+        if (invoiceCount == 0) {
+            invoiceMatchState = "INVOICE_MISSING";
+        } else if ("RECEIVED".equals(receiptState)) {
+            invoiceMatchState = "MATCHED";
+        } else if ("PARTIALLY_RECEIVED".equals(receiptState)) {
+            invoiceMatchState = "PARTIALLY_MATCHED";
+        } else {
+            invoiceMatchState = "NOT_RECEIVED";
+        }
+
+        return new ReceiptProgressSummary(
+                receiptState,
+                receivedLineCount,
+                pendingLineCount,
+                invoiceCount,
+                invoiceCount,
+                invoiceMatchState
+        );
+    }
+
+    private String resolveSupplierSettlementState(PurchaseOrder order, BigDecimal unresolvedClaimAmount) {
+        if (order == null || "CANCELLED".equalsIgnoreCase(order.getStatus())) {
+            return "CANCELLED";
+        }
+        if (unresolvedClaimAmount != null && unresolvedClaimAmount.compareTo(BigDecimal.ZERO) > 0) {
+            return "CLAIM_PENDING";
+        }
+        if ("RECEIVED".equalsIgnoreCase(order.getStatus())) {
+            return "CURRENT";
+        }
+        if ("PARTIALLY_RECEIVED".equalsIgnoreCase(order.getStatus())) {
+            return "RECEIPT_IN_PROGRESS";
+        }
+        return "PENDING_RECEIPT";
+    }
+
+    private boolean isUnresolvedSupplierClaim(CreditNote creditNote) {
+        if (creditNote == null || !"VENDOR_RETURN".equalsIgnoreCase(creditNote.getCnType())) {
+            return false;
+        }
+        String claimState = creditNote.getClaimState();
+        if (claimState == null || claimState.isBlank()) {
+            return false;
+        }
+        String normalized = claimState.trim().toUpperCase();
+        return !"SETTLED".equals(normalized) && !"CANCELLED".equals(normalized) && !"WRITEOFF".equals(normalized);
+    }
+
+    private BigDecimal toPackEquivalentQuantity(Medicine medicine, Integer quantity, Integer quantityLoose) {
+        int packSize = medicine == null || medicine.getPackSize() == null || medicine.getPackSize() <= 0
+                ? 1
+                : medicine.getPackSize();
+        BigDecimal packQuantity = BigDecimal.valueOf(quantity == null ? 0 : quantity);
+        BigDecimal looseEquivalent = BigDecimal.valueOf(quantityLoose == null ? 0 : quantityLoose)
+                .divide(BigDecimal.valueOf(packSize), 4, RoundingMode.HALF_UP);
+        return packQuantity.add(looseEquivalent).setScale(4, RoundingMode.HALF_UP);
+    }
+
     private String buildSummaryText(String medicineName, Integer quantity, Integer quantityLoose, int itemCount) {
         if (itemCount <= 0) {
             return "No line items";
@@ -525,6 +674,29 @@ public class ProcurementService {
         private LineSummary(int itemCount, String summaryText) {
             this.itemCount = itemCount;
             this.summaryText = summaryText;
+        }
+    }
+
+    private static final class ReceiptProgressSummary {
+        private final String receiptState;
+        private final int receivedLineCount;
+        private final int pendingLineCount;
+        private final int receiptCount;
+        private final int invoiceCount;
+        private final String invoiceMatchState;
+
+        private ReceiptProgressSummary(String receiptState,
+                                       int receivedLineCount,
+                                       int pendingLineCount,
+                                       int receiptCount,
+                                       int invoiceCount,
+                                       String invoiceMatchState) {
+            this.receiptState = receiptState;
+            this.receivedLineCount = receivedLineCount;
+            this.pendingLineCount = pendingLineCount;
+            this.receiptCount = receiptCount;
+            this.invoiceCount = invoiceCount;
+            this.invoiceMatchState = invoiceMatchState;
         }
     }
 

@@ -22,7 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -71,6 +74,16 @@ public class PurchaseImportService {
         ResolvedPurchaseOrder resolvedPurchaseOrder = resolvePurchaseOrder(store, supplier, request, currentUser);
         PurchaseOrder purchaseOrder = resolvedPurchaseOrder.purchaseOrder;
         validateDuplicateRows(request.getRows());
+        LocalDateTime receiptTime = request.getPurchaseDate() != null ? request.getPurchaseDate() : LocalDateTime.now();
+        List<PurchaseOrderPlanLine> plannedLines = resolvedPurchaseOrder.linkedToExistingPlan
+                ? purchaseOrderPlanLineRepository.findByPurchaseOrderPoId(purchaseOrder.getPoId())
+                : List.of();
+        List<PurchaseOrderItem> receiptLines = resolvedPurchaseOrder.linkedToExistingPlan
+                ? new ArrayList<>(purchaseOrderItemRepository.findByPurchaseOrderPoIdIn(List.of(purchaseOrder.getPoId())))
+                : new ArrayList<>();
+        if (resolvedPurchaseOrder.linkedToExistingPlan) {
+            validateAgainstPlannedOrder(request.getRows(), medicinesById, plannedLines, receiptLines);
+        }
 
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal totalGst = BigDecimal.ZERO;
@@ -131,7 +144,7 @@ public class PurchaseImportService {
                     currentUser
             );
 
-            purchaseOrderItemRepository.save(
+            PurchaseOrderItem purchaseOrderItem = purchaseOrderItemRepository.save(
                     PurchaseOrderItem.builder()
                             .purchaseOrder(purchaseOrder)
                             .medicine(medicine)
@@ -144,8 +157,13 @@ public class PurchaseImportService {
                             .purchaseRate(row.getPurchaseRate())
                             .mrp(row.getMrp())
                             .gstRate(row.getGstRate() != null ? row.getGstRate() : safe(medicine.getGstRate()))
+                            .supplierInvoiceNumber(request.getInvoiceNumber())
+                            .receivedAt(receiptTime)
                             .build()
             );
+            if (resolvedPurchaseOrder.linkedToExistingPlan) {
+                receiptLines.add(purchaseOrderItem);
+            }
 
             BigDecimal lineSubtotal = row.getPurchaseRate().multiply(toPackEquivalentQuantity(medicine, row.getQuantity(), quantityLoose));
             BigDecimal lineGst = lineSubtotal.multiply(row.getGstRate() != null ? row.getGstRate() : safe(medicine.getGstRate()))
@@ -166,12 +184,22 @@ public class PurchaseImportService {
             );
         }
 
+        if (resolvedPurchaseOrder.linkedToExistingPlan) {
+            ReceiptTotals receiptTotals = calculateReceiptTotals(receiptLines);
+            subtotal = receiptTotals.subtotal;
+            totalGst = receiptTotals.totalGst;
+        }
+
         BigDecimal halfGst = totalGst.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
         purchaseOrder.setSubtotal(subtotal);
         purchaseOrder.setCgstAmount(halfGst);
         purchaseOrder.setSgstAmount(totalGst.subtract(halfGst));
         purchaseOrder.setTotalAmount(subtotal.add(totalGst));
         purchaseOrderRepository.save(purchaseOrder);
+
+        ReceiptProgress receiptProgress = resolvedPurchaseOrder.linkedToExistingPlan
+                ? updatePlannedOrderProgress(purchaseOrder, plannedLines, receiptLines, receiptTime, request.getInvoiceNumber())
+                : ReceiptProgress.direct(request.getRows().size());
 
         return PurchaseImportResponse.builder()
                 .purchaseOrderId(purchaseOrder.getPoId())
@@ -183,6 +211,11 @@ public class PurchaseImportService {
                 .importedRows(request.getRows().size())
                 .createdBatches(createdBatches)
                 .updatedBatches(updatedBatches)
+                .receiptState(receiptProgress.receiptState)
+                .receivedLineCount(receiptProgress.receivedLineCount)
+                .pendingLineCount(receiptProgress.pendingLineCount)
+                .receiptCount(receiptProgress.receiptCount)
+                .invoiceCount(receiptProgress.invoiceCount)
                 .subtotal(purchaseOrder.getSubtotal())
                 .cgstAmount(purchaseOrder.getCgstAmount())
                 .sgstAmount(purchaseOrder.getSgstAmount())
@@ -240,15 +273,8 @@ public class PurchaseImportService {
 
             existingOrder.setSupplier(existingOrder.getSupplier() != null ? existingOrder.getSupplier() : supplier);
             existingOrder.setInvoiceNumber(request.getInvoiceNumber());
-            existingOrder.setStatus("RECEIVED");
-            existingOrder.setReceivedAt(request.getPurchaseDate() != null ? request.getPurchaseDate() : LocalDateTime.now());
             existingOrder.setCreatedBy(existingOrder.getCreatedBy() != null ? existingOrder.getCreatedBy() : currentUser);
             existingOrder.setNotes(trimReceiptNote(existingOrder.getNotes()));
-            List<PurchaseOrderPlanLine> planLines = purchaseOrderPlanLineRepository.findByPurchaseOrderPoId(existingOrder.getPoId());
-            planLines.stream()
-                    .filter(planLine -> !"RECEIVED".equalsIgnoreCase(planLine.getLineStatus()))
-                    .forEach(planLine -> planLine.setLineStatus("RECEIVED"));
-            purchaseOrderPlanLineRepository.saveAll(planLines);
             return new ResolvedPurchaseOrder(purchaseOrderRepository.save(existingOrder), true);
         }
 
@@ -275,6 +301,167 @@ public class PurchaseImportService {
             return value;
         }
         return value + " | Received through inward import";
+    }
+
+    private void validateAgainstPlannedOrder(List<PurchaseImportRowRequest> rows,
+                                             Map<UUID, Medicine> medicinesById,
+                                             List<PurchaseOrderPlanLine> plannedLines,
+                                             List<PurchaseOrderItem> existingReceiptLines) {
+        if (plannedLines.isEmpty()) {
+            return;
+        }
+
+        Map<UUID, BigDecimal> plannedByMedicine = new HashMap<>();
+        for (PurchaseOrderPlanLine planLine : plannedLines) {
+            Medicine medicine = planLine.getMedicine();
+            if (medicine == null || medicine.getMedicineId() == null) {
+                continue;
+            }
+            plannedByMedicine.merge(
+                    medicine.getMedicineId(),
+                    toPackEquivalentQuantity(medicine, planLine.getQuantity(), planLine.getQuantityLoose()),
+                    BigDecimal::add
+            );
+        }
+
+        Map<UUID, BigDecimal> receivedByMedicine = new HashMap<>();
+        for (PurchaseOrderItem receiptLine : existingReceiptLines) {
+            Medicine medicine = receiptLine.getMedicine();
+            if (medicine == null || medicine.getMedicineId() == null) {
+                continue;
+            }
+            receivedByMedicine.merge(
+                    medicine.getMedicineId(),
+                    toPackEquivalentQuantity(medicine, receiptLine.getQuantity(), receiptLine.getQuantityLoose()),
+                    BigDecimal::add
+            );
+        }
+
+        Map<UUID, BigDecimal> importingByMedicine = new HashMap<>();
+        for (PurchaseImportRowRequest row : rows) {
+            Medicine medicine = resolveMedicine(row, medicinesById);
+            importingByMedicine.merge(
+                    medicine.getMedicineId(),
+                    toPackEquivalentQuantity(
+                            medicine,
+                            safe(row.getQuantity()) + safe(row.getFreeQty()),
+                            safe(row.getQuantityLoose()) + safe(row.getFreeQtyLoose())
+                    ),
+                    BigDecimal::add
+            );
+        }
+
+        for (Map.Entry<UUID, BigDecimal> entry : importingByMedicine.entrySet()) {
+            BigDecimal plannedQuantity = plannedByMedicine.get(entry.getKey());
+            if (plannedQuantity == null) {
+                Medicine medicine = medicinesById.get(entry.getKey());
+                String medicineName = medicine != null ? medicine.getBrandName() : entry.getKey().toString();
+                throw new BusinessRuleException("Medicine " + medicineName + " is not part of the planned purchase order");
+            }
+            BigDecimal alreadyReceived = receivedByMedicine.getOrDefault(entry.getKey(), BigDecimal.ZERO);
+            if (alreadyReceived.add(entry.getValue()).compareTo(plannedQuantity) > 0) {
+                Medicine medicine = medicinesById.get(entry.getKey());
+                String medicineName = medicine != null ? medicine.getBrandName() : entry.getKey().toString();
+                throw new BusinessRuleException("Receipt exceeds planned quantity for " + medicineName);
+            }
+        }
+    }
+
+    private ReceiptProgress updatePlannedOrderProgress(PurchaseOrder purchaseOrder,
+                                                       List<PurchaseOrderPlanLine> plannedLines,
+                                                       List<PurchaseOrderItem> receiptLines,
+                                                       LocalDateTime receiptTime,
+                                                       String latestInvoiceNumber) {
+        if (plannedLines.isEmpty()) {
+            purchaseOrder.setStatus("RECEIVED");
+            purchaseOrder.setReceivedAt(receiptTime);
+            purchaseOrder.setInvoiceNumber(latestInvoiceNumber);
+            purchaseOrderRepository.save(purchaseOrder);
+            return ReceiptProgress.direct(receiptLines.size());
+        }
+
+        Map<UUID, BigDecimal> receivedByMedicine = new HashMap<>();
+        for (PurchaseOrderItem receiptLine : receiptLines) {
+            Medicine medicine = receiptLine.getMedicine();
+            if (medicine == null || medicine.getMedicineId() == null) {
+                continue;
+            }
+            receivedByMedicine.merge(
+                    medicine.getMedicineId(),
+                    toPackEquivalentQuantity(medicine, receiptLine.getQuantity(), receiptLine.getQuantityLoose()),
+                    BigDecimal::add
+            );
+        }
+
+        Map<UUID, BigDecimal> remainingByMedicine = new HashMap<>(receivedByMedicine);
+        int receivedLineCount = 0;
+        int pendingLineCount = 0;
+
+        for (PurchaseOrderPlanLine planLine : plannedLines) {
+            Medicine medicine = planLine.getMedicine();
+            BigDecimal plannedQuantity = toPackEquivalentQuantity(medicine, planLine.getQuantity(), planLine.getQuantityLoose());
+            BigDecimal remainingReceived = medicine != null && medicine.getMedicineId() != null
+                    ? remainingByMedicine.getOrDefault(medicine.getMedicineId(), BigDecimal.ZERO)
+                    : BigDecimal.ZERO;
+
+            if (remainingReceived.compareTo(BigDecimal.ZERO) <= 0) {
+                planLine.setLineStatus("PLANNED");
+                pendingLineCount++;
+                continue;
+            }
+
+            if (remainingReceived.compareTo(plannedQuantity) >= 0) {
+                planLine.setLineStatus("RECEIVED");
+                receivedLineCount++;
+                if (medicine != null && medicine.getMedicineId() != null) {
+                    remainingByMedicine.put(medicine.getMedicineId(), remainingReceived.subtract(plannedQuantity));
+                }
+            } else {
+                planLine.setLineStatus("PARTIALLY_RECEIVED");
+                receivedLineCount++;
+                pendingLineCount++;
+                if (medicine != null && medicine.getMedicineId() != null) {
+                    remainingByMedicine.put(medicine.getMedicineId(), BigDecimal.ZERO);
+                }
+            }
+        }
+
+        String receiptState = pendingLineCount == 0 ? "RECEIVED" : receivedLineCount > 0 ? "PARTIALLY_RECEIVED" : "PLANNED";
+        purchaseOrder.setStatus(receiptState);
+        purchaseOrder.setReceivedAt(receiptTime);
+        purchaseOrder.setInvoiceNumber(latestInvoiceNumber);
+        purchaseOrderPlanLineRepository.saveAll(plannedLines);
+        purchaseOrderRepository.save(purchaseOrder);
+
+        int invoiceCount = (int) receiptLines.stream()
+                .map(PurchaseOrderItem::getSupplierInvoiceNumber)
+                .filter(invoiceNumber -> invoiceNumber != null && !invoiceNumber.isBlank())
+                .distinct()
+                .count();
+
+        return new ReceiptProgress(
+                receiptState,
+                receivedLineCount,
+                pendingLineCount,
+                invoiceCount,
+                invoiceCount
+        );
+    }
+
+    private ReceiptTotals calculateReceiptTotals(List<PurchaseOrderItem> receiptLines) {
+        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalGst = BigDecimal.ZERO;
+        for (PurchaseOrderItem receiptLine : receiptLines) {
+            Medicine medicine = receiptLine.getMedicine();
+            BigDecimal lineSubtotal = safe(receiptLine.getPurchaseRate()).multiply(
+                    toPackEquivalentQuantity(medicine, receiptLine.getQuantity(), receiptLine.getQuantityLoose())
+            );
+            BigDecimal lineGst = lineSubtotal.multiply(safe(receiptLine.getGstRate()))
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            subtotal = subtotal.add(lineSubtotal);
+            totalGst = totalGst.add(lineGst);
+        }
+        return new ReceiptTotals(subtotal, totalGst);
     }
 
     private PharmaUser getCurrentPharmaUser() {
@@ -372,6 +559,40 @@ public class PurchaseImportService {
         private ResolvedPurchaseOrder(PurchaseOrder purchaseOrder, boolean linkedToExistingPlan) {
             this.purchaseOrder = purchaseOrder;
             this.linkedToExistingPlan = linkedToExistingPlan;
+        }
+    }
+
+    private static final class ReceiptProgress {
+        private final String receiptState;
+        private final int receivedLineCount;
+        private final int pendingLineCount;
+        private final int receiptCount;
+        private final int invoiceCount;
+
+        private ReceiptProgress(String receiptState,
+                                int receivedLineCount,
+                                int pendingLineCount,
+                                int receiptCount,
+                                int invoiceCount) {
+            this.receiptState = receiptState;
+            this.receivedLineCount = receivedLineCount;
+            this.pendingLineCount = pendingLineCount;
+            this.receiptCount = receiptCount;
+            this.invoiceCount = invoiceCount;
+        }
+
+        private static ReceiptProgress direct(int lineCount) {
+            return new ReceiptProgress("RECEIVED", lineCount, 0, 1, 1);
+        }
+    }
+
+    private static final class ReceiptTotals {
+        private final BigDecimal subtotal;
+        private final BigDecimal totalGst;
+
+        private ReceiptTotals(BigDecimal subtotal, BigDecimal totalGst) {
+            this.subtotal = subtotal;
+            this.totalGst = totalGst;
         }
     }
 }

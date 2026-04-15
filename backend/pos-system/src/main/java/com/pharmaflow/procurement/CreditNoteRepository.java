@@ -12,6 +12,9 @@ import java.util.UUID;
 public interface CreditNoteRepository extends JpaRepository<CreditNote, UUID> {
 
     @Query("select cn from CreditNote cn where cn.store.storeId = :storeId order by cn.createdAt desc")
+    java.util.List<CreditNote> findByStoreStoreIdOrderByCreatedAtDesc(@Param("storeId") UUID storeId);
+
+    @Query("select cn from CreditNote cn where cn.store.storeId = :storeId order by cn.createdAt desc")
     Page<CreditNote> findByStoreId(@Param("storeId") UUID storeId, Pageable pageable);
 
     @Query("select cn from CreditNote cn " +

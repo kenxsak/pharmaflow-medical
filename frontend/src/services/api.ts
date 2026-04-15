@@ -619,6 +619,11 @@ export interface PurchaseImportResponse {
   importedRows: number;
   createdBatches: number;
   updatedBatches: number;
+  receiptState?: string;
+  receivedLineCount?: number;
+  pendingLineCount?: number;
+  receiptCount?: number;
+  invoiceCount?: number;
   subtotal: number;
   cgstAmount: number;
   sgstAmount: number;
@@ -640,6 +645,14 @@ export interface PurchaseOrderSummary {
   notes?: string;
   itemCount?: number;
   summaryText?: string;
+  receiptState?: string;
+  receivedLineCount?: number;
+  pendingLineCount?: number;
+  receiptCount?: number;
+  invoiceCount?: number;
+  invoiceMatchState?: string;
+  supplierSettlementState?: string;
+  unresolvedClaimAmount?: number;
   subtotal: number;
   totalAmount: number;
 }

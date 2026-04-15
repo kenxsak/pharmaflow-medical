@@ -18,6 +18,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -68,4 +69,10 @@ public class PurchaseOrderItem {
 
     @Column(name = "gst_rate", precision = 5, scale = 2)
     private BigDecimal gstRate;
+
+    @Column(name = "supplier_invoice_number", length = 100)
+    private String supplierInvoiceNumber;
+
+    @Column(name = "received_at")
+    private LocalDateTime receivedAt;
 }

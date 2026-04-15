@@ -25,6 +25,11 @@ public class PurchaseImportResponse {
     private int importedRows;
     private int createdBatches;
     private int updatedBatches;
+    private String receiptState;
+    private int receivedLineCount;
+    private int pendingLineCount;
+    private int receiptCount;
+    private int invoiceCount;
     private BigDecimal subtotal;
     private BigDecimal cgstAmount;
     private BigDecimal sgstAmount;

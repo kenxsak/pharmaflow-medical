@@ -67,6 +67,45 @@ const formatDate = (value?: string) => {
   return parsed.toLocaleDateString('en-IN', { dateStyle: 'medium' });
 };
 
+const getReceiptStateTone = (state?: string) => {
+  switch ((state || '').toUpperCase()) {
+    case 'RECEIVED':
+      return 'bg-emerald-100 text-emerald-800';
+    case 'PARTIALLY_RECEIVED':
+      return 'bg-amber-100 text-amber-800';
+    case 'PLANNED':
+      return 'bg-violet-100 text-violet-800';
+    default:
+      return 'bg-slate-100 text-slate-700';
+  }
+};
+
+const getInvoiceMatchTone = (state?: string) => {
+  switch ((state || '').toUpperCase()) {
+    case 'MATCHED':
+      return 'bg-emerald-100 text-emerald-800';
+    case 'PARTIALLY_MATCHED':
+      return 'bg-amber-100 text-amber-800';
+    case 'INVOICE_MISSING':
+      return 'bg-rose-100 text-rose-800';
+    default:
+      return 'bg-slate-100 text-slate-700';
+  }
+};
+
+const getSettlementTone = (state?: string) => {
+  switch ((state || '').toUpperCase()) {
+    case 'CURRENT':
+      return 'bg-emerald-100 text-emerald-800';
+    case 'RECEIPT_IN_PROGRESS':
+      return 'bg-amber-100 text-amber-800';
+    case 'CLAIM_PENDING':
+      return 'bg-rose-100 text-rose-800';
+    default:
+      return 'bg-slate-100 text-slate-700';
+  }
+};
+
 interface ProcurementDashboardProps {
   embedded?: boolean;
 }
@@ -179,6 +218,22 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   const receivedPurchaseValue = useMemo(
     () => receivedOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
     [receivedOrders]
+  );
+
+  const partiallyReceivedOrders = useMemo(
+    () =>
+      purchaseOrders.filter(
+        (order) => (order.receiptState || order.status || '').toUpperCase() === 'PARTIALLY_RECEIVED'
+      ),
+    [purchaseOrders]
+  );
+
+  const supplierSettlementReviewCount = useMemo(
+    () =>
+      purchaseOrders.filter(
+        (order) => (order.supplierSettlementState || '').toUpperCase() === 'CLAIM_PENDING'
+      ).length,
+    [purchaseOrders]
   );
 
   const pendingClaimValue = useMemo(
@@ -304,7 +359,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       setImportResult(response);
       setMessage(
         response.linkedToExistingPlan
-          ? `Imported ${response.importedRows} rows and marked planned PO ${response.poNumber} as received.`
+          ? response.receiptState === 'PARTIALLY_RECEIVED'
+            ? `Imported ${response.importedRows} rows into planned PO ${response.poNumber}. ${response.receivedLineCount || 0} lines are now received and ${response.pendingLineCount || 0} are still pending.`
+            : `Imported ${response.importedRows} rows and completed planned PO ${response.poNumber}.`
           : `Imported ${response.importedRows} rows successfully.`
       );
       resetManualForm();
@@ -342,7 +399,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       setImportResult(response);
       setMessage(
         response.linkedToExistingPlan
-          ? `CSV import completed and linked to planned PO ${response.poNumber}.`
+          ? response.receiptState === 'PARTIALLY_RECEIVED'
+            ? `CSV import linked to planned PO ${response.poNumber}. ${response.pendingLineCount || 0} planned lines are still pending receipt.`
+            : `CSV import completed and closed planned PO ${response.poNumber}.`
           : `CSV import completed for invoice ${response.invoiceNumber}.`
       );
       setCsvFile(null);
@@ -515,6 +574,16 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                 <div className="mt-1 text-sm text-slate-500">Supplier orders waiting for inward receipt</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Partial Receipts</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">{partiallyReceivedOrders.length}</div>
+                <div className="mt-1 text-sm text-slate-500">Orders received in stages and still open</div>
+              </div>
+              <div className="rounded-3xl bg-white p-4 shadow-sm">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Settlement Review</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">{supplierSettlementReviewCount}</div>
+                <div className="mt-1 text-sm text-slate-500">Supplier orders with unresolved claim follow-up</div>
+              </div>
+              <div className="rounded-3xl bg-white p-4 shadow-sm">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Pipeline + Credit Value</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">
                   ₹{(plannedOrderValue + recentCreditValue).toFixed(2)}
@@ -535,6 +604,17 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           >
             {error || message}
           </div>
+        )}
+
+        {importResult && (
+          <section className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            <div className="font-semibold">Latest inward receipt</div>
+            <div className="mt-1">
+              PO {importResult.poNumber} • {importResult.receiptState || importResult.status} • invoices{' '}
+              {importResult.invoiceCount || 0} • received lines {importResult.receivedLineCount || importResult.importedRows}
+              {typeof importResult.pendingLineCount === 'number' ? ` • pending lines ${importResult.pendingLineCount}` : ''}
+            </div>
+          </section>
         )}
 
         <section className="grid gap-4 md:grid-cols-3">
@@ -1233,7 +1313,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               <div>
                 <h2 className="text-xl font-semibold">Supplier Order Pipeline</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Planned purchase orders stay here until the real inward invoice lands against the same PO number.
+                  Planned purchase orders can now be inwarded in stages against the same PO until every planned line is received.
                 </p>
               </div>
               <div className="rounded-2xl bg-violet-50 px-4 py-2 text-sm text-violet-900">
@@ -1241,7 +1321,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               </div>
             </div>
             <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
-              Replenishment drafts now create proper planned purchase orders. Use the same PO number in inward import to convert the plan into a received procurement record.
+              Replenishment drafts now create proper planned purchase orders. Use the same PO number during inward receipt and the system will keep the PO open until all planned lines are received and invoice matched.
             </div>
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -1251,7 +1331,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     <th className="px-3 py-2 text-left">Supplier</th>
                     <th className="px-3 py-2 text-left">Line preview</th>
                     <th className="px-3 py-2 text-left">ETA</th>
-                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-left">Receipt</th>
+                    <th className="px-3 py-2 text-left">Invoice match</th>
+                    <th className="px-3 py-2 text-left">Settlement</th>
                     <th className="px-3 py-2 text-right">Value</th>
                   </tr>
                 </thead>
@@ -1266,19 +1348,41 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                       <td className="px-3 py-3">
                         <div>{order.summaryText || `${order.itemCount || 0} items`}</div>
                         {order.notes && <div className="text-xs text-slate-500">{order.notes}</div>}
+                        <div className="mt-1 text-xs text-slate-500">
+                          Received {order.receivedLineCount || 0} / {order.itemCount || 0}
+                          {typeof order.pendingLineCount === 'number' ? ` • Pending ${order.pendingLineCount}` : ''}
+                        </div>
                       </td>
                       <td className="px-3 py-3">{order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : '—'}</td>
                       <td className="px-3 py-3">
-                        <span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-800">
-                          {order.status}
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getReceiptStateTone(order.receiptState || order.status)}`}>
+                          {order.receiptState || order.status}
                         </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getInvoiceMatchTone(order.invoiceMatchState)}`}>
+                          {order.invoiceMatchState || '—'}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {order.invoiceCount || 0} invoices
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getSettlementTone(order.supplierSettlementState)}`}>
+                          {order.supplierSettlementState || '—'}
+                        </div>
+                        {(order.unresolvedClaimAmount || 0) > 0 && (
+                          <div className="mt-1 text-xs text-rose-600">
+                            Claim ₹{Number(order.unresolvedClaimAmount || 0).toFixed(2)}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-right">₹{Number(order.totalAmount || 0).toFixed(2)}</td>
                     </tr>
                   ))}
                   {!plannedOrders.length && (
                     <tr>
-                      <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
+                      <td colSpan={8} className="px-3 py-10 text-center text-slate-400">
                         No planned supplier orders are waiting right now.
                       </td>
                     </tr>
@@ -1293,7 +1397,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               <div>
                 <h2 className="text-xl font-semibold">Received Inward History</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Confirm that invoices, inward batches, and supplier receipts are being recorded properly.
+                  Confirm that invoices, inward batches, and supplier receipts are being recorded with receipt progress and settlement context.
                 </p>
               </div>
               <div className="rounded-2xl bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
@@ -1308,7 +1412,8 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     <th className="px-3 py-2 text-left">Invoice</th>
                     <th className="px-3 py-2 text-left">Supplier</th>
                     <th className="px-3 py-2 text-left">Received</th>
-                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-left">Match</th>
+                    <th className="px-3 py-2 text-left">Settlement</th>
                     <th className="px-3 py-2 text-right">Total</th>
                   </tr>
                 </thead>
@@ -1321,10 +1426,20 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                       </td>
                       <td className="px-3 py-3">{order.invoiceNumber || '—'}</td>
                       <td className="px-3 py-3">{order.supplierName || '—'}</td>
-                      <td className="px-3 py-3">{formatDate(order.receivedAt || order.poDate)}</td>
                       <td className="px-3 py-3">
-                        <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
-                          {order.status}
+                        <div>{formatDate(order.receivedAt || order.poDate)}</div>
+                        <div className="text-xs text-slate-500">
+                          {order.receiptCount || order.invoiceCount || 0} receipts • {order.invoiceCount || 0} invoices
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getInvoiceMatchTone(order.invoiceMatchState)}`}>
+                          {order.invoiceMatchState || order.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getSettlementTone(order.supplierSettlementState)}`}>
+                          {order.supplierSettlementState || '—'}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-right">₹{Number(order.totalAmount || 0).toFixed(2)}</td>
@@ -1332,7 +1447,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   ))}
                   {!receivedOrders.length && (
                     <tr>
-                      <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
+                      <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
                         No inward receipts recorded yet.
                       </td>
                     </tr>
