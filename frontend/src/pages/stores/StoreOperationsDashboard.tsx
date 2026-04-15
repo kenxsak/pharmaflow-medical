@@ -153,9 +153,10 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
         medicineId: recommendation.medicineId,
         supplierId: recommendation.supplierId,
         quantity,
+        notes: `Created from replenishment desk for ${recommendation.targetStoreCode}`,
       });
       setActionMessage(
-        `Draft purchase order ${response.poNumber} created for ${response.brandName}${response.supplierName ? ` via ${response.supplierName}` : ''}.`
+        `Planned purchase order ${response.poNumber} created for ${response.brandName}${response.supplierName ? ` via ${response.supplierName}` : ''}${response.expectedDeliveryDate ? ` with ETA ${formatDate(response.expectedDeliveryDate)}` : ''}.`
       );
       await loadDashboard();
     } catch (actionError) {

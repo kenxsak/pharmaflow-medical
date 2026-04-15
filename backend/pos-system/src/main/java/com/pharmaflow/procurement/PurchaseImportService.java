@@ -36,6 +36,7 @@ public class PurchaseImportService {
     private final PharmaSupplierRepository supplierRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+    private final PurchaseOrderPlanLineRepository purchaseOrderPlanLineRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final MedicineRepository medicineRepository;
     private final PharmaUserRepository pharmaUserRepository;
@@ -65,16 +66,8 @@ public class PurchaseImportService {
         Map<UUID, Medicine> medicinesById = medicineRepository.findAllById(medicineIds).stream()
                 .collect(Collectors.toMap(Medicine::getMedicineId, Function.identity()));
 
-        PurchaseOrder purchaseOrder = PurchaseOrder.builder()
-                .store(store)
-                .supplier(supplier)
-                .poNumber(resolvePoNumber(request))
-                .poDate(request.getPurchaseDate() != null ? request.getPurchaseDate() : LocalDateTime.now())
-                .invoiceNumber(request.getInvoiceNumber())
-                .status("RECEIVED")
-                .createdBy(currentUser)
-                .build();
-        purchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        ResolvedPurchaseOrder resolvedPurchaseOrder = resolvePurchaseOrder(store, supplier, request, currentUser);
+        PurchaseOrder purchaseOrder = resolvedPurchaseOrder.purchaseOrder;
 
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal totalGst = BigDecimal.ZERO;
@@ -170,6 +163,9 @@ public class PurchaseImportService {
                 .purchaseOrderId(purchaseOrder.getPoId())
                 .poNumber(purchaseOrder.getPoNumber())
                 .invoiceNumber(purchaseOrder.getInvoiceNumber())
+                .status(purchaseOrder.getStatus())
+                .orderType(purchaseOrder.getOrderType())
+                .linkedToExistingPlan(resolvedPurchaseOrder.linkedToExistingPlan)
                 .importedRows(request.getRows().size())
                 .createdBatches(createdBatches)
                 .updatedBatches(updatedBatches)
@@ -204,6 +200,67 @@ public class PurchaseImportService {
             return request.getPoNumber();
         }
         return "PO-" + System.currentTimeMillis();
+    }
+
+    private ResolvedPurchaseOrder resolvePurchaseOrder(Store store,
+                                                       Supplier supplier,
+                                                       PurchaseImportRequest request,
+                                                       PharmaUser currentUser) {
+        String poNumber = resolvePoNumber(request);
+        PurchaseOrder existingOrder = purchaseOrderRepository.findFirstByStoreStoreIdAndPoNumberIgnoreCase(store.getStoreId(), poNumber);
+        if (existingOrder != null) {
+            if (!"PLANNED_ORDER".equalsIgnoreCase(existingOrder.getOrderType())) {
+                throw new BusinessRuleException("PO number " + poNumber + " already exists for this store");
+            }
+            if ("CANCELLED".equalsIgnoreCase(existingOrder.getStatus())) {
+                throw new BusinessRuleException("Cancelled purchase orders cannot receive inward stock");
+            }
+            if ("RECEIVED".equalsIgnoreCase(existingOrder.getStatus())) {
+                throw new BusinessRuleException("This planned purchase order has already been received");
+            }
+            if (existingOrder.getSupplier() != null
+                    && supplier.getSupplierId() != null
+                    && !supplier.getSupplierId().equals(existingOrder.getSupplier().getSupplierId())) {
+                throw new BusinessRuleException("Supplier does not match the planned purchase order");
+            }
+
+            existingOrder.setSupplier(existingOrder.getSupplier() != null ? existingOrder.getSupplier() : supplier);
+            existingOrder.setInvoiceNumber(request.getInvoiceNumber());
+            existingOrder.setStatus("RECEIVED");
+            existingOrder.setReceivedAt(request.getPurchaseDate() != null ? request.getPurchaseDate() : LocalDateTime.now());
+            existingOrder.setCreatedBy(existingOrder.getCreatedBy() != null ? existingOrder.getCreatedBy() : currentUser);
+            existingOrder.setNotes(trimReceiptNote(existingOrder.getNotes()));
+            List<PurchaseOrderPlanLine> planLines = purchaseOrderPlanLineRepository.findByPurchaseOrderPoId(existingOrder.getPoId());
+            planLines.stream()
+                    .filter(planLine -> !"RECEIVED".equalsIgnoreCase(planLine.getLineStatus()))
+                    .forEach(planLine -> planLine.setLineStatus("RECEIVED"));
+            purchaseOrderPlanLineRepository.saveAll(planLines);
+            return new ResolvedPurchaseOrder(purchaseOrderRepository.save(existingOrder), true);
+        }
+
+        PurchaseOrder purchaseOrder = PurchaseOrder.builder()
+                .store(store)
+                .supplier(supplier)
+                .poNumber(poNumber)
+                .poDate(request.getPurchaseDate() != null ? request.getPurchaseDate() : LocalDateTime.now())
+                .invoiceNumber(request.getInvoiceNumber())
+                .orderType("DIRECT_RECEIPT")
+                .status("RECEIVED")
+                .receivedAt(request.getPurchaseDate() != null ? request.getPurchaseDate() : LocalDateTime.now())
+                .createdBy(currentUser)
+                .notes("Direct inward receipt")
+                .build();
+        return new ResolvedPurchaseOrder(purchaseOrderRepository.save(purchaseOrder), false);
+    }
+
+    private String trimReceiptNote(String value) {
+        if (value == null || value.isBlank()) {
+            return "Planned order received through inward import";
+        }
+        if (value.toLowerCase().contains("received")) {
+            return value;
+        }
+        return value + " | Received through inward import";
     }
 
     private PharmaUser getCurrentPharmaUser() {
@@ -255,5 +312,15 @@ public class PurchaseImportService {
 
     private Integer safe(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private static final class ResolvedPurchaseOrder {
+        private final PurchaseOrder purchaseOrder;
+        private final boolean linkedToExistingPlan;
+
+        private ResolvedPurchaseOrder(PurchaseOrder purchaseOrder, boolean linkedToExistingPlan) {
+            this.purchaseOrder = purchaseOrder;
+            this.linkedToExistingPlan = linkedToExistingPlan;
+        }
     }
 }

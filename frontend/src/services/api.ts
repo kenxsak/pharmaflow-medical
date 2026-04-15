@@ -400,13 +400,17 @@ export interface ReorderDraftRequest {
   medicineId: string;
   supplierId?: string;
   quantity: number;
+  expectedDeliveryDate?: string;
+  notes?: string;
 }
 
 export interface ReorderDraftResponse {
   purchaseOrderId: string;
   poNumber: string;
   poDate: string;
+  expectedDeliveryDate?: string;
   status: string;
+  orderType: string;
   storeId: string;
   storeCode: string;
   medicineId: string;
@@ -414,11 +418,13 @@ export interface ReorderDraftResponse {
   supplierId?: string;
   supplierName?: string;
   quantity: number;
+  itemCount?: number;
   purchaseRate: number;
   mrp: number;
   gstRate: number;
   subtotal: number;
   totalAmount: number;
+  notes?: string;
 }
 
 export interface PharmaRoleOption {
@@ -507,6 +513,11 @@ export interface SupplierSummary {
   gstin?: string;
   drugLicense?: string;
   address?: string;
+  openPurchaseOrderCount?: number;
+  receivedPurchaseOrderCount?: number;
+  lastOrderDate?: string;
+  lastReceiptDate?: string;
+  receivedValue?: number;
 }
 
 export interface SupplierCreateRequest {
@@ -547,6 +558,9 @@ export interface PurchaseImportResponse {
   purchaseOrderId: string;
   poNumber: string;
   invoiceNumber: string;
+  status: string;
+  orderType: string;
+  linkedToExistingPlan: boolean;
   importedRows: number;
   createdBatches: number;
   updatedBatches: number;
@@ -560,10 +574,17 @@ export interface PurchaseOrderSummary {
   purchaseOrderId: string;
   poNumber: string;
   poDate: string;
+  receivedAt?: string;
   invoiceNumber: string;
   supplierName?: string;
   createdByName?: string;
   status: string;
+  orderType: string;
+  supplierReference?: string;
+  expectedDeliveryDate?: string;
+  notes?: string;
+  itemCount?: number;
+  summaryText?: string;
   subtotal: number;
   totalAmount: number;
 }

@@ -19,6 +19,9 @@ public class PurchaseImportResponse {
     private UUID purchaseOrderId;
     private String poNumber;
     private String invoiceNumber;
+    private String status;
+    private String orderType;
+    private boolean linkedToExistingPlan;
     private int importedRows;
     private int createdBatches;
     private int updatedBatches;

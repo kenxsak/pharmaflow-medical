@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -23,4 +25,9 @@ public class SupplierResponse {
     private String gstin;
     private String drugLicense;
     private String address;
+    private Integer openPurchaseOrderCount;
+    private Integer receivedPurchaseOrderCount;
+    private LocalDateTime lastOrderDate;
+    private LocalDateTime lastReceiptDate;
+    private BigDecimal receivedValue;
 }

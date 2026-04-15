@@ -30,7 +30,9 @@ const createEmptyRow = (): PurchaseImportRow => ({
   manufactureDate: '',
   expiryDate: '',
   quantity: 1,
+  quantityLoose: 0,
   freeQty: 0,
+  freeQtyLoose: 0,
   purchaseRate: 0,
   mrp: 0,
   gstRate: 12,
@@ -53,6 +55,17 @@ const procurementSteps = [
     tone: 'border-violet-200 bg-violet-50 text-violet-900',
   },
 ];
+
+const formatDate = (value?: string) => {
+  if (!value) {
+    return '—';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleDateString('en-IN', { dateStyle: 'medium' });
+};
 
 interface ProcurementDashboardProps {
   embedded?: boolean;
@@ -129,11 +142,6 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
     [rows]
   );
 
-  const recentPurchaseValue = useMemo(
-    () => purchaseOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
-    [purchaseOrders]
-  );
-
   const creditNotePreviewTotal = useMemo(
     () => creditItems.reduce((sum, item) => sum + (Number(item.mrp || 0) * Number(item.quantity || 0)), 0),
     [creditItems]
@@ -147,6 +155,29 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   const selectedSupplier = useMemo(
     () => suppliers.find((supplier) => supplier.supplierId === selectedSupplierId) || null,
     [selectedSupplierId, suppliers]
+  );
+
+  const plannedOrders = useMemo(
+    () =>
+      purchaseOrders.filter(
+        (order) => order.orderType === 'PLANNED_ORDER' && order.status !== 'RECEIVED' && order.status !== 'CANCELLED'
+      ),
+    [purchaseOrders]
+  );
+
+  const receivedOrders = useMemo(
+    () => purchaseOrders.filter((order) => order.status === 'RECEIVED'),
+    [purchaseOrders]
+  );
+
+  const plannedOrderValue = useMemo(
+    () => plannedOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
+    [plannedOrders]
+  );
+
+  const receivedPurchaseValue = useMemo(
+    () => receivedOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
+    [receivedOrders]
   );
 
   const updateRow = (index: number, partial: Partial<PurchaseImportRow>) => {
@@ -242,7 +273,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           brandName: row.brandName || undefined,
           barcode: row.barcode || undefined,
           manufactureDate: row.manufactureDate || undefined,
+          quantityLoose: Number(row.quantityLoose) || 0,
           freeQty: Number(row.freeQty) || 0,
+          freeQtyLoose: Number(row.freeQtyLoose) || 0,
           quantity: Number(row.quantity) || 0,
           purchaseRate: Number(row.purchaseRate) || 0,
           mrp: Number(row.mrp) || 0,
@@ -252,7 +285,11 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
       const response = await PurchaseAPI.importJson(payload);
       setImportResult(response);
-      setMessage(`Imported ${response.importedRows} rows successfully.`);
+      setMessage(
+        response.linkedToExistingPlan
+          ? `Imported ${response.importedRows} rows and marked planned PO ${response.poNumber} as received.`
+          : `Imported ${response.importedRows} rows successfully.`
+      );
       resetManualForm();
       await loadData();
     } catch (importError) {
@@ -286,7 +323,11 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
         csvFile
       );
       setImportResult(response);
-      setMessage(`CSV import completed for invoice ${response.invoiceNumber}.`);
+      setMessage(
+        response.linkedToExistingPlan
+          ? `CSV import completed and linked to planned PO ${response.poNumber}.`
+          : `CSV import completed for invoice ${response.invoiceNumber}.`
+      );
       setCsvFile(null);
       setInvoiceNumber('');
       setPoNumber('');
@@ -358,12 +399,14 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
         'manufactureDate',
         'expiryDate',
         'quantity',
+        'quantityLoose',
         'freeQty',
+        'freeQtyLoose',
         'purchaseRate',
         'mrp',
         'gstRate',
       ],
-      [['Paracetamol 500mg', '', 'BATCH001', '2026-01-01', '2027-12-31', 10, 1, 8.5, 12, 12]]
+      [['Paracetamol 500mg', '', 'BATCH001', '2026-01-01', '2027-12-31', 10, 0, 1, 0, 8.5, 12, 12]]
     );
   };
 
@@ -397,16 +440,16 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                 <div className="mt-1 text-sm text-slate-500">Configured for the active workspace</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Purchase Orders</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{purchaseOrders.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Recent inward receipts available</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Planned Orders</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">{plannedOrders.length}</div>
+                <div className="mt-1 text-sm text-slate-500">Supplier orders waiting for inward receipt</div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">PO + Credit Value</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Pipeline + Credit Value</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">
-                  ₹{(recentPurchaseValue + recentCreditValue).toFixed(2)}
+                  ₹{(plannedOrderValue + recentCreditValue).toFixed(2)}
                 </div>
-                <div className="mt-1 text-sm text-slate-500">Visible inward plus credit-note value</div>
+                <div className="mt-1 text-sm text-slate-500">Open supplier pipeline plus credit-note value</div>
               </div>
             </div>
           </div>
@@ -463,6 +506,22 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     ? `${selectedSupplier.name}${selectedSupplier.contact ? ` • ${selectedSupplier.contact}` : ''}${selectedSupplier.phone ? ` • ${selectedSupplier.phone}` : ''}`
                     : 'No supplier selected yet. Add the first supplier or choose one from the import header.'}
                 </div>
+                {selectedSupplier && (
+                  <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Open POs: <span className="font-semibold text-slate-900">{selectedSupplier.openPurchaseOrderCount || 0}</span>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Received: <span className="font-semibold text-slate-900">{selectedSupplier.receivedPurchaseOrderCount || 0}</span>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Last order: <span className="font-semibold text-slate-900">{selectedSupplier.lastOrderDate ? formatDate(selectedSupplier.lastOrderDate) : '—'}</span>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Last receipt: <span className="font-semibold text-slate-900">{selectedSupplier.lastReceiptDate ? formatDate(selectedSupplier.lastReceiptDate) : '—'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <button
@@ -519,6 +578,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   onChange={(event) => setPoNumber(event.target.value)}
                   className="w-full rounded-2xl border border-slate-300 px-3 py-2"
                 />
+                <span className="text-xs text-slate-500">
+                  If this matches a planned PO, the inward import will complete that supplier order instead of creating a separate receipt.
+                </span>
               </label>
               <label className="space-y-1 text-sm">
                 <span className="font-medium text-slate-700">Purchase date</span>
@@ -537,6 +599,8 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                 <div className="mt-2">Rows imported: {importResult.importedRows}</div>
                 <div>Created batches: {importResult.createdBatches}</div>
                 <div>Updated batches: {importResult.updatedBatches}</div>
+                <div>Status: {importResult.status}</div>
+                <div>Source: {importResult.linkedToExistingPlan ? 'Matched planned PO' : 'Direct inward receipt'}</div>
                 <div>Total value: ₹{importResult.totalAmount.toFixed(2)}</div>
               </div>
             )}
@@ -548,7 +612,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
             <div>
               <h2 className="text-xl font-semibold">Manual Import</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Fast row-based entry for distributor invoices with hundreds of SKUs.
+                Fast row-based entry for distributor invoices with bottles, strips, syrups, loose units, and bulk SKU loads.
               </p>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
@@ -565,8 +629,10 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   <th className="px-3 py-2 text-left">Batch</th>
                   <th className="px-3 py-2 text-left">Mfg</th>
                   <th className="px-3 py-2 text-left">Expiry</th>
-                  <th className="px-3 py-2 text-right">Qty</th>
-                  <th className="px-3 py-2 text-right">Free</th>
+                  <th className="px-3 py-2 text-right">Packs</th>
+                  <th className="px-3 py-2 text-right">Loose</th>
+                  <th className="px-3 py-2 text-right">Free Packs</th>
+                  <th className="px-3 py-2 text-right">Free Loose</th>
                   <th className="px-3 py-2 text-right">PTR</th>
                   <th className="px-3 py-2 text-right">MRP</th>
                   <th className="px-3 py-2 text-right">GST%</th>
@@ -627,8 +693,24 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     <td className="px-3 py-3 text-right">
                       <input
                         type="number"
+                        value={row.quantityLoose || 0}
+                        onChange={(event) => updateRow(index, { quantityLoose: Number(event.target.value) })}
+                        className="w-20 rounded-xl border border-slate-300 px-2 py-1 text-right"
+                      />
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <input
+                        type="number"
                         value={row.freeQty || 0}
                         onChange={(event) => updateRow(index, { freeQty: Number(event.target.value) })}
+                        className="w-20 rounded-xl border border-slate-300 px-2 py-1 text-right"
+                      />
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <input
+                        type="number"
+                        value={row.freeQtyLoose || 0}
+                        onChange={(event) => updateRow(index, { freeQtyLoose: Number(event.target.value) })}
                         className="w-20 rounded-xl border border-slate-300 px-2 py-1 text-right"
                       />
                     </td>
@@ -967,56 +1049,119 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold">Recent Purchase Orders</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Use this list to confirm that inward imports are creating real purchase records.
-              </p>
+        <section className="grid gap-5 xl:grid-cols-[0.95fr,1.05fr]">
+          <div className="rounded-[2rem] bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold">Supplier Order Pipeline</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Planned purchase orders stay here until the real inward invoice lands against the same PO number.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-violet-50 px-4 py-2 text-sm text-violet-900">
+                Open value: ₹{plannedOrderValue.toFixed(2)}
+              </div>
             </div>
-            <div className="rounded-2xl bg-violet-50 px-4 py-2 text-sm text-violet-900">
-              Total visible value: ₹{recentPurchaseValue.toFixed(2)}
+            <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-900">
+              Replenishment drafts now create proper planned purchase orders. Use the same PO number in inward import to convert the plan into a received procurement record.
+            </div>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-slate-500">
+                  <tr>
+                    <th className="px-3 py-2 text-left">PO</th>
+                    <th className="px-3 py-2 text-left">Supplier</th>
+                    <th className="px-3 py-2 text-left">Line preview</th>
+                    <th className="px-3 py-2 text-left">ETA</th>
+                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-right">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plannedOrders.map((order) => (
+                    <tr key={order.purchaseOrderId} className="border-t border-slate-100">
+                      <td className="px-3 py-3 font-medium">
+                        <div>{order.poNumber}</div>
+                        <div className="text-xs text-slate-500">{formatDate(order.poDate)}</div>
+                      </td>
+                      <td className="px-3 py-3">{order.supplierName || 'No supplier linked'}</td>
+                      <td className="px-3 py-3">
+                        <div>{order.summaryText || `${order.itemCount || 0} items`}</div>
+                        {order.notes && <div className="text-xs text-slate-500">{order.notes}</div>}
+                      </td>
+                      <td className="px-3 py-3">{order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : '—'}</td>
+                      <td className="px-3 py-3">
+                        <span className="rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-800">
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">₹{Number(order.totalAmount || 0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {!plannedOrders.length && (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
+                        No planned supplier orders are waiting right now.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-3 py-2 text-left">PO</th>
-                  <th className="px-3 py-2 text-left">Invoice</th>
-                  <th className="px-3 py-2 text-left">Supplier</th>
-                  <th className="px-3 py-2 text-left">Date</th>
-                  <th className="px-3 py-2 text-left">Status</th>
-                  <th className="px-3 py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {purchaseOrders.map((order) => (
-                  <tr key={order.purchaseOrderId} className="border-t border-slate-100">
-                    <td className="px-3 py-3 font-medium">{order.poNumber}</td>
-                    <td className="px-3 py-3">{order.invoiceNumber}</td>
-                    <td className="px-3 py-3">{order.supplierName}</td>
-                    <td className="px-3 py-3">
-                      {new Date(order.poDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-right">₹{order.totalAmount.toFixed(2)}</td>
-                  </tr>
-                ))}
-                {!purchaseOrders.length && (
+
+          <div className="rounded-[2rem] bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold">Received Inward History</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Confirm that invoices, inward batches, and supplier receipts are being recorded properly.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
+                Received value: ₹{receivedPurchaseValue.toFixed(2)}
+              </div>
+            </div>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
-                      No purchase orders imported yet.
-                    </td>
+                    <th className="px-3 py-2 text-left">PO</th>
+                    <th className="px-3 py-2 text-left">Invoice</th>
+                    <th className="px-3 py-2 text-left">Supplier</th>
+                    <th className="px-3 py-2 text-left">Received</th>
+                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-right">Total</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {receivedOrders.map((order) => (
+                    <tr key={order.purchaseOrderId} className="border-t border-slate-100">
+                      <td className="px-3 py-3 font-medium">
+                        <div>{order.poNumber}</div>
+                        <div className="text-xs text-slate-500">{order.summaryText || `${order.itemCount || 0} items`}</div>
+                      </td>
+                      <td className="px-3 py-3">{order.invoiceNumber || '—'}</td>
+                      <td className="px-3 py-3">{order.supplierName || '—'}</td>
+                      <td className="px-3 py-3">{formatDate(order.receivedAt || order.poDate)}</td>
+                      <td className="px-3 py-3">
+                        <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">₹{Number(order.totalAmount || 0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  {!receivedOrders.length && (
+                    <tr>
+                      <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
+                        No inward receipts recorded yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
 

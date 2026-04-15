@@ -14,6 +14,8 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
     @Query("select poi from PurchaseOrderItem poi join poi.purchaseOrder po where po.store.storeId = :storeId order by po.poDate desc")
     Page<PurchaseOrderItem> findByStoreId(@Param("storeId") UUID storeId, Pageable pageable);
 
+    List<PurchaseOrderItem> findByPurchaseOrderPoIdIn(List<UUID> purchaseOrderIds);
+
     @Query("select poi from PurchaseOrderItem poi " +
             "join poi.purchaseOrder po " +
             "left join poi.medicine m " +

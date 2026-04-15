@@ -17,7 +17,9 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -53,6 +55,21 @@ public class PurchaseOrder {
     @Column(name = "invoice_number", length = 100)
     private String invoiceNumber;
 
+    @Column(name = "order_type", length = 30)
+    private String orderType;
+
+    @Column(name = "supplier_reference", length = 100)
+    private String supplierReference;
+
+    @Column(name = "expected_delivery_date")
+    private LocalDate expectedDeliveryDate;
+
+    @Column(name = "received_at")
+    private LocalDateTime receivedAt;
+
+    @Column(name = "notes", length = 1000)
+    private String notes;
+
     @Column(name = "subtotal", precision = 12, scale = 2)
     private BigDecimal subtotal;
 
@@ -85,6 +102,19 @@ public class PurchaseOrder {
         }
         if (status == null || status.isBlank()) {
             status = "PENDING";
+        }
+        if (orderType == null || orderType.isBlank()) {
+            orderType = "DIRECT_RECEIPT";
+        }
+        if ("RECEIVED".equalsIgnoreCase(status) && receivedAt == null) {
+            receivedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        if ("RECEIVED".equalsIgnoreCase(status) && receivedAt == null) {
+            receivedAt = LocalDateTime.now();
         }
     }
 }

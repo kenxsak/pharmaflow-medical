@@ -17,7 +17,13 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
     boolean existsByPoNumber(String poNumber);
 
     @EntityGraph(attributePaths = {"supplier", "createdBy", "store"})
+    PurchaseOrder findFirstByStoreStoreIdAndPoNumberIgnoreCase(UUID storeId, String poNumber);
+
+    @EntityGraph(attributePaths = {"supplier", "createdBy", "store"})
     List<PurchaseOrder> findByStoreStoreIdOrderByPoDateDesc(UUID storeId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"supplier", "createdBy", "store"})
+    List<PurchaseOrder> findByStoreStoreIdInOrderByPoDateDesc(List<UUID> storeIds);
 
     @EntityGraph(attributePaths = {"supplier", "createdBy", "store"})
     @Query("select po from PurchaseOrder po where po.store.storeId = :storeId order by po.poDate desc")

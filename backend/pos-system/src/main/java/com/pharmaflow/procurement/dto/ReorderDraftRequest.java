@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
@@ -22,4 +23,8 @@ public class ReorderDraftRequest {
     @NotNull
     @Min(1)
     private Integer quantity;
+
+    private LocalDate expectedDeliveryDate;
+
+    private String notes;
 }

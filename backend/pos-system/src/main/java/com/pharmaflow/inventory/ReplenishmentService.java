@@ -16,6 +16,8 @@ import com.pharmaflow.medicine.MedicineRepository;
 import com.pharmaflow.procurement.PharmaSupplierRepository;
 import com.pharmaflow.procurement.PurchaseOrderItem;
 import com.pharmaflow.procurement.PurchaseOrderItemRepository;
+import com.pharmaflow.procurement.PurchaseOrderPlanLine;
+import com.pharmaflow.procurement.PurchaseOrderPlanLineRepository;
 import com.pharmaflow.procurement.Supplier;
 import com.pharmaflow.store.Store;
 import com.pharmaflow.store.StoreRepository;
@@ -47,6 +49,7 @@ public class ReplenishmentService {
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransferRepository stockTransferRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+    private final PurchaseOrderPlanLineRepository purchaseOrderPlanLineRepository;
     private final InvoiceItemRepository invoiceItemRepository;
     private final MedicineRepository medicineRepository;
     private final PharmaSupplierRepository supplierRepository;
@@ -373,6 +376,23 @@ public class ReplenishmentService {
                 .findFirst()
                 .orElse(null);
 
+        PurchaseOrderPlanLine recentPlanLine = purchaseOrderPlanLineRepository.findRecentByTenantAndMedicine(
+                        targetStore.getTenant().getTenantId(),
+                        medicine.getMedicineId(),
+                        PageRequest.of(0, 1)
+                )
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        if (isMoreRecentPlanLine(recentPlanLine, recentItem) && recentPlanLine != null && recentPlanLine.getPurchaseOrder() != null
+                && recentPlanLine.getPurchaseOrder().getSupplier() != null) {
+            return new SupplierInfo(
+                    recentPlanLine.getPurchaseOrder().getSupplier(),
+                    recentPlanLine.getPurchaseRate()
+            );
+        }
+
         if (recentItem != null && recentItem.getPurchaseOrder() != null && recentItem.getPurchaseOrder().getSupplier() != null) {
             return new SupplierInfo(
                     recentItem.getPurchaseOrder().getSupplier(),
@@ -390,6 +410,22 @@ public class ReplenishmentService {
                 : medicine.getPts() != null ? medicine.getPts() : medicine.getMrp();
 
         return new SupplierInfo(fallbackSupplier, purchaseRate);
+    }
+
+    private boolean isMoreRecentPlanLine(PurchaseOrderPlanLine recentPlanLine, PurchaseOrderItem recentItem) {
+        if (recentPlanLine == null) {
+            return false;
+        }
+        if (recentItem == null) {
+            return true;
+        }
+        if (recentPlanLine.getPurchaseOrder() == null || recentPlanLine.getPurchaseOrder().getPoDate() == null) {
+            return false;
+        }
+        if (recentItem.getPurchaseOrder() == null || recentItem.getPurchaseOrder().getPoDate() == null) {
+            return true;
+        }
+        return !recentPlanLine.getPurchaseOrder().getPoDate().isBefore(recentItem.getPurchaseOrder().getPoDate());
     }
 
     private void ensureRelevantMedicines(Store targetStore, Map<UUID, StoreMedicineSnapshot> targetStock) {
