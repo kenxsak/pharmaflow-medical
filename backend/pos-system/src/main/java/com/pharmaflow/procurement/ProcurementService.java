@@ -12,6 +12,7 @@ import com.pharmaflow.procurement.dto.ReorderDraftResponse;
 import com.pharmaflow.procurement.dto.SupplierCreateRequest;
 import com.pharmaflow.procurement.dto.SupplierResponse;
 import com.pharmaflow.store.Store;
+import com.pharmaflow.store.StoreRepository;
 import com.pharmaflow.store.StoreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,6 +41,7 @@ public class ProcurementService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final PurchaseOrderPlanLineRepository purchaseOrderPlanLineRepository;
     private final MedicineRepository medicineRepository;
+    private final StoreRepository storeRepository;
     private final StoreService storeService;
     private final CurrentPharmaUserService currentPharmaUserService;
     private final AuditLogService auditLogService;
@@ -74,6 +77,7 @@ public class ProcurementService {
                         .gstin(trim(request.getGstin()))
                         .drugLicense(trim(request.getDrugLicense()))
                         .address(trim(request.getAddress()))
+                        .defaultLeadTimeDays(normalizeLeadTimeDays(request.getDefaultLeadTimeDays()))
                         .isActive(true)
                         .build()
         );
@@ -148,6 +152,10 @@ public class ProcurementService {
 
         Supplier supplier = resolveSupplier(store, medicine, request.getSupplierId());
         BigDecimal purchaseRate = resolvePurchaseRate(store, medicine);
+        SupplierMetrics supplierMetrics = buildSupplierMetrics(resolveTenantStoreIds(store)).get(
+                supplier != null ? supplier.getSupplierId() : null
+        );
+        int supplierLeadTimeDays = resolveEffectiveLeadTimeDays(supplier, supplierMetrics);
         BigDecimal lineSubtotal = purchaseRate.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP);
         BigDecimal gstRate = safe(medicine.getGstRate());
         BigDecimal totalGst = lineSubtotal.multiply(gstRate)
@@ -155,7 +163,7 @@ public class ProcurementService {
         BigDecimal halfGst = totalGst.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
         LocalDate expectedDeliveryDate = request.getExpectedDeliveryDate() != null
                 ? request.getExpectedDeliveryDate()
-                : LocalDate.now().plusDays(2);
+                : LocalDate.now().plusDays(supplierLeadTimeDays);
         String notes = trim(request.getNotes());
         if (notes == null) {
             notes = "Created from replenishment desk";
@@ -219,6 +227,7 @@ public class ProcurementService {
                 .brandName(medicine.getBrandName())
                 .supplierId(supplier != null ? supplier.getSupplierId() : null)
                 .supplierName(supplier != null ? supplier.getName() : null)
+                .supplierLeadTimeDays(supplierLeadTimeDays)
                 .quantity(quantity)
                 .itemCount(1)
                 .purchaseRate(purchaseRate)
@@ -240,6 +249,11 @@ public class ProcurementService {
                 .gstin(supplier.getGstin())
                 .drugLicense(supplier.getDrugLicense())
                 .address(supplier.getAddress())
+                .defaultLeadTimeDays(normalizeLeadTimeDays(supplier.getDefaultLeadTimeDays()))
+                .observedLeadTimeDays(metrics != null ? metrics.getObservedLeadTimeDays() : null)
+                .effectiveLeadTimeDays(resolveEffectiveLeadTimeDays(supplier, metrics))
+                .leadTimeSampleCount(metrics != null ? metrics.leadTimeSampleCount : 0)
+                .lastLeadTimeDays(metrics != null ? metrics.lastLeadTimeDays : null)
                 .openPurchaseOrderCount(metrics != null ? metrics.openPurchaseOrderCount : 0)
                 .receivedPurchaseOrderCount(metrics != null ? metrics.receivedPurchaseOrderCount : 0)
                 .lastOrderDate(metrics != null ? metrics.lastOrderDate : null)
@@ -270,6 +284,12 @@ public class ProcurementService {
                         : purchaseOrder.getPoDate();
                 metrics.lastReceiptDate = max(metrics.lastReceiptDate, receiptDate);
                 metrics.receivedValue = safe(metrics.receivedValue).add(safe(purchaseOrder.getTotalAmount()));
+                Integer leadTimeDays = calculateLeadTimeDays(purchaseOrder.getPoDate(), receiptDate);
+                if (leadTimeDays != null) {
+                    metrics.leadTimeDayTotal += leadTimeDays;
+                    metrics.leadTimeSampleCount++;
+                    metrics.lastLeadTimeDays = leadTimeDays;
+                }
             } else if (!"CANCELLED".equalsIgnoreCase(purchaseOrder.getStatus())) {
                 metrics.openPurchaseOrderCount++;
             }
@@ -429,6 +449,43 @@ public class ProcurementService {
         return candidate;
     }
 
+    private List<UUID> resolveTenantStoreIds(Store store) {
+        if (store == null || store.getTenant() == null || store.getTenant().getTenantId() == null) {
+            return List.of();
+        }
+        return storeRepository.findAllByTenantTenantIdAndIsActiveTrueOrderByStoreNameAsc(store.getTenant().getTenantId())
+                .stream()
+                .map(Store::getStoreId)
+                .collect(Collectors.toList());
+    }
+
+    private Integer normalizeLeadTimeDays(Integer value) {
+        if (value == null || value <= 0) {
+            return null;
+        }
+        return value;
+    }
+
+    private Integer calculateLeadTimeDays(LocalDateTime orderedAt, LocalDateTime receivedAt) {
+        if (orderedAt == null || receivedAt == null) {
+            return null;
+        }
+        long days = ChronoUnit.DAYS.between(orderedAt.toLocalDate(), receivedAt.toLocalDate());
+        return (int) Math.max(days, 0);
+    }
+
+    private int resolveEffectiveLeadTimeDays(Supplier supplier, SupplierMetrics metrics) {
+        Integer configured = supplier != null ? normalizeLeadTimeDays(supplier.getDefaultLeadTimeDays()) : null;
+        if (configured != null) {
+            return configured;
+        }
+        Integer observed = metrics != null ? metrics.getObservedLeadTimeDays() : null;
+        if (observed != null && observed > 0) {
+            return observed;
+        }
+        return 2;
+    }
+
     private BigDecimal safe(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
     }
@@ -449,6 +506,16 @@ public class ProcurementService {
         private LocalDateTime lastOrderDate;
         private LocalDateTime lastReceiptDate;
         private BigDecimal receivedValue = BigDecimal.ZERO;
+        private int leadTimeSampleCount;
+        private int leadTimeDayTotal;
+        private Integer lastLeadTimeDays;
+
+        private Integer getObservedLeadTimeDays() {
+            if (leadTimeSampleCount <= 0) {
+                return null;
+            }
+            return (int) Math.round((double) leadTimeDayTotal / (double) leadTimeSampleCount);
+        }
     }
 
     private static final class LineSummary {

@@ -355,6 +355,16 @@ export interface ReplenishmentRecommendation {
   recommendedOrderQuantityStrips: number;
   supplierId?: string;
   supplierName?: string;
+  supplierLeadTimeDays?: number;
+  observedLeadTimeDays?: number;
+  daysOfCover?: number;
+  recentReceiptCount?: number;
+  recentTransferInCount?: number;
+  recentTransferOutCount?: number;
+  averageDailyDemand?: number;
+  suggestedOrderDate?: string;
+  expectedDeliveryDate?: string;
+  planningReason?: string;
   lastPurchaseRate?: number;
   mrp?: number;
   gstRate?: number;
@@ -429,6 +439,7 @@ export interface ReorderDraftResponse {
   brandName: string;
   supplierId?: string;
   supplierName?: string;
+  supplierLeadTimeDays?: number;
   quantity: number;
   itemCount?: number;
   purchaseRate: number;
@@ -525,6 +536,11 @@ export interface SupplierSummary {
   gstin?: string;
   drugLicense?: string;
   address?: string;
+  defaultLeadTimeDays?: number;
+  observedLeadTimeDays?: number;
+  effectiveLeadTimeDays?: number;
+  leadTimeSampleCount?: number;
+  lastLeadTimeDays?: number;
   openPurchaseOrderCount?: number;
   receivedPurchaseOrderCount?: number;
   lastOrderDate?: string;
@@ -540,6 +556,7 @@ export interface SupplierCreateRequest {
   gstin?: string;
   drugLicense?: string;
   address?: string;
+  defaultLeadTimeDays?: number;
 }
 
 export interface PurchaseImportRow {

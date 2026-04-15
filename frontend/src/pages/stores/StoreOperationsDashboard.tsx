@@ -234,6 +234,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
         medicineId: recommendation.medicineId,
         supplierId: recommendation.supplierId,
         quantity,
+        expectedDeliveryDate: recommendation.expectedDeliveryDate,
         notes: `Created from replenishment desk for ${recommendation.targetStoreCode}`,
       });
       setActionMessage(
@@ -766,12 +767,51 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                           </span>
                         </div>
                         <div>
+                          Lead time / observed:{' '}
+                          <span className="font-medium text-slate-900">
+                            {recommendation.supplierLeadTimeDays ? `${recommendation.supplierLeadTimeDays} day(s)` : '—'}
+                            {recommendation.observedLeadTimeDays != null
+                              ? recommendation.observedLeadTimeDays === 0
+                                ? ' • same-day observed'
+                                : ` • observed ${recommendation.observedLeadTimeDays} day(s)`
+                              : ''}
+                          </span>
+                        </div>
+                        <div>
+                          Demand / cover:{' '}
+                          <span className="font-medium text-slate-900">
+                            {recommendation.averageDailyDemand != null
+                              ? `${recommendation.averageDailyDemand.toFixed(2)} pack/day`
+                              : '—'}
+                            {recommendation.daysOfCover != null ? ` • ${recommendation.daysOfCover} day(s) cover` : ''}
+                          </span>
+                        </div>
+                        <div>
+                          Order by / ETA:{' '}
+                          <span className="font-medium text-slate-900">
+                            {formatDate(recommendation.suggestedOrderDate)} • {formatDate(recommendation.expectedDeliveryDate)}
+                          </span>
+                        </div>
+                        <div>
+                          Recent receipts / transfers:{' '}
+                          <span className="font-medium text-slate-900">
+                            {recommendation.recentReceiptCount || 0} receipt(s) • in {recommendation.recentTransferInCount || 0} • out{' '}
+                            {recommendation.recentTransferOutCount || 0}
+                          </span>
+                        </div>
+                        <div>
                           Nearest expiry in target store:{' '}
                           <span className="font-medium text-slate-900">
                             {formatDate(recommendation.nearestExpiryDate)}
                           </span>
                         </div>
                       </div>
+
+                      {recommendation.planningReason && (
+                        <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+                          {recommendation.planningReason}
+                        </div>
+                      )}
 
                       <button
                         type="button"

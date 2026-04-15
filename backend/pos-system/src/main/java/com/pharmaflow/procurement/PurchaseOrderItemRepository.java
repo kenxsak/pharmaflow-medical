@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,4 +47,16 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
     List<PurchaseOrderItem> findRecentByTenantAndMedicine(@Param("tenantId") UUID tenantId,
                                                           @Param("medicineId") UUID medicineId,
                                                           Pageable pageable);
+
+    @Query("select poi from PurchaseOrderItem poi " +
+            "join fetch poi.purchaseOrder po " +
+            "join fetch po.store st " +
+            "left join fetch po.supplier s " +
+            "left join fetch poi.medicine m " +
+            "where st.storeId in :storeIds " +
+            "and po.receivedAt is not null " +
+            "and po.receivedAt >= :start and po.receivedAt < :end")
+    List<PurchaseOrderItem> findReceivedForStoresBetween(@Param("storeIds") List<UUID> storeIds,
+                                                         @Param("start") LocalDateTime start,
+                                                         @Param("end") LocalDateTime end);
 }

@@ -3,6 +3,7 @@ package com.pharmaflow.inventory;
 import com.pharmaflow.audit.AuditLogService;
 import com.pharmaflow.auth.CurrentPharmaUserService;
 import com.pharmaflow.auth.PharmaUser;
+import com.pharmaflow.billing.InvoiceItem;
 import com.pharmaflow.billing.InvoiceItemRepository;
 import com.pharmaflow.common.BusinessRuleException;
 import com.pharmaflow.common.ForbiddenActionException;
@@ -14,10 +15,12 @@ import com.pharmaflow.inventory.dto.TransferRecommendationResponse;
 import com.pharmaflow.medicine.Medicine;
 import com.pharmaflow.medicine.MedicineRepository;
 import com.pharmaflow.procurement.PharmaSupplierRepository;
+import com.pharmaflow.procurement.PurchaseOrder;
 import com.pharmaflow.procurement.PurchaseOrderItem;
 import com.pharmaflow.procurement.PurchaseOrderItemRepository;
 import com.pharmaflow.procurement.PurchaseOrderPlanLine;
 import com.pharmaflow.procurement.PurchaseOrderPlanLineRepository;
+import com.pharmaflow.procurement.PurchaseOrderRepository;
 import com.pharmaflow.procurement.Supplier;
 import com.pharmaflow.store.Store;
 import com.pharmaflow.store.StoreRepository;
@@ -33,6 +36,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -49,6 +53,7 @@ public class ReplenishmentService {
 
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransferRepository stockTransferRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final PurchaseOrderPlanLineRepository purchaseOrderPlanLineRepository;
     private final InvoiceItemRepository invoiceItemRepository;
@@ -82,9 +87,26 @@ public class ReplenishmentService {
             targetStores = accessibleStores;
         }
 
+        List<UUID> accessibleStoreIds = accessibleStores.stream()
+                .map(Store::getStoreId)
+                .collect(Collectors.toList());
+
         List<InventoryBatch> activeBatches = inventoryBatchRepository.findActiveStockForStores(
-                accessibleStores.stream().map(Store::getStoreId).collect(Collectors.toList())
+                accessibleStoreIds
         );
+        LocalDateTime demandWindowStart = today.minusDays(30).atStartOfDay();
+        LocalDateTime supplyWindowStart = today.minusDays(90).atStartOfDay();
+        LocalDateTime dayEnd = today.plusDays(1).atStartOfDay();
+
+        Map<UUID, Map<UUID, MovementStats>> movementByStore = buildMovementStats(
+                invoiceItemRepository.findForStoresBetween(accessibleStoreIds, demandWindowStart, dayEnd),
+                purchaseOrderItemRepository.findReceivedForStoresBetween(accessibleStoreIds, supplyWindowStart, dayEnd),
+                stockTransferRepository.findByStoreIds(accessibleStoreIds, null),
+                demandWindowStart,
+                supplyWindowStart,
+                dayEnd
+        );
+        Map<UUID, SupplierMetrics> supplierMetricsById = buildSupplierMetrics(accessibleStoreIds);
 
         Map<UUID, Map<UUID, StoreMedicineSnapshot>> stockByStore = buildStockByStore(activeBatches, today);
         List<ReplenishmentRecommendationResponse> recommendations = new ArrayList<>();
@@ -93,14 +115,22 @@ public class ReplenishmentService {
             Map<UUID, StoreMedicineSnapshot> targetStock = new LinkedHashMap<>(
                     stockByStore.getOrDefault(targetStore.getStoreId(), Map.of())
             );
-            ensureRelevantMedicines(targetStore, targetStock);
+            ensureRelevantMedicines(
+                    targetStore,
+                    targetStock,
+                    movementByStore.getOrDefault(targetStore.getStoreId(), Map.of()).keySet()
+            );
             for (StoreMedicineSnapshot snapshot : targetStock.values()) {
-                if (!isShortage(snapshot)) {
-                    continue;
-                }
+                MovementStats movementStats = movementByStore
+                        .getOrDefault(targetStore.getStoreId(), Map.of())
+                        .getOrDefault(snapshot.medicine.getMedicineId(), new MovementStats());
 
-                int shortageQty = Math.max(snapshot.reorderLevel - snapshot.totalStrips, 0);
-                if (shortageQty <= 0) {
+                SupplierInfo supplierInfo = resolveSupplierInfo(targetStore, snapshot.medicine, supplierMetricsById);
+                int targetStockLevel = calculateTargetStockLevel(snapshot, movementStats, supplierInfo.effectiveLeadTimeDays);
+                int shortageQty = Math.max(targetStockLevel - snapshot.totalStrips, 0);
+                Integer daysOfCover = calculateDaysOfCover(snapshot.totalStrips, movementStats.averageDailyDemand);
+
+                if (!shouldRecommend(snapshot, shortageQty, daysOfCover, supplierInfo.effectiveLeadTimeDays)) {
                     continue;
                 }
 
@@ -117,11 +147,9 @@ public class ReplenishmentService {
                         .sum();
                 int recommendedTransferQty = Math.min(shortageQty, transferQty);
                 int recommendedOrderQty = Math.max(shortageQty - recommendedTransferQty, 0);
-
-                SupplierInfo supplierInfo = resolveSupplierInfo(targetStore, snapshot.medicine);
-                String preferredAction = recommendedTransferQty > 0 && recommendedOrderQty > 0
-                        ? "HYBRID"
-                        : recommendedTransferQty > 0 ? "TRANSFER" : "REORDER";
+                String preferredAction = resolvePreferredAction(recommendedTransferQty, recommendedOrderQty, movementStats);
+                LocalDate suggestedOrderDate = resolveSuggestedOrderDate(today, daysOfCover, supplierInfo.effectiveLeadTimeDays);
+                LocalDate expectedDeliveryDate = suggestedOrderDate.plusDays(Math.max(supplierInfo.effectiveLeadTimeDays, 0));
 
                 BigDecimal estimatedOrderValue = recommendedOrderQty > 0
                         ? safe(supplierInfo.purchaseRate).multiply(BigDecimal.valueOf(recommendedOrderQty)).setScale(2, RoundingMode.HALF_UP)
@@ -140,7 +168,7 @@ public class ReplenishmentService {
                         .medicineForm(snapshot.medicine.getMedicineForm())
                         .packSize(snapshot.medicine.getPackSize())
                         .packSizeLabel(snapshot.medicine.getPackSizeLabel())
-                        .reorderLevel(snapshot.reorderLevel)
+                        .reorderLevel(targetStockLevel)
                         .currentQuantityStrips(snapshot.totalStrips)
                         .shortageQuantityStrips(shortageQty)
                         .nearestExpiryDate(snapshot.nearestExpiryDate)
@@ -149,6 +177,16 @@ public class ReplenishmentService {
                         .recommendedOrderQuantityStrips(recommendedOrderQty)
                         .supplierId(supplierInfo.supplier != null ? supplierInfo.supplier.getSupplierId() : null)
                         .supplierName(supplierInfo.supplier != null ? supplierInfo.supplier.getName() : null)
+                        .supplierLeadTimeDays(supplierInfo.effectiveLeadTimeDays)
+                        .observedLeadTimeDays(supplierInfo.observedLeadTimeDays)
+                        .daysOfCover(daysOfCover)
+                        .recentReceiptCount(movementStats.recentReceiptCount)
+                        .recentTransferInCount(movementStats.transferInCount)
+                        .recentTransferOutCount(movementStats.transferOutCount)
+                        .averageDailyDemand(scale(movementStats.averageDailyDemand))
+                        .suggestedOrderDate(suggestedOrderDate)
+                        .expectedDeliveryDate(expectedDeliveryDate)
+                        .planningReason(buildPlanningReason(movementStats, daysOfCover, supplierInfo, preferredAction))
                         .lastPurchaseRate(scale(supplierInfo.purchaseRate))
                         .mrp(scale(safe(snapshot.medicine.getMrp())))
                         .gstRate(scale(safe(snapshot.medicine.getGstRate())))
@@ -704,7 +742,166 @@ public class ReplenishmentService {
                 .build();
     }
 
-    private SupplierInfo resolveSupplierInfo(Store targetStore, Medicine medicine) {
+    private Map<UUID, Map<UUID, MovementStats>> buildMovementStats(
+            List<InvoiceItem> invoiceItems,
+            List<PurchaseOrderItem> purchaseItems,
+            List<StockTransfer> transfers,
+            LocalDateTime demandWindowStart,
+            LocalDateTime supplyWindowStart,
+            LocalDateTime dayEnd
+    ) {
+        Map<UUID, Map<UUID, MovementStats>> movementByStore = new LinkedHashMap<>();
+
+        for (InvoiceItem invoiceItem : invoiceItems) {
+            if (invoiceItem.getInvoice() == null
+                    || invoiceItem.getInvoice().getStore() == null
+                    || invoiceItem.getInvoice().getStore().getStoreId() == null
+                    || invoiceItem.getMedicine() == null
+                    || invoiceItem.getMedicine().getMedicineId() == null) {
+                continue;
+            }
+
+            LocalDateTime invoiceDate = invoiceItem.getInvoice().getInvoiceDate() != null
+                    ? invoiceItem.getInvoice().getInvoiceDate()
+                    : invoiceItem.getInvoice().getCreatedAt();
+            if (invoiceDate == null || invoiceDate.isBefore(demandWindowStart) || !invoiceDate.isBefore(dayEnd)) {
+                continue;
+            }
+
+            MovementStats stats = getMovementStats(
+                    movementByStore,
+                    invoiceItem.getInvoice().getStore().getStoreId(),
+                    invoiceItem.getMedicine().getMedicineId()
+            );
+            stats.totalDemandPacks = stats.totalDemandPacks.add(toPackEquivalent(invoiceItem));
+        }
+
+        for (PurchaseOrderItem purchaseItem : purchaseItems) {
+            if (purchaseItem.getPurchaseOrder() == null
+                    || purchaseItem.getPurchaseOrder().getStore() == null
+                    || purchaseItem.getPurchaseOrder().getStore().getStoreId() == null
+                    || purchaseItem.getMedicine() == null
+                    || purchaseItem.getMedicine().getMedicineId() == null) {
+                continue;
+            }
+
+            LocalDateTime receiptTime = purchaseItem.getPurchaseOrder().getReceivedAt() != null
+                    ? purchaseItem.getPurchaseOrder().getReceivedAt()
+                    : purchaseItem.getPurchaseOrder().getPoDate();
+            if (receiptTime == null || receiptTime.isBefore(supplyWindowStart) || !receiptTime.isBefore(dayEnd)) {
+                continue;
+            }
+
+            MovementStats stats = getMovementStats(
+                    movementByStore,
+                    purchaseItem.getPurchaseOrder().getStore().getStoreId(),
+                    purchaseItem.getMedicine().getMedicineId()
+            );
+            if (purchaseItem.getPurchaseOrder().getPoId() != null
+                    && stats.receiptOrderIds.add(purchaseItem.getPurchaseOrder().getPoId())) {
+                stats.recentReceiptCount++;
+            }
+            stats.receiptQuantityPacks = stats.receiptQuantityPacks.add(toPackEquivalent(purchaseItem));
+        }
+
+        for (StockTransfer transfer : transfers) {
+            if (!"RECEIVED".equalsIgnoreCase(transfer.getStatus()) || transfer.getMedicine() == null
+                    || transfer.getMedicine().getMedicineId() == null) {
+                continue;
+            }
+
+            LocalDateTime movementTime = transfer.getCompletedAt() != null
+                    ? transfer.getCompletedAt()
+                    : transfer.getDispatchedAt() != null ? transfer.getDispatchedAt() : transfer.getCreatedAt();
+            if (movementTime == null || movementTime.isBefore(supplyWindowStart) || !movementTime.isBefore(dayEnd)) {
+                continue;
+            }
+
+            BigDecimal transferPacks = toPackEquivalent(
+                    transfer.getQuantityStrips(),
+                    transfer.getQuantityLoose(),
+                    transfer.getMedicine()
+            );
+
+            if (transfer.getToStore() != null && transfer.getToStore().getStoreId() != null) {
+                MovementStats inboundStats = getMovementStats(
+                        movementByStore,
+                        transfer.getToStore().getStoreId(),
+                        transfer.getMedicine().getMedicineId()
+                );
+                if (inboundStats.transferInIds.add(transfer.getTransferId())) {
+                    inboundStats.transferInCount++;
+                }
+                inboundStats.transferInQuantityPacks = inboundStats.transferInQuantityPacks.add(transferPacks);
+            }
+
+            if (transfer.getFromStore() != null && transfer.getFromStore().getStoreId() != null) {
+                MovementStats outboundStats = getMovementStats(
+                        movementByStore,
+                        transfer.getFromStore().getStoreId(),
+                        transfer.getMedicine().getMedicineId()
+                );
+                if (outboundStats.transferOutIds.add(transfer.getTransferId())) {
+                    outboundStats.transferOutCount++;
+                }
+                outboundStats.transferOutQuantityPacks = outboundStats.transferOutQuantityPacks.add(transferPacks);
+                if (!movementTime.isBefore(demandWindowStart)) {
+                    outboundStats.totalDemandPacks = outboundStats.totalDemandPacks.add(transferPacks);
+                }
+            }
+        }
+
+        int demandDays = Math.max(1, (int) ChronoUnit.DAYS.between(demandWindowStart.toLocalDate(), dayEnd.toLocalDate()));
+        movementByStore.values().forEach(byMedicine ->
+                byMedicine.values().forEach(stats -> {
+                    if (stats.totalDemandPacks.compareTo(BigDecimal.ZERO) > 0) {
+                        stats.averageDailyDemand = stats.totalDemandPacks
+                                .divide(BigDecimal.valueOf(demandDays), 4, RoundingMode.HALF_UP);
+                    }
+                })
+        );
+
+        return movementByStore;
+    }
+
+    private MovementStats getMovementStats(Map<UUID, Map<UUID, MovementStats>> movementByStore,
+                                           UUID storeId,
+                                           UUID medicineId) {
+        Map<UUID, MovementStats> byMedicine = movementByStore.computeIfAbsent(storeId, ignored -> new LinkedHashMap<>());
+        return byMedicine.computeIfAbsent(medicineId, ignored -> new MovementStats());
+    }
+
+    private Map<UUID, SupplierMetrics> buildSupplierMetrics(List<UUID> accessibleStoreIds) {
+        if (accessibleStoreIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, SupplierMetrics> metricsBySupplier = new LinkedHashMap<>();
+        for (PurchaseOrder purchaseOrder : purchaseOrderRepository.findByStoreStoreIdInOrderByPoDateDesc(accessibleStoreIds)) {
+            if (purchaseOrder.getSupplier() == null || purchaseOrder.getSupplier().getSupplierId() == null) {
+                continue;
+            }
+
+            SupplierMetrics metrics = metricsBySupplier.computeIfAbsent(
+                    purchaseOrder.getSupplier().getSupplierId(),
+                    ignored -> new SupplierMetrics()
+            );
+            Integer leadTimeDays = calculateLeadTimeDays(
+                    purchaseOrder.getPoDate(),
+                    purchaseOrder.getReceivedAt() != null ? purchaseOrder.getReceivedAt() : purchaseOrder.getPoDate()
+            );
+            if ("RECEIVED".equalsIgnoreCase(purchaseOrder.getStatus()) && leadTimeDays != null) {
+                metrics.leadTimeDayTotal += leadTimeDays;
+                metrics.leadTimeSampleCount++;
+                metrics.lastLeadTimeDays = leadTimeDays;
+            }
+        }
+        return metricsBySupplier;
+    }
+
+    private SupplierInfo resolveSupplierInfo(Store targetStore,
+                                             Medicine medicine,
+                                             Map<UUID, SupplierMetrics> supplierMetricsById) {
         PurchaseOrderItem recentItem = purchaseOrderItemRepository.findRecentByTenantAndMedicine(
                         targetStore.getTenant().getTenantId(),
                         medicine.getMedicineId(),
@@ -723,31 +920,36 @@ public class ReplenishmentService {
                 .findFirst()
                 .orElse(null);
 
+        Supplier supplier = null;
+        BigDecimal purchaseRate = null;
+
         if (isMoreRecentPlanLine(recentPlanLine, recentItem) && recentPlanLine != null && recentPlanLine.getPurchaseOrder() != null
                 && recentPlanLine.getPurchaseOrder().getSupplier() != null) {
-            return new SupplierInfo(
-                    recentPlanLine.getPurchaseOrder().getSupplier(),
-                    recentPlanLine.getPurchaseRate()
-            );
+            supplier = recentPlanLine.getPurchaseOrder().getSupplier();
+            purchaseRate = recentPlanLine.getPurchaseRate();
+        } else if (recentItem != null && recentItem.getPurchaseOrder() != null && recentItem.getPurchaseOrder().getSupplier() != null) {
+            supplier = recentItem.getPurchaseOrder().getSupplier();
+            purchaseRate = recentItem.getPurchaseRate();
         }
 
-        if (recentItem != null && recentItem.getPurchaseOrder() != null && recentItem.getPurchaseOrder().getSupplier() != null) {
-            return new SupplierInfo(
-                    recentItem.getPurchaseOrder().getSupplier(),
-                    recentItem.getPurchaseRate()
-            );
+        if (supplier == null) {
+            supplier = supplierRepository.findAllByIsActiveTrueOrderByNameAsc()
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
         }
 
-        Supplier fallbackSupplier = supplierRepository.findAllByIsActiveTrueOrderByNameAsc()
-                .stream()
-                .findFirst()
-                .orElse(null);
-
-        BigDecimal purchaseRate = medicine.getPtr() != null
+        if (purchaseRate == null) {
+            purchaseRate = medicine.getPtr() != null
                 ? medicine.getPtr()
                 : medicine.getPts() != null ? medicine.getPts() : medicine.getMrp();
+        }
 
-        return new SupplierInfo(fallbackSupplier, purchaseRate);
+        SupplierMetrics supplierMetrics = supplier != null ? supplierMetricsById.get(supplier.getSupplierId()) : null;
+        Integer observedLeadTimeDays = supplierMetrics != null ? supplierMetrics.getObservedLeadTimeDays() : null;
+        int effectiveLeadTimeDays = resolveEffectiveLeadTimeDays(supplier, supplierMetrics);
+
+        return new SupplierInfo(supplier, purchaseRate, observedLeadTimeDays, effectiveLeadTimeDays);
     }
 
     private boolean isMoreRecentPlanLine(PurchaseOrderPlanLine recentPlanLine, PurchaseOrderItem recentItem) {
@@ -766,16 +968,181 @@ public class ReplenishmentService {
         return !recentPlanLine.getPurchaseOrder().getPoDate().isBefore(recentItem.getPurchaseOrder().getPoDate());
     }
 
-    private void ensureRelevantMedicines(Store targetStore, Map<UUID, StoreMedicineSnapshot> targetStock) {
+    private int calculateTargetStockLevel(StoreMedicineSnapshot snapshot,
+                                          MovementStats movementStats,
+                                          int effectiveLeadTimeDays) {
+        int baseline = Math.max(snapshot.reorderLevel, 0);
+        if (movementStats.averageDailyDemand.compareTo(BigDecimal.ZERO) <= 0) {
+            return baseline;
+        }
+
+        int safetyDays = movementStats.recentReceiptCount > 0 || movementStats.transferInCount > 0 ? 3 : 5;
+        int planningDays = Math.max(effectiveLeadTimeDays, 1) + safetyDays;
+        int demandDrivenLevel = movementStats.averageDailyDemand
+                .multiply(BigDecimal.valueOf(planningDays))
+                .setScale(0, RoundingMode.CEILING)
+                .intValue();
+
+        return Math.max(baseline, demandDrivenLevel);
+    }
+
+    private Integer calculateDaysOfCover(int currentQuantityStrips, BigDecimal averageDailyDemand) {
+        if (averageDailyDemand == null || averageDailyDemand.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        if (currentQuantityStrips <= 0) {
+            return 0;
+        }
+        return BigDecimal.valueOf(currentQuantityStrips)
+                .divide(averageDailyDemand, 0, RoundingMode.DOWN)
+                .intValue();
+    }
+
+    private boolean shouldRecommend(StoreMedicineSnapshot snapshot,
+                                    int shortageQty,
+                                    Integer daysOfCover,
+                                    int effectiveLeadTimeDays) {
+        if (shortageQty > 0) {
+            return true;
+        }
+        if (snapshot.totalStrips <= 0 && snapshot.reorderLevel > 0) {
+            return true;
+        }
+        return daysOfCover != null && daysOfCover <= Math.max(effectiveLeadTimeDays + 2, 5);
+    }
+
+    private String resolvePreferredAction(int recommendedTransferQty,
+                                          int recommendedOrderQty,
+                                          MovementStats movementStats) {
+        if (recommendedTransferQty > 0 && recommendedOrderQty > 0) {
+            return "HYBRID";
+        }
+        if (recommendedTransferQty > 0) {
+            return "TRANSFER";
+        }
+        if (recommendedOrderQty > 0) {
+            return movementStats.transferOutCount > movementStats.recentReceiptCount ? "PURCHASE" : "PURCHASE";
+        }
+        return "MONITOR";
+    }
+
+    private LocalDate resolveSuggestedOrderDate(LocalDate today, Integer daysOfCover, int effectiveLeadTimeDays) {
+        if (daysOfCover == null) {
+            return today;
+        }
+        int leadTimeDays = Math.max(effectiveLeadTimeDays, 1);
+        if (daysOfCover <= leadTimeDays) {
+            return today;
+        }
+        return today.plusDays(daysOfCover - leadTimeDays);
+    }
+
+    private String buildPlanningReason(MovementStats movementStats,
+                                       Integer daysOfCover,
+                                       SupplierInfo supplierInfo,
+                                       String preferredAction) {
+        String demandPart = movementStats.averageDailyDemand.compareTo(BigDecimal.ZERO) > 0
+                ? "Rolling demand is " + scale(movementStats.averageDailyDemand).stripTrailingZeros().toPlainString() + " pack/day"
+                : "No recent sales or donor movement is recorded";
+        String coverPart = daysOfCover != null
+                ? "current stock covers about " + daysOfCover + " day(s)"
+                : "days of cover are still forming";
+        String supplierPart = supplierInfo.supplier != null
+                ? supplierInfo.supplier.getName() + " is the preferred supplier with "
+                + supplierInfo.effectiveLeadTimeDays + " day lead time"
+                + (supplierInfo.observedLeadTimeDays != null
+                ? (supplierInfo.observedLeadTimeDays == 0 ? " (same-day receipts observed)" : " (" + supplierInfo.observedLeadTimeDays + " observed)")
+                : "")
+                : "no preferred supplier is linked yet";
+        String movementPart = "recent supply shows "
+                + movementStats.recentReceiptCount + " receipt(s), "
+                + movementStats.transferInCount + " inbound transfer(s), and "
+                + movementStats.transferOutCount + " outbound transfer(s)";
+        return demandPart + "; " + coverPart + "; " + supplierPart + "; " + movementPart
+                + ". Recommended action: " + preferredAction.toLowerCase() + ".";
+    }
+
+    private void ensureRelevantMedicines(Store targetStore,
+                                         Map<UUID, StoreMedicineSnapshot> targetStock,
+                                         Iterable<UUID> extraMedicineIds) {
         LinkedHashSet<UUID> relevantMedicineIds = new LinkedHashSet<>(targetStock.keySet());
         relevantMedicineIds.addAll(purchaseOrderItemRepository.findDistinctMedicineIdsByStoreId(targetStore.getStoreId()));
         relevantMedicineIds.addAll(invoiceItemRepository.findDistinctMedicineIdsByStoreId(targetStore.getStoreId()));
+        if (extraMedicineIds != null) {
+            for (UUID medicineId : extraMedicineIds) {
+                if (medicineId != null) {
+                    relevantMedicineIds.add(medicineId);
+                }
+            }
+        }
 
         medicineRepository.findAllById(relevantMedicineIds)
                 .forEach(medicine -> targetStock.computeIfAbsent(
                         medicine.getMedicineId(),
                         ignored -> new StoreMedicineSnapshot(targetStore, medicine)
                 ));
+    }
+
+    private BigDecimal toPackEquivalent(InvoiceItem invoiceItem) {
+        int packSize = invoiceItem.getPackSizeSnapshot() != null && invoiceItem.getPackSizeSnapshot() > 0
+                ? invoiceItem.getPackSizeSnapshot()
+                : safePackSize(invoiceItem.getMedicine());
+        return toPackEquivalent(invoiceItem.getQuantity(), invoiceItem.getUnitType(), packSize);
+    }
+
+    private BigDecimal toPackEquivalent(PurchaseOrderItem purchaseOrderItem) {
+        int packSize = safePackSize(purchaseOrderItem.getMedicine());
+        int totalLooseUnits = (safe(purchaseOrderItem.getQuantity()) + safe(purchaseOrderItem.getFreeQty())) * packSize
+                + safe(purchaseOrderItem.getQuantityLoose())
+                + safe(purchaseOrderItem.getFreeQtyLoose());
+        return BigDecimal.valueOf(totalLooseUnits)
+                .divide(BigDecimal.valueOf(packSize), 4, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal toPackEquivalent(Integer quantityStrips, Integer quantityLoose, Medicine medicine) {
+        int packSize = safePackSize(medicine);
+        int totalLooseUnits = safe(quantityStrips) * packSize + safe(quantityLoose);
+        return BigDecimal.valueOf(totalLooseUnits)
+                .divide(BigDecimal.valueOf(packSize), 4, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal toPackEquivalent(BigDecimal quantity, String unitType, int packSize) {
+        if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        if (isPackUnitType(unitType)) {
+            return quantity.setScale(4, RoundingMode.HALF_UP);
+        }
+        return quantity.divide(BigDecimal.valueOf(Math.max(packSize, 1)), 4, RoundingMode.HALF_UP);
+    }
+
+    private boolean isPackUnitType(String unitType) {
+        return "PACK".equalsIgnoreCase(unitType) || "STRIP".equalsIgnoreCase(unitType);
+    }
+
+    private Integer calculateLeadTimeDays(LocalDateTime orderedAt, LocalDateTime receivedAt) {
+        if (orderedAt == null || receivedAt == null) {
+            return null;
+        }
+        long days = ChronoUnit.DAYS.between(orderedAt.toLocalDate(), receivedAt.toLocalDate());
+        return (int) Math.max(days, 0);
+    }
+
+    private int resolveEffectiveLeadTimeDays(Supplier supplier, SupplierMetrics metrics) {
+        Integer configuredLeadTime = supplier != null && supplier.getDefaultLeadTimeDays() != null
+                && supplier.getDefaultLeadTimeDays() > 0
+                ? supplier.getDefaultLeadTimeDays()
+                : null;
+        if (configuredLeadTime != null) {
+            return configuredLeadTime;
+        }
+
+        Integer observedLeadTime = metrics != null ? metrics.getObservedLeadTimeDays() : null;
+        if (observedLeadTime != null && observedLeadTime > 0) {
+            return observedLeadTime;
+        }
+
+        return 2;
     }
 
     private boolean isShortage(StoreMedicineSnapshot snapshot) {
@@ -842,10 +1209,44 @@ public class ReplenishmentService {
     private static final class SupplierInfo {
         private final Supplier supplier;
         private final BigDecimal purchaseRate;
+        private final Integer observedLeadTimeDays;
+        private final int effectiveLeadTimeDays;
 
-        private SupplierInfo(Supplier supplier, BigDecimal purchaseRate) {
+        private SupplierInfo(Supplier supplier,
+                             BigDecimal purchaseRate,
+                             Integer observedLeadTimeDays,
+                             int effectiveLeadTimeDays) {
             this.supplier = supplier;
             this.purchaseRate = purchaseRate;
+            this.observedLeadTimeDays = observedLeadTimeDays;
+            this.effectiveLeadTimeDays = effectiveLeadTimeDays;
+        }
+    }
+
+    private static final class MovementStats {
+        private BigDecimal totalDemandPacks = BigDecimal.ZERO;
+        private BigDecimal receiptQuantityPacks = BigDecimal.ZERO;
+        private BigDecimal transferInQuantityPacks = BigDecimal.ZERO;
+        private BigDecimal transferOutQuantityPacks = BigDecimal.ZERO;
+        private BigDecimal averageDailyDemand = BigDecimal.ZERO;
+        private int recentReceiptCount;
+        private int transferInCount;
+        private int transferOutCount;
+        private final LinkedHashSet<UUID> receiptOrderIds = new LinkedHashSet<>();
+        private final LinkedHashSet<UUID> transferInIds = new LinkedHashSet<>();
+        private final LinkedHashSet<UUID> transferOutIds = new LinkedHashSet<>();
+    }
+
+    private static final class SupplierMetrics {
+        private int leadTimeSampleCount;
+        private int leadTimeDayTotal;
+        private Integer lastLeadTimeDays;
+
+        private Integer getObservedLeadTimeDays() {
+            if (leadTimeSampleCount <= 0) {
+                return null;
+            }
+            return (int) Math.round((double) leadTimeDayTotal / (double) leadTimeSampleCount);
         }
     }
 }

@@ -25,6 +25,11 @@ public class SupplierResponse {
     private String gstin;
     private String drugLicense;
     private String address;
+    private Integer defaultLeadTimeDays;
+    private Integer observedLeadTimeDays;
+    private Integer effectiveLeadTimeDays;
+    private Integer leadTimeSampleCount;
+    private Integer lastLeadTimeDays;
     private Integer openPurchaseOrderCount;
     private Integer receivedPurchaseOrderCount;
     private LocalDateTime lastOrderDate;

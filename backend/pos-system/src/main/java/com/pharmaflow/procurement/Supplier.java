@@ -51,6 +51,9 @@ public class Supplier {
     @Column(name = "address")
     private String address;
 
+    @Column(name = "default_lead_time_days")
+    private Integer defaultLeadTimeDays;
+
     @Column(name = "is_active")
     private Boolean isActive;
 

@@ -18,4 +18,5 @@ public class SupplierCreateRequest {
     private String gstin;
     private String drugLicense;
     private String address;
+    private Integer defaultLeadTimeDays;
 }

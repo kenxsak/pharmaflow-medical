@@ -98,6 +98,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
     phone: '',
     gstin: '',
     contact: '',
+    defaultLeadTimeDays: 2,
   });
   const storeId = context.storeId;
 
@@ -344,7 +345,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       const created = await PurchaseAPI.createSupplier(supplierDraft);
       setSuppliers((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
       setSelectedSupplierId(created.supplierId);
-      setSupplierDraft({ name: '', phone: '', gstin: '', contact: '' });
+      setSupplierDraft({ name: '', phone: '', gstin: '', contact: '', defaultLeadTimeDays: 2 });
       setIsSupplierModalOpen(false);
       setMessage(`Supplier ${created.name} created.`);
     } catch (createError) {
@@ -519,6 +520,34 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     </div>
                     <div className="rounded-2xl bg-slate-50 px-3 py-2">
                       Last receipt: <span className="font-semibold text-slate-900">{selectedSupplier.lastReceiptDate ? formatDate(selectedSupplier.lastReceiptDate) : '—'}</span>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Configured lead time:{' '}
+                      <span className="font-semibold text-slate-900">
+                        {selectedSupplier.defaultLeadTimeDays ? `${selectedSupplier.defaultLeadTimeDays} day(s)` : '—'}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Effective lead time:{' '}
+                      <span className="font-semibold text-slate-900">
+                        {selectedSupplier.effectiveLeadTimeDays ? `${selectedSupplier.effectiveLeadTimeDays} day(s)` : '—'}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Observed lead time:{' '}
+                      <span className="font-semibold text-slate-900">
+                        {selectedSupplier.observedLeadTimeDays != null
+                          ? selectedSupplier.observedLeadTimeDays === 0
+                            ? 'Same day'
+                            : `${selectedSupplier.observedLeadTimeDays} day(s)`
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+                      Lead time samples:{' '}
+                      <span className="font-semibold text-slate-900">
+                        {selectedSupplier.leadTimeSampleCount || 0}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -1227,6 +1256,22 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                   className="w-full rounded-2xl border border-slate-300 px-3 py-3"
                 />
               </label>
+              <label className="space-y-1 text-sm">
+                <span className="font-medium text-slate-700">Default lead time (days)</span>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={supplierDraft.defaultLeadTimeDays ?? ''}
+                  onChange={(event) =>
+                    setSupplierDraft((prev) => ({
+                      ...prev,
+                      defaultLeadTimeDays: event.target.value ? Number(event.target.value) : undefined,
+                    }))
+                  }
+                  className="w-full rounded-2xl border border-slate-300 px-3 py-3"
+                />
+              </label>
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
@@ -1235,6 +1280,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                 <div>Use the invoice-facing supplier name so the inward team can find it quickly later.</div>
                 <div>Keep GSTIN ready for reconciliation, credit notes, and branch purchase documentation.</div>
                 <div>Save the main contact so follow-ups stay simple during inward and return cycles.</div>
+                <div>Set the default lead time so reorder planning can suggest when the team should place the order.</div>
               </div>
             </div>
           </div>

@@ -48,4 +48,15 @@ public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, UUID> 
     List<InvoiceItem> findForStoreBetween(@Param("storeId") UUID storeId,
                                           @Param("start") LocalDateTime start,
                                           @Param("end") LocalDateTime end);
+
+    @Query("select ii from InvoiceItem ii " +
+            "join fetch ii.invoice i " +
+            "left join fetch ii.medicine m " +
+            "left join fetch m.manufacturer mf " +
+            "left join fetch m.saltComposition sc " +
+            "left join fetch ii.batch b " +
+            "where i.store.storeId in :storeIds and i.invoiceDate >= :start and i.invoiceDate < :end")
+    List<InvoiceItem> findForStoresBetween(@Param("storeIds") List<UUID> storeIds,
+                                           @Param("start") LocalDateTime start,
+                                           @Param("end") LocalDateTime end);
 }

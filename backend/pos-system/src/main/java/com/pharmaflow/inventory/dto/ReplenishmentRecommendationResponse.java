@@ -37,6 +37,16 @@ public class ReplenishmentRecommendationResponse {
     private Integer recommendedOrderQuantityStrips;
     private UUID supplierId;
     private String supplierName;
+    private Integer supplierLeadTimeDays;
+    private Integer observedLeadTimeDays;
+    private Integer daysOfCover;
+    private Integer recentReceiptCount;
+    private Integer recentTransferInCount;
+    private Integer recentTransferOutCount;
+    private BigDecimal averageDailyDemand;
+    private LocalDate suggestedOrderDate;
+    private LocalDate expectedDeliveryDate;
+    private String planningReason;
     private BigDecimal lastPurchaseRate;
     private BigDecimal mrp;
     private BigDecimal gstRate;

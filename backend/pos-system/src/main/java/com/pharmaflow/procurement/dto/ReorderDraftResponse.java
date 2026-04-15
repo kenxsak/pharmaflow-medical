@@ -30,6 +30,7 @@ public class ReorderDraftResponse {
     private String brandName;
     private UUID supplierId;
     private String supplierName;
+    private Integer supplierLeadTimeDays;
     private Integer quantity;
     private Integer itemCount;
     private BigDecimal purchaseRate;
