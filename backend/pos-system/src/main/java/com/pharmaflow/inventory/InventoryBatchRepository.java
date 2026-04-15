@@ -55,6 +55,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             "and ib.medicine.medicineId = :medicineId " +
             "and ib.isActive = true " +
             "and ib.expiryDate > :today " +
+            "and (coalesce(ib.quantityStrips, 0) > 0 or coalesce(ib.quantityLoose, 0) > 0) " +
             "order by ib.expiryDate asc, ib.createdAt asc")
     List<InventoryBatch> findSellableBatches(@Param("storeId") UUID storeId,
                                              @Param("medicineId") UUID medicineId,
@@ -66,6 +67,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             "and ib.medicine.medicineId = :medicineId " +
             "and ib.isActive = true " +
             "and ib.expiryDate > :today " +
+            "and (coalesce(ib.quantityStrips, 0) > 0 or coalesce(ib.quantityLoose, 0) > 0) " +
             "order by ib.expiryDate asc, ib.createdAt asc")
     List<InventoryBatch> findSellableBatchesForUpdate(@Param("storeId") UUID storeId,
                                                       @Param("medicineId") UUID medicineId,

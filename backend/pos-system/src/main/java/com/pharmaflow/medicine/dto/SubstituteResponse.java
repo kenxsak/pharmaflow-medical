@@ -19,7 +19,18 @@ public class SubstituteResponse {
     private UUID medicineId;
     private String brandName;
     private String genericName;
+    private String medicineForm;
+    private String strength;
+    private String packSizeLabel;
+    private String manufacturer;
+    private String scheduleType;
+    private Boolean requiresRx;
+    private Boolean isNarcotic;
+    private Boolean isPsychotropic;
+    private Integer packSize;
     private BigDecimal mrp;
+    private BigDecimal gstRate;
     private Boolean isGeneric;
     private BigDecimal priceDiffPct;
+    private BatchSnapshotResponse currentBatch;
 }

@@ -50,10 +50,11 @@ public class MedicineService {
         return toSearchResponse(medicine, resolveCurrentBatch(storeId, medicine.getMedicineId()));
     }
 
-    public List<SubstituteResponse> getSubstitutes(UUID medicineId) {
+    public List<SubstituteResponse> getSubstitutes(UUID storeId, UUID medicineId) {
         return medicineSubstituteRepository.findByMedicineMedicineId(medicineId)
                 .stream()
-                .map(this::toSubstituteResponse)
+                .map(substitute -> toSubstituteResponse(storeId, substitute))
+                .filter(substitute -> substitute.getCurrentBatch() != null)
                 .collect(Collectors.toList());
     }
 
@@ -61,11 +62,10 @@ public class MedicineService {
         LocalDate today = LocalDate.now();
         if (storeId != null) {
             return inventoryBatchRepository
-                    .findFirstByStoreStoreIdAndMedicineMedicineIdAndIsActiveTrueAndExpiryDateGreaterThanEqualOrderByExpiryDateAsc(
-                            storeId,
-                            medicineId,
-                            today
-                    )
+                    .findSellableBatches(storeId, medicineId, today)
+                    .stream()
+                    .filter(this::hasAvailableQuantity)
+                    .findFirst()
                     .orElse(null);
         }
         return inventoryBatchRepository
@@ -73,6 +73,7 @@ public class MedicineService {
                         medicineId,
                         today
                 )
+                .filter(this::hasAvailableQuantity)
                 .orElse(null);
     }
 
@@ -95,27 +96,49 @@ public class MedicineService {
                 .packSize(medicine.getPackSize())
                 .mrp(medicine.getMrp())
                 .gstRate(medicine.getGstRate())
-                .currentBatch(currentBatch != null ? BatchSnapshotResponse.builder()
-                        .batchId(currentBatch.getBatchId())
-                        .batchNumber(currentBatch.getBatchNumber())
-                        .expiryDate(currentBatch.getExpiryDate())
-                        .quantityStrips(currentBatch.getQuantityStrips())
-                        .quantityLoose(currentBatch.getQuantityLoose())
-                        .expiryStatus(expiryStatus(currentBatch))
-                        .build() : null)
+                .currentBatch(toBatchSnapshotResponse(currentBatch))
                 .build();
     }
 
-    private SubstituteResponse toSubstituteResponse(MedicineSubstitute substitute) {
+    private SubstituteResponse toSubstituteResponse(UUID storeId, MedicineSubstitute substitute) {
         Medicine alt = substitute.getSubstitute();
+        InventoryBatch currentBatch = alt != null ? resolveCurrentBatch(storeId, alt.getMedicineId()) : null;
         return SubstituteResponse.builder()
                 .medicineId(alt != null ? alt.getMedicineId() : null)
                 .brandName(alt != null ? alt.getBrandName() : null)
                 .genericName(alt != null ? alt.getGenericName() : null)
+                .medicineForm(alt != null ? alt.getMedicineForm() : null)
+                .strength(alt != null ? alt.getStrength() : null)
+                .packSizeLabel(alt != null ? alt.getPackSizeLabel() : null)
+                .manufacturer(alt != null && alt.getManufacturer() != null ? alt.getManufacturer().getName() : null)
+                .scheduleType(alt != null ? alt.getScheduleType() : null)
+                .requiresRx(alt != null ? alt.getRequiresRx() : null)
+                .isNarcotic(alt != null ? alt.getIsNarcotic() : null)
+                .isPsychotropic(alt != null ? alt.getIsPsychotropic() : null)
+                .packSize(alt != null ? alt.getPackSize() : null)
                 .mrp(alt != null ? alt.getMrp() : null)
+                .gstRate(alt != null ? alt.getGstRate() : null)
                 .isGeneric(substitute.getIsGeneric())
                 .priceDiffPct(substitute.getPriceDiffPct())
+                .currentBatch(toBatchSnapshotResponse(currentBatch))
                 .build();
+    }
+
+    private BatchSnapshotResponse toBatchSnapshotResponse(InventoryBatch currentBatch) {
+        return currentBatch != null ? BatchSnapshotResponse.builder()
+                .batchId(currentBatch.getBatchId())
+                .batchNumber(currentBatch.getBatchNumber())
+                .expiryDate(currentBatch.getExpiryDate())
+                .quantityStrips(currentBatch.getQuantityStrips())
+                .quantityLoose(currentBatch.getQuantityLoose())
+                .expiryStatus(expiryStatus(currentBatch))
+                .build() : null;
+    }
+
+    private boolean hasAvailableQuantity(InventoryBatch batch) {
+        int strips = batch.getQuantityStrips() != null ? batch.getQuantityStrips() : 0;
+        int loose = batch.getQuantityLoose() != null ? batch.getQuantityLoose() : 0;
+        return strips > 0 || loose > 0;
     }
 
     private String expiryStatus(InventoryBatch batch) {

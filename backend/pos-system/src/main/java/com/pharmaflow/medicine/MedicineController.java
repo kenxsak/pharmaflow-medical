@@ -37,8 +37,11 @@ public class MedicineController {
     }
 
     @GetMapping("/{medicineId}/substitutes")
-    public List<SubstituteResponse> getSubstitutes(@PathVariable UUID medicineId) {
-        return medicineService.getSubstitutes(medicineId);
+    public List<SubstituteResponse> getSubstitutes(
+            @RequestHeader(value = "X-Store-ID", required = false) String storeIdHeader,
+            @PathVariable UUID medicineId
+    ) {
+        return medicineService.getSubstitutes(parseUuid(storeIdHeader), medicineId);
     }
 
     private UUID parseUuid(String value) {

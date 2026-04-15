@@ -27,6 +27,14 @@ interface CartItem extends BillingItem {
   packSizeLabel?: string;
 }
 
+type SelectableMedicine = MedicineSearchResult | SubstituteResult;
+
+interface SubstituteSuggestionGroup {
+  sourceIndex: number;
+  sourceItem: CartItem;
+  substitutes: SubstituteResult[];
+}
+
 const demoQuickAdds = [
   { label: 'Crocin 500', query: '8901234500001' },
   { label: 'Dolo 650', query: '8901234500002' },
@@ -128,20 +136,17 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     []
   );
 
-  const substituteSuggestions = useMemo(() => {
-    const seen = new Set<string>();
-    const suggestions: SubstituteResult[] = [];
-
-    cartItems.forEach((item) => {
-      (substitutesByMedicineId[item.medicineId] || []).forEach((substitute) => {
-        if (substitute.medicineId && !seen.has(substitute.medicineId)) {
-          seen.add(substitute.medicineId);
-          suggestions.push(substitute);
-        }
-      });
-    });
-
-    return suggestions.slice(0, 6);
+  const substituteSuggestionGroups = useMemo(() => {
+    return cartItems
+      .map((item, index) => ({
+        sourceIndex: index,
+        sourceItem: item,
+        substitutes: (substitutesByMedicineId[item.medicineId] || [])
+          .filter((substitute) => substitute.currentBatch)
+          .slice(0, 4),
+      }))
+      .filter((group) => group.substitutes.length > 0)
+      .slice(0, 4);
   }, [cartItems, substitutesByMedicineId]);
 
   const complianceError = useMemo(() => {
@@ -236,13 +241,48 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     }
   };
 
-  const addToCart = (medicine: MedicineSearchResult) => {
-    const currentBatch = medicine.currentBatch;
-    if (!currentBatch) {
-      setScheduleAlert('No active batch found for this medicine in the selected store.');
-      return;
+  const resolvePreferredUnitType = (
+    currentUnitType: CartItem['unitType'],
+    medicine: Pick<CartItem, 'medicineForm' | 'packSize' | 'packSizeLabel'>
+  ): CartItem['unitType'] => {
+    if (isPackUnitType(currentUnitType)) {
+      return 'PACK';
     }
 
+    if (getMedicineUnitProfile(medicine).supportsLooseUnits) {
+      return getLooseBillingUnit(medicine);
+    }
+
+    return 'PACK';
+  };
+
+  const buildCartItem = (
+    medicine: SelectableMedicine,
+    overrides?: Partial<Pick<CartItem, 'quantity' | 'unitType' | 'discountPercent' | 'mrp'>>
+  ): CartItem | null => {
+    const currentBatch = medicine.currentBatch;
+    if (!currentBatch) {
+      return null;
+    }
+
+    return {
+      medicineId: medicine.medicineId,
+      batchId: currentBatch.batchId,
+      quantity: overrides?.quantity ?? 1,
+      unitType: overrides?.unitType ?? 'PACK',
+      mrp: overrides?.mrp ?? medicine.mrp,
+      discountPercent: overrides?.discountPercent ?? 0,
+      gstRate: medicine.gstRate ?? 0,
+      medicineLabel: `${medicine.brandName}${medicine.strength ? ` • ${medicine.strength}` : ''}`,
+      batchNumber: currentBatch.batchNumber,
+      scheduleType: medicine.scheduleType,
+      packSize: medicine.packSize,
+      medicineForm: medicine.medicineForm,
+      packSizeLabel: medicine.packSizeLabel,
+    };
+  };
+
+  const updateScheduleAlertForMedicine = (medicine: Pick<CartItem, 'scheduleType'>) => {
     if (medicine.scheduleType === 'H1' || medicine.scheduleType === 'X') {
       setScheduleAlert(`Schedule ${medicine.scheduleType} drug selected. Prescription is mandatory.`);
     } else if (medicine.scheduleType === 'H') {
@@ -250,25 +290,18 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     } else {
       setScheduleAlert(null);
     }
+  };
 
-    setCartItems((prev) => [
-      ...prev,
-      {
-        medicineId: medicine.medicineId,
-        batchId: currentBatch.batchId,
-        quantity: 1,
-        unitType: 'PACK',
-        mrp: medicine.mrp,
-        discountPercent: 0,
-        gstRate: medicine.gstRate,
-        medicineLabel: `${medicine.brandName}${medicine.strength ? ` • ${medicine.strength}` : ''}`,
-        batchNumber: currentBatch.batchNumber,
-        scheduleType: medicine.scheduleType,
-        packSize: medicine.packSize,
-        medicineForm: medicine.medicineForm,
-        packSizeLabel: medicine.packSizeLabel,
-      },
-    ]);
+  const addToCart = (medicine: SelectableMedicine) => {
+    const cartItem = buildCartItem(medicine);
+    if (!cartItem) {
+      setScheduleAlert('No active batch found for this medicine in the selected store.');
+      return;
+    }
+
+    updateScheduleAlertForMedicine(cartItem);
+
+    setCartItems((prev) => [...prev, cartItem]);
 
     void loadSubstitutes(medicine.medicineId);
 
@@ -276,6 +309,38 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     setSearchResults([]);
     setErrorMessage(null);
     searchRef.current?.focus();
+  };
+
+  const addSubstituteToCart = (substitute: SubstituteResult) => {
+    addToCart(substitute);
+  };
+
+  const replaceCartItemWithSubstitute = (index: number, substitute: SubstituteResult) => {
+    const currentItem = cartItems[index];
+    if (!currentItem) {
+      return;
+    }
+
+    const replacementUnitType = resolvePreferredUnitType(currentItem.unitType, substitute);
+    const replacementItem = buildCartItem(substitute, {
+      quantity: currentItem.quantity,
+      unitType: replacementUnitType,
+      discountPercent: currentItem.discountPercent,
+    });
+
+    if (!replacementItem) {
+      setErrorMessage('This substitute is not currently sellable in the selected store.');
+      return;
+    }
+
+    updateScheduleAlertForMedicine(replacementItem);
+
+    setCartItems((prev) =>
+      prev.map((item, itemIndex) => (itemIndex === index ? replacementItem : item))
+    );
+
+    void loadSubstitutes(substitute.medicineId);
+    setErrorMessage(null);
   };
 
   const updateItem = (index: number, partial: Partial<CartItem>) => {
@@ -571,26 +636,68 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
           )}
           </div>
 
-          {substituteSuggestions.length > 0 && (
+          {substituteSuggestionGroups.length > 0 && (
             <div className="mt-4 rounded-3xl bg-white p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Suggested Substitutes</h3>
-                <span className="text-xs text-slate-500">Salt-based alternates for current cart</span>
+                <span className="text-xs text-slate-500">Replace the current line or add an alternate directly</span>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {substituteSuggestions.map((substitute) => (
-                  <div
-                    key={substitute.medicineId}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
-                  >
-                    <div className="font-medium">{substitute.brandName}</div>
-                <div className="text-sm text-slate-500">{substitute.genericName}</div>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                      <span className="text-emerald-700">₹{substitute.mrp.toFixed(2)}</span>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-600">
-                        {substitute.isGeneric ? 'Generic' : 'Branded'} •{' '}
-                        {substitute.priceDiffPct ?? 0}% diff
-                      </span>
+              <div className="space-y-4">
+                {substituteSuggestionGroups.map((group) => (
+                  <div key={`${group.sourceItem.medicineId}-${group.sourceIndex}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <div className="text-xs uppercase tracking-wide text-slate-500">Current billed item</div>
+                        <div className="mt-1 font-semibold text-slate-900">{group.sourceItem.medicineLabel}</div>
+                        <div className="text-sm text-slate-500">
+                          Batch {group.sourceItem.batchNumber} • Qty {group.sourceItem.quantity}
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Salt-based alternates that are sellable in this store right now
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {group.substitutes.map((substitute) => (
+                        <div
+                          key={`${group.sourceIndex}-${substitute.medicineId}`}
+                          className="rounded-2xl border border-slate-200 bg-white px-4 py-4"
+                        >
+                          <div className="font-medium text-slate-900">{substitute.brandName}</div>
+                          <div className="text-sm text-slate-500">
+                            {substitute.genericName}
+                            {substitute.strength ? ` • ${substitute.strength}` : ''}
+                            {substitute.medicineForm ? ` • ${substitute.medicineForm}` : ''}
+                          </div>
+                          <div className="mt-2 text-xs text-slate-500">
+                            Batch {substitute.currentBatch?.batchNumber || 'N/A'} •{' '}
+                            {formatPrimaryQuantity(substitute.currentBatch?.quantityStrips ?? 0, substitute)}
+                          </div>
+                          <div className="mt-3 flex items-center justify-between text-sm">
+                            <span className="text-emerald-700">₹{substitute.mrp.toFixed(2)}</span>
+                            <span className="rounded-full bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                              {substitute.isGeneric ? 'Generic' : 'Branded'} • {substitute.priceDiffPct ?? 0}% diff
+                            </span>
+                          </div>
+                          <div className="mt-4 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => replaceCartItemWithSubstitute(group.sourceIndex, substitute)}
+                              className="flex-1 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => addSubstituteToCart(substitute)}
+                              className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}

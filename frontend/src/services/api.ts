@@ -103,9 +103,20 @@ export interface SubstituteResult {
   medicineId: string;
   brandName: string;
   genericName: string;
+  medicineForm?: string;
+  strength?: string;
+  packSizeLabel?: string;
+  manufacturer?: string;
+  scheduleType?: string;
+  requiresRx?: boolean;
+  isNarcotic?: boolean;
+  isPsychotropic?: boolean;
+  packSize?: number;
   mrp: number;
+  gstRate?: number;
   isGeneric: boolean;
   priceDiffPct?: number;
+  currentBatch?: BatchSnapshot;
 }
 
 export interface StockBatchResponse {
