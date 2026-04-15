@@ -20,6 +20,9 @@ public class ShortageItemResponse {
     private String brandName;
     private String genericName;
     private String manufacturerName;
+    private String medicineForm;
+    private Integer packSize;
+    private String packSizeLabel;
     private Integer reorderLevel;
     private Integer quantityStrips;
     private Integer quantityLoose;

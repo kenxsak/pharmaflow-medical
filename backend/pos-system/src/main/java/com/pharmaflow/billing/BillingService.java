@@ -485,7 +485,7 @@ public class BillingService {
             return BigDecimal.ZERO;
         }
 
-        if ("TABLET".equalsIgnoreCase(itemRequest.getUnitType())) {
+        if (!isPackUnitType(itemRequest.getUnitType())) {
             int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
             return packMrp
                     .divide(BigDecimal.valueOf(packSize), 4, RoundingMode.HALF_UP)
@@ -559,7 +559,7 @@ public class BillingService {
 
     private int toLooseUnits(BigDecimal quantity, String unitType, Medicine medicine) {
         int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
-        if ("STRIP".equalsIgnoreCase(unitType)) {
+        if (isPackUnitType(unitType)) {
             return quantity.multiply(BigDecimal.valueOf(packSize))
                     .setScale(0, RoundingMode.HALF_UP)
                     .intValueExact();
@@ -569,12 +569,16 @@ public class BillingService {
 
     private BigDecimal toDisplayQuantity(int looseUnits, String unitType, Medicine medicine) {
         int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
-        if ("STRIP".equalsIgnoreCase(unitType)) {
+        if (isPackUnitType(unitType)) {
             return BigDecimal.valueOf(looseUnits)
                     .divide(BigDecimal.valueOf(packSize), 3, RoundingMode.HALF_UP)
                     .stripTrailingZeros();
         }
         return BigDecimal.valueOf(looseUnits);
+    }
+
+    private boolean isPackUnitType(String unitType) {
+        return "PACK".equalsIgnoreCase(unitType) || "STRIP".equalsIgnoreCase(unitType);
     }
 
     private InvoiceItemResponse toInvoiceItemResponse(InvoiceItem item) {

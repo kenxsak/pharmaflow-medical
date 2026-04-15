@@ -51,8 +51,14 @@ public class PurchaseOrderItem {
     @Column(name = "quantity")
     private Integer quantity;
 
+    @Column(name = "quantity_loose")
+    private Integer quantityLoose;
+
     @Column(name = "free_qty")
     private Integer freeQty;
+
+    @Column(name = "free_qty_loose")
+    private Integer freeQtyLoose;
 
     @Column(name = "purchase_rate", precision = 10, scale = 2)
     private BigDecimal purchaseRate;

@@ -17,6 +17,7 @@ import {
   getPharmaFlowRoleLabel,
   usePharmaFlowContext,
 } from '../../utils/pharmaflowContext';
+import { formatPrimaryQuantity, getMedicineUnitProfile } from '../../utils/medicineUnits';
 
 interface StoreOperationsDashboardProps {
   embedded?: boolean;
@@ -110,7 +111,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
       option.transferableQuantityStrips
     );
 
-    if (!window.confirm(`Create a transfer request for ${quantity} strip(s) of ${recommendation.brandName}?`)) {
+    if (!window.confirm(`Create a transfer request for ${formatPrimaryQuantity(quantity, recommendation)} of ${recommendation.brandName}?`)) {
       return;
     }
 
@@ -141,7 +142,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
       return;
     }
 
-    if (!window.confirm(`Create a draft purchase order for ${quantity} strip(s) of ${recommendation.brandName}?`)) {
+    if (!window.confirm(`Create a draft purchase order for ${formatPrimaryQuantity(quantity, recommendation)} of ${recommendation.brandName}?`)) {
       return;
     }
 
@@ -389,6 +390,10 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                   key={`${recommendation.targetStoreId}-${recommendation.medicineId}`}
                   className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5"
                 >
+                  {(() => {
+                    const unitProfile = getMedicineUnitProfile(recommendation);
+                    return (
+                      <>
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
@@ -398,6 +403,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                       <p className="mt-1 text-sm text-slate-500">
                         {recommendation.genericName || 'Generic name unavailable'}
                         {recommendation.manufacturerName ? ` • ${recommendation.manufacturerName}` : ''}
+                        {unitProfile.packDisplayLabel ? ` • ${unitProfile.packDisplayLabel}` : ''}
                       </p>
                     </div>
                     <div
@@ -417,25 +423,26 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                     <div className="rounded-2xl bg-white p-4">
                       <div className="text-sm text-slate-500">Current / reorder</div>
                       <div className="mt-1 text-lg font-semibold text-slate-900">
-                        {recommendation.currentQuantityStrips} / {recommendation.reorderLevel}
+                        {formatPrimaryQuantity(recommendation.currentQuantityStrips, recommendation)} /{' '}
+                        {formatPrimaryQuantity(recommendation.reorderLevel, recommendation)}
                       </div>
                     </div>
                     <div className="rounded-2xl bg-white p-4">
                       <div className="text-sm text-slate-500">Shortage</div>
                       <div className="mt-1 text-lg font-semibold text-slate-900">
-                        {recommendation.shortageQuantityStrips} strips
+                        {formatPrimaryQuantity(recommendation.shortageQuantityStrips, recommendation)}
                       </div>
                     </div>
                     <div className="rounded-2xl bg-white p-4">
                       <div className="text-sm text-slate-500">Transfer cover</div>
                       <div className="mt-1 text-lg font-semibold text-slate-900">
-                        {recommendation.recommendedTransferQuantityStrips || 0} strips
+                        {formatPrimaryQuantity(recommendation.recommendedTransferQuantityStrips || 0, recommendation)}
                       </div>
                     </div>
                     <div className="rounded-2xl bg-white p-4">
                       <div className="text-sm text-slate-500">Order draft</div>
                       <div className="mt-1 text-lg font-semibold text-slate-900">
-                        {recommendation.recommendedOrderQuantityStrips || 0} strips
+                        {formatPrimaryQuantity(recommendation.recommendedOrderQuantityStrips || 0, recommendation)}
                       </div>
                     </div>
                   </div>
@@ -456,7 +463,7 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                                 </div>
                                 <div className="mt-1 text-slate-500">
                                   Batch {option.batchNumber} • Exp {formatDate(option.expiryDate)} • Up to{' '}
-                                  {option.transferableQuantityStrips} strips
+                                  {formatPrimaryQuantity(option.transferableQuantityStrips, recommendation)}
                                 </div>
                               </div>
                               <button
@@ -516,6 +523,9 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                       </button>
                     </div>
                   </div>
+                      </>
+                    );
+                  })()}
                 </article>
               );
             })}

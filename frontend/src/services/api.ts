@@ -87,6 +87,7 @@ export interface MedicineSearchResult {
   barcode?: string;
   medicineForm: string;
   strength: string;
+  packSizeLabel?: string;
   manufacturer: string;
   scheduleType?: string;
   requiresRx?: boolean;
@@ -125,7 +126,7 @@ export interface BillingItem {
   medicineId: string;
   batchId: string;
   quantity: number;
-  unitType: 'STRIP' | 'TABLET' | 'ML';
+  unitType: 'PACK' | 'STRIP' | 'TABLET' | 'CAPSULE' | 'ML' | 'GM' | 'UNIT';
   mrp: number;
   discountPercent: number;
   gstRate: number;
@@ -342,6 +343,9 @@ export interface ReplenishmentRecommendation {
   brandName: string;
   genericName?: string;
   manufacturerName?: string;
+  medicineForm?: string;
+  packSize?: number;
+  packSizeLabel?: string;
   reorderLevel: number;
   currentQuantityStrips: number;
   shortageQuantityStrips: number;
@@ -523,7 +527,9 @@ export interface PurchaseImportRow {
   manufactureDate?: string;
   expiryDate: string;
   quantity: number;
+  quantityLoose?: number;
   freeQty?: number;
+  freeQtyLoose?: number;
   purchaseRate: number;
   mrp: number;
   gstRate?: number;
@@ -731,6 +737,9 @@ export interface ShortageItemResponse {
   brandName: string;
   genericName?: string;
   manufacturerName?: string;
+  medicineForm?: string;
+  packSize?: number;
+  packSizeLabel?: string;
   reorderLevel: number;
   quantityStrips: number;
   quantityLoose: number;

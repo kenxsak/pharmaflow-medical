@@ -84,7 +84,11 @@ public class PurchaseImportService {
         for (PurchaseImportRowRequest row : request.getRows()) {
             Medicine medicine = resolveMedicine(row, medicinesById);
             int freeQty = row.getFreeQty() == null ? 0 : row.getFreeQty();
+            int quantityLoose = row.getQuantityLoose() == null ? 0 : row.getQuantityLoose();
+            int freeQtyLoose = row.getFreeQtyLoose() == null ? 0 : row.getFreeQtyLoose();
             int receivedQuantity = row.getQuantity() + freeQty;
+            int receivedLooseQuantity = quantityLoose + freeQtyLoose;
+            validateRowQuantities(row, receivedQuantity, receivedLooseQuantity);
 
             InventoryBatch batch = inventoryBatchRepository
                     .findByStoreStoreIdAndMedicineMedicineIdAndBatchNumberIgnoreCase(
@@ -102,7 +106,7 @@ public class PurchaseImportService {
                         .manufactureDate(row.getManufactureDate())
                         .expiryDate(row.getExpiryDate())
                         .quantityStrips(receivedQuantity)
-                        .quantityLoose(0)
+                        .quantityLoose(receivedLooseQuantity)
                         .purchaseRate(row.getPurchaseRate())
                         .mrp(row.getMrp())
                         .isActive(true)
@@ -110,6 +114,7 @@ public class PurchaseImportService {
                 createdBatches++;
             } else {
                 batch.setQuantityStrips(safe(batch.getQuantityStrips()) + receivedQuantity);
+                batch.setQuantityLoose(safe(batch.getQuantityLoose()) + receivedLooseQuantity);
                 batch.setManufactureDate(row.getManufactureDate());
                 batch.setExpiryDate(row.getExpiryDate());
                 batch.setPurchaseRate(row.getPurchaseRate());
@@ -126,14 +131,16 @@ public class PurchaseImportService {
                             .batchNumber(row.getBatchNumber())
                             .expiryDate(row.getExpiryDate())
                             .quantity(row.getQuantity())
+                            .quantityLoose(quantityLoose)
                             .freeQty(freeQty)
+                            .freeQtyLoose(freeQtyLoose)
                             .purchaseRate(row.getPurchaseRate())
                             .mrp(row.getMrp())
                             .gstRate(safe(row.getGstRate()))
                             .build()
             );
 
-            BigDecimal lineSubtotal = row.getPurchaseRate().multiply(BigDecimal.valueOf(row.getQuantity()));
+            BigDecimal lineSubtotal = row.getPurchaseRate().multiply(toPackEquivalentQuantity(medicine, row.getQuantity(), quantityLoose));
             BigDecimal lineGst = lineSubtotal.multiply(safe(row.getGstRate()))
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             subtotal = subtotal.add(lineSubtotal);
@@ -146,7 +153,9 @@ public class PurchaseImportService {
                     "INVENTORY_BATCH",
                     batch.getBatchId().toString(),
                     null,
-                    "{\"batchNumber\":\"" + row.getBatchNumber() + "\",\"receivedQty\":\"" + receivedQuantity + "\"}"
+                    "{\"batchNumber\":\"" + row.getBatchNumber()
+                            + "\",\"receivedQty\":\"" + receivedQuantity
+                            + "\",\"receivedLooseQty\":\"" + receivedLooseQuantity + "\"}"
             );
         }
 
@@ -207,6 +216,41 @@ public class PurchaseImportService {
 
     private BigDecimal safe(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal toPackEquivalentQuantity(Medicine medicine, Integer quantity, Integer quantityLoose) {
+        int packSize = safePackSize(medicine);
+        BigDecimal packQuantity = BigDecimal.valueOf(safe(quantity));
+        BigDecimal looseEquivalent = BigDecimal.valueOf(safe(quantityLoose))
+                .divide(BigDecimal.valueOf(packSize), 4, RoundingMode.HALF_UP);
+        return packQuantity.add(looseEquivalent).setScale(4, RoundingMode.HALF_UP);
+    }
+
+    private void validateRowQuantities(PurchaseImportRowRequest row, int receivedQuantity, int receivedLooseQuantity) {
+        if (row.getQuantity() == null || row.getQuantity() < 0) {
+            throw new BusinessRuleException("Purchase quantity must be zero or greater");
+        }
+        if (safe(row.getFreeQty()) < 0) {
+            throw new BusinessRuleException("Free purchase quantity cannot be negative");
+        }
+        if (safe(row.getQuantityLoose()) < 0) {
+            throw new BusinessRuleException("Loose quantity cannot be negative");
+        }
+        if (safe(row.getFreeQtyLoose()) < 0) {
+            throw new BusinessRuleException("Free loose quantity cannot be negative");
+        }
+        if (receivedQuantity <= 0 && receivedLooseQuantity <= 0) {
+            throw new BusinessRuleException("Each purchase row must add at least one pack or loose unit");
+        }
+        if (row.getBatchNumber() == null || row.getBatchNumber().isBlank()) {
+            throw new BusinessRuleException("Batch number is required for purchase import");
+        }
+    }
+
+    private int safePackSize(Medicine medicine) {
+        return medicine == null || medicine.getPackSize() == null || medicine.getPackSize() <= 0
+                ? 1
+                : medicine.getPackSize();
     }
 
     private Integer safe(Integer value) {

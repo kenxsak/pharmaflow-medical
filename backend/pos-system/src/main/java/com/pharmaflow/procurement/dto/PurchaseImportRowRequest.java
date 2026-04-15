@@ -28,7 +28,11 @@ public class PurchaseImportRowRequest {
     @NotNull
     private Integer quantity;
 
+    private Integer quantityLoose;
+
     private Integer freeQty;
+
+    private Integer freeQtyLoose;
 
     @NotNull
     private BigDecimal purchaseRate;

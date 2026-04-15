@@ -131,7 +131,9 @@ public class PurchaseImportController {
                 row.setManufactureDate(parseDate(value(values, indexByHeader, "manufacturedate")));
                 row.setExpiryDate(parseDate(required(values, indexByHeader, "expirydate")));
                 row.setQuantity(parseInteger(required(values, indexByHeader, "quantity")));
+                row.setQuantityLoose(parseInteger(value(values, indexByHeader, "quantityloose")));
                 row.setFreeQty(parseInteger(value(values, indexByHeader, "freeqty")));
+                row.setFreeQtyLoose(parseInteger(value(values, indexByHeader, "freeqtyloose")));
                 row.setPurchaseRate(parseDecimal(required(values, indexByHeader, "purchaserate")));
                 row.setMrp(parseDecimal(required(values, indexByHeader, "mrp")));
                 row.setGstRate(parseDecimal(value(values, indexByHeader, "gstrate")));

@@ -32,6 +32,12 @@ public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, UUID> 
                                       @Param("query") String query,
                                       Pageable pageable);
 
+    @Query("select distinct m.medicineId from InvoiceItem ii " +
+            "join ii.invoice i " +
+            "join ii.medicine m " +
+            "where i.store.storeId = :storeId")
+    List<UUID> findDistinctMedicineIdsByStoreId(@Param("storeId") UUID storeId);
+
     @Query("select ii from InvoiceItem ii " +
             "join fetch ii.invoice i " +
             "left join fetch ii.medicine m " +

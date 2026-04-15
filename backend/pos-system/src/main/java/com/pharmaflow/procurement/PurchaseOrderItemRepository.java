@@ -28,6 +28,12 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
                                             @Param("query") String query,
                                             Pageable pageable);
 
+    @Query("select distinct m.medicineId from PurchaseOrderItem poi " +
+            "join poi.purchaseOrder po " +
+            "join poi.medicine m " +
+            "where po.store.storeId = :storeId")
+    List<UUID> findDistinctMedicineIdsByStoreId(@Param("storeId") UUID storeId);
+
     @Query("select poi from PurchaseOrderItem poi " +
             "join fetch poi.purchaseOrder po " +
             "join fetch po.store st " +

@@ -10,12 +10,21 @@ import {
   MedicineSearchResult,
   SubstituteResult,
 } from '../../services/api';
+import {
+  formatPrimaryQuantity,
+  getLooseBillingUnit,
+  getLooseOptionLabel,
+  getMedicineUnitProfile,
+  getPackOptionLabel,
+} from '../../utils/medicineUnits';
 
 interface CartItem extends BillingItem {
   medicineLabel: string;
   batchNumber: string;
   scheduleType?: string;
   packSize?: number;
+  medicineForm?: string;
+  packSizeLabel?: string;
 }
 
 const demoQuickAdds = [
@@ -37,8 +46,8 @@ const counterHighlights = [
     summary: 'Type or scan a barcode and press Enter to add the first stocked match instantly.',
   },
   {
-    title: 'Loose tablet sales',
-    summary: 'Switch unit to Tablet and the bill uses pack size to price loose strips correctly.',
+    title: 'Pack and loose sales',
+    summary: 'Switch unit per item so strips, bottles, capsules, tablets, and ml-based products are billed correctly.',
   },
   {
     title: 'Schedule compliance',
@@ -75,8 +84,11 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     return item.packSize;
   };
 
+  const isPackUnitType = (unitType: CartItem['unitType']) =>
+    unitType === 'PACK' || unitType === 'STRIP';
+
   const getUnitPrice = (item: CartItem) => {
-    if (item.unitType === 'TABLET') {
+    if (!isPackUnitType(item.unitType)) {
       return item.mrp / getPackSize(item);
     }
     return item.mrp;
@@ -245,7 +257,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
         medicineId: medicine.medicineId,
         batchId: currentBatch.batchId,
         quantity: 1,
-        unitType: 'STRIP',
+        unitType: 'PACK',
         mrp: medicine.mrp,
         discountPercent: 0,
         gstRate: medicine.gstRate,
@@ -253,6 +265,8 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
         batchNumber: currentBatch.batchNumber,
         scheduleType: medicine.scheduleType,
         packSize: medicine.packSize,
+        medicineForm: medicine.medicineForm,
+        packSizeLabel: medicine.packSizeLabel,
       },
     ]);
 
@@ -407,21 +421,28 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
                     onClick={() => addToCart(medicine)}
                     className="flex w-full items-start justify-between border-b border-slate-100 px-4 py-3 text-left transition hover:bg-sky-50"
                   >
+                    {(() => {
+                      const unitProfile = getMedicineUnitProfile(medicine);
+                      return (
+                        <>
                     <div>
                       <p className="font-semibold">{medicine.brandName}</p>
                       <p className="text-sm text-slate-500">
                         {medicine.genericName} • {medicine.strength} • {medicine.medicineForm}
                       </p>
                       <p className="text-xs text-slate-400">
-                        {medicine.manufacturer} • {medicine.packSize || 1}/strip • Batch {medicine.currentBatch?.batchNumber || 'N/A'}
+                        {medicine.manufacturer} • {unitProfile.packDisplayLabel} • Batch {medicine.currentBatch?.batchNumber || 'N/A'}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-emerald-600">₹{medicine.mrp.toFixed(2)}</p>
                       <p className="text-xs text-slate-500">
-                        {medicine.currentBatch?.quantityStrips ?? 0} strips
+                        {formatPrimaryQuantity(medicine.currentBatch?.quantityStrips ?? 0, medicine)}
                       </p>
                     </div>
+                        </>
+                      );
+                    })()}
                   </button>
                 ))}
               </div>
@@ -458,10 +479,17 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
                   {cartItems.map((item, index) => (
                     <tr key={`${item.batchId}-${index}`} className="border-t border-slate-100">
                       <td className="px-4 py-3 font-medium">
+                        {(() => {
+                          const unitProfile = getMedicineUnitProfile(item);
+                          return (
+                            <>
                         <div>{item.medicineLabel}</div>
                         <div className="text-xs text-slate-400">
-                          Batch {item.batchNumber} • {getPackSize(item)}/strip
+                          Batch {item.batchNumber} • {unitProfile.packDisplayLabel}
                         </div>
+                            </>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <input
@@ -485,9 +513,10 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
                           }
                           className="rounded-lg border border-slate-300 px-2 py-1"
                         >
-                          <option value="STRIP">Strip</option>
-                          <option value="TABLET">Tablet</option>
-                          <option value="ML">ML</option>
+                          <option value="PACK">{getPackOptionLabel(item)}</option>
+                          {getMedicineUnitProfile(item).supportsLooseUnits && (
+                            <option value={getLooseBillingUnit(item)}>{getLooseOptionLabel(item)}</option>
+                          )}
                         </select>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -655,9 +684,9 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
               <span>Items</span>
               <span>{cartItems.length}</span>
             </div>
-            {cartItems.some((item) => item.unitType === 'TABLET') && (
+            {cartItems.some((item) => !isPackUnitType(item.unitType)) && (
               <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800">
-                Tablet sales are priced per loose tablet using the stored strip MRP and pack size.
+                Loose-unit sales are priced from the stored pack MRP and pack size, so bottles, strips, and other packs stay consistent.
               </div>
             )}
             <div className="flex items-center justify-between">

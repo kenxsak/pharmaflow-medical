@@ -25,6 +25,9 @@ public class ReplenishmentRecommendationResponse {
     private String brandName;
     private String genericName;
     private String manufacturerName;
+    private String medicineForm;
+    private Integer packSize;
+    private String packSizeLabel;
     private Integer reorderLevel;
     private Integer currentQuantityStrips;
     private Integer shortageQuantityStrips;

@@ -95,7 +95,7 @@ public class ProcurementService {
 
         int quantity = request.getQuantity() == null ? 0 : request.getQuantity();
         if (quantity <= 0) {
-            throw new BusinessRuleException("Draft reorder quantity must be at least 1 strip");
+            throw new BusinessRuleException("Draft reorder quantity must be at least 1 pack");
         }
 
         Supplier supplier = resolveSupplier(store, medicine, request.getSupplierId());
@@ -129,7 +129,9 @@ public class ProcurementService {
                         .batchNumber("PLANNED")
                         .expiryDate(LocalDate.now().plusYears(2))
                         .quantity(quantity)
+                        .quantityLoose(0)
                         .freeQty(0)
+                        .freeQtyLoose(0)
                         .purchaseRate(purchaseRate)
                         .mrp(safe(medicine.getMrp()))
                         .gstRate(gstRate)

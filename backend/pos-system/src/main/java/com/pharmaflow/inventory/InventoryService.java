@@ -152,12 +152,16 @@ public class InventoryService {
         if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than zero");
         }
-        if ("TABLET".equalsIgnoreCase(unitType)) {
+        if (!isPackUnitType(unitType)) {
             return quantity.setScale(0, RoundingMode.HALF_UP).intValueExact();
         }
         return quantity.multiply(BigDecimal.valueOf(safePackSize(packSize)))
                 .setScale(0, RoundingMode.HALF_UP)
                 .intValueExact();
+    }
+
+    private boolean isPackUnitType(String unitType) {
+        return "PACK".equalsIgnoreCase(unitType) || "STRIP".equalsIgnoreCase(unitType);
     }
 
     private int safePackSize(Medicine medicine) {

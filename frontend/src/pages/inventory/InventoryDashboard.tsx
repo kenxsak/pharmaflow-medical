@@ -13,6 +13,11 @@ import {
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
 import LegacyModal from '../../shared/legacy/LegacyModal';
 import { formatDateInput, formatLocalDateTime } from '../../utils/dateTime';
+import {
+  formatPrimaryQuantity,
+  formatSecondaryQuantity,
+  getMedicineUnitProfile,
+} from '../../utils/medicineUnits';
 
 const quickSearches = ['8901234500001', 'Dolo 650', 'Mox 500', 'Alprax 0.25'];
 
@@ -33,7 +38,9 @@ interface OpeningStockDraft {
   manufactureDate: string;
   expiryDate: string;
   quantity: number;
+  quantityLoose: number;
   freeQty: number;
+  freeQtyLoose: number;
   purchaseRate: number;
   mrp: number;
   gstRate: number;
@@ -59,7 +66,9 @@ const createOpeningStockDraft = (
     manufactureDate: '',
     expiryDate: formatDateInput(expiryDate),
     quantity: 10,
+    quantityLoose: 0,
     freeQty: 0,
+    freeQtyLoose: 0,
     purchaseRate,
     mrp,
     gstRate: Number(medicine?.gstRate || 0),
@@ -191,7 +200,15 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
     }
 
     if (Number(openingStockDraft.quantity) <= 0) {
-      setError('Opening stock quantity must be greater than zero.');
+      if (Number(openingStockDraft.quantityLoose) <= 0) {
+        setError('Opening stock must include at least one pack or loose unit.');
+        setMessage(null);
+        return;
+      }
+    }
+
+    if (Number(openingStockDraft.quantity) < 0 || Number(openingStockDraft.quantityLoose) < 0) {
+      setError('Opening stock quantities cannot be negative.');
       setMessage(null);
       return;
     }
@@ -224,7 +241,9 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
             manufactureDate: openingStockDraft.manufactureDate || undefined,
             expiryDate: openingStockDraft.expiryDate,
             quantity: Number(openingStockDraft.quantity),
+            quantityLoose: Number(openingStockDraft.quantityLoose || 0),
             freeQty: Number(openingStockDraft.freeQty || 0),
+            freeQtyLoose: Number(openingStockDraft.freeQtyLoose || 0),
             purchaseRate: Number(openingStockDraft.purchaseRate),
             mrp: Number(openingStockDraft.mrp),
             gstRate: Number(openingStockDraft.gstRate),
@@ -268,6 +287,11 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
         return acc;
       }, {}),
     [stockRows]
+  );
+
+  const selectedUnitProfile = useMemo(
+    () => (selectedMedicine ? getMedicineUnitProfile(selectedMedicine) : null),
+    [selectedMedicine]
   );
 
   return (
@@ -325,12 +349,14 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
               <div className="rounded-3xl bg-white p-4 shadow-sm">
                 <div className="text-xs uppercase tracking-wide text-slate-500">Selected Stock</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{visibleStockStrips}</div>
-                <div className="mt-1 text-sm text-slate-500">Visible strips in current batch list</div>
+                <div className="mt-1 text-sm text-slate-500">
+                  Visible {selectedUnitProfile?.primaryUnitLabel || 'packs'} in current batch list
+                </div>
               </div>
               <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Shortage Strips</div>
+                <div className="text-xs uppercase tracking-wide text-slate-500">Shortage Stock</div>
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageStrips}</div>
-                <div className="mt-1 text-sm text-slate-500">Current on-hand strips in shortage medicines</div>
+                <div className="mt-1 text-sm text-slate-500">Current on-hand pack units in shortage medicines</div>
               </div>
             </div>
           </div>
@@ -348,7 +374,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
             <div className="text-sm font-semibold text-sky-900">Step 2</div>
             <div className="mt-2 text-lg font-semibold text-slate-950">Inspect live batches</div>
             <div className="mt-1 text-sm text-slate-600">
-              Check strip quantity, loose units, expiry date, and which batch should move first.
+              Check pack quantity, loose units, expiry date, and which batch should move first.
             </div>
           </div>
           <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
@@ -397,7 +423,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                       </div>
                     </div>
                     <div className="text-sm text-slate-500">
-                      {medicine.currentBatch?.quantityStrips ?? 0} strips
+                      {formatPrimaryQuantity(medicine.currentBatch?.quantityStrips ?? 0, medicine)}
                     </div>
                   </button>
                 ))}
@@ -418,7 +444,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
             </div>
             {selectedMedicine && (
               <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                {stockRows.length} batches • {visibleStockStrips} strips
+                {stockRows.length} batches • {formatPrimaryQuantity(visibleStockStrips, selectedMedicine)}
               </div>
             )}
           </div>
@@ -433,8 +459,10 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl bg-white p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-400">Pack size</div>
-                    <div className="mt-2 font-semibold text-slate-950">{selectedMedicine.packSize || 1}</div>
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Pack profile</div>
+                    <div className="mt-2 font-semibold text-slate-950">
+                      {selectedUnitProfile?.packDisplayLabel || selectedMedicine.packSize || 1}
+                    </div>
                   </div>
                   <div className="rounded-2xl bg-white p-3">
                     <div className="text-xs uppercase tracking-wide text-slate-400">MRP</div>
@@ -451,7 +479,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 <div className="text-sm font-semibold text-emerald-900">Turn catalog medicine into billable stock</div>
                 <div className="mt-2 text-sm leading-6 text-emerald-900">
                   If this medicine came from the uploaded master catalog but has no inward yet, add one batch here.
-                  Once stock is saved, the same medicine will show in billing for this store.
+                  This works for strips, bottles, vials, tubes, and other pack types. Once stock is saved, the same medicine will show in billing for this store.
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
@@ -493,8 +521,8 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 <tr>
                   <th className="px-3 py-2 text-left">Batch</th>
                   <th className="px-3 py-2 text-left">Expiry</th>
-                  <th className="px-3 py-2 text-right">Strips</th>
-                  <th className="px-3 py-2 text-right">Loose</th>
+                  <th className="px-3 py-2 text-right">{selectedUnitProfile ? selectedUnitProfile.primaryUnitLabel : 'Packs'}</th>
+                  <th className="px-3 py-2 text-right">{selectedUnitProfile ? selectedUnitProfile.secondaryUnitLabel : 'Loose'}</th>
                   <th className="px-3 py-2 text-right">MRP</th>
                   <th className="px-3 py-2 text-left">Status</th>
                 </tr>
@@ -562,8 +590,8 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                   <th className="px-3 py-2 text-left">Medicine</th>
                   <th className="px-3 py-2 text-left">Generic</th>
                   <th className="px-3 py-2 text-right">Reorder Level</th>
-                  <th className="px-3 py-2 text-right">Strips</th>
-                  <th className="px-3 py-2 text-right">Loose</th>
+                  <th className="px-3 py-2 text-right">Current pack stock</th>
+                  <th className="px-3 py-2 text-right">Loose stock</th>
                 </tr>
               </thead>
               <tbody>
@@ -572,8 +600,8 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                     <td className="px-3 py-3 font-medium">{row.brandName}</td>
                     <td className="px-3 py-3">{row.genericName || '—'}</td>
                     <td className="px-3 py-3 text-right">{row.reorderLevel}</td>
-                    <td className="px-3 py-3 text-right">{row.quantityStrips}</td>
-                    <td className="px-3 py-3 text-right">{row.quantityLoose}</td>
+                    <td className="px-3 py-3 text-right">{formatPrimaryQuantity(row.quantityStrips, row)}</td>
+                    <td className="px-3 py-3 text-right">{formatSecondaryQuantity(row.quantityLoose, row)}</td>
                   </tr>
                 ))}
                 {!shortageRows.length && (
@@ -692,22 +720,50 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
               />
             </label>
             <label className="space-y-1 text-sm">
-              <span className="font-medium text-slate-700">Quantity (strips)</span>
+              <span className="font-medium text-slate-700">
+                Quantity ({selectedUnitProfile?.primaryUnitLabel || 'packs'})
+              </span>
               <input
                 type="number"
-                min={1}
+                min={0}
                 value={openingStockDraft.quantity}
                 onChange={(event) => handleOpeningStockChange('quantity', Number(event.target.value))}
                 className="w-full rounded-2xl border border-slate-300 px-4 py-3"
               />
             </label>
             <label className="space-y-1 text-sm">
-              <span className="font-medium text-slate-700">Free quantity</span>
+              <span className="font-medium text-slate-700">
+                Loose quantity ({selectedUnitProfile?.secondaryUnitLabel || 'units'})
+              </span>
+              <input
+                type="number"
+                min={0}
+                value={openingStockDraft.quantityLoose}
+                onChange={(event) => handleOpeningStockChange('quantityLoose', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">
+                Free quantity ({selectedUnitProfile?.primaryUnitLabel || 'packs'})
+              </span>
               <input
                 type="number"
                 min={0}
                 value={openingStockDraft.freeQty}
                 onChange={(event) => handleOpeningStockChange('freeQty', Number(event.target.value))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">
+                Free loose quantity ({selectedUnitProfile?.secondaryUnitLabel || 'units'})
+              </span>
+              <input
+                type="number"
+                min={0}
+                value={openingStockDraft.freeQtyLoose}
+                onChange={(event) => handleOpeningStockChange('freeQtyLoose', Number(event.target.value))}
                 className="w-full rounded-2xl border border-slate-300 px-4 py-3"
               />
             </label>
@@ -753,7 +809,20 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 <div>Medicine: <span className="font-semibold">{selectedMedicine?.brandName || 'No medicine selected'}</span></div>
                 <div>Batch: <span className="font-semibold">{openingStockDraft.batchNumber || 'Not entered yet'}</span></div>
                 <div>Supplier: <span className="font-semibold">{suppliers.find((supplier) => supplier.supplierId === openingStockDraft.supplierId)?.name || openingStockDraft.newSupplierName || 'Quick supplier will be created'}</span></div>
-                <div>Total inward: <span className="font-semibold">{Number(openingStockDraft.quantity || 0) + Number(openingStockDraft.freeQty || 0)} strips</span></div>
+                <div>
+                  Total inward:{' '}
+                  <span className="font-semibold">
+                    {formatPrimaryQuantity(
+                      Number(openingStockDraft.quantity || 0) + Number(openingStockDraft.freeQty || 0),
+                      selectedMedicine || {}
+                    )}
+                    {' + '}
+                    {formatSecondaryQuantity(
+                      Number(openingStockDraft.quantityLoose || 0) + Number(openingStockDraft.freeQtyLoose || 0),
+                      selectedMedicine || {}
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
 

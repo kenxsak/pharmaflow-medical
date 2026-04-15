@@ -3,6 +3,7 @@ package com.pharmaflow.inventory;
 import com.pharmaflow.audit.AuditLogService;
 import com.pharmaflow.auth.CurrentPharmaUserService;
 import com.pharmaflow.auth.PharmaUser;
+import com.pharmaflow.billing.InvoiceItemRepository;
 import com.pharmaflow.common.BusinessRuleException;
 import com.pharmaflow.common.ForbiddenActionException;
 import com.pharmaflow.inventory.dto.ReplenishmentInsightResponse;
@@ -11,6 +12,7 @@ import com.pharmaflow.inventory.dto.StockTransferCreateRequest;
 import com.pharmaflow.inventory.dto.StockTransferResponse;
 import com.pharmaflow.inventory.dto.TransferRecommendationResponse;
 import com.pharmaflow.medicine.Medicine;
+import com.pharmaflow.medicine.MedicineRepository;
 import com.pharmaflow.procurement.PharmaSupplierRepository;
 import com.pharmaflow.procurement.PurchaseOrderItem;
 import com.pharmaflow.procurement.PurchaseOrderItemRepository;
@@ -31,6 +33,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -44,6 +47,8 @@ public class ReplenishmentService {
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransferRepository stockTransferRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
+    private final InvoiceItemRepository invoiceItemRepository;
+    private final MedicineRepository medicineRepository;
     private final PharmaSupplierRepository supplierRepository;
     private final CurrentPharmaUserService currentPharmaUserService;
     private final StoreService storeService;
@@ -81,7 +86,10 @@ public class ReplenishmentService {
         List<ReplenishmentRecommendationResponse> recommendations = new ArrayList<>();
 
         for (Store targetStore : targetStores) {
-            Map<UUID, StoreMedicineSnapshot> targetStock = stockByStore.getOrDefault(targetStore.getStoreId(), Map.of());
+            Map<UUID, StoreMedicineSnapshot> targetStock = new LinkedHashMap<>(
+                    stockByStore.getOrDefault(targetStore.getStoreId(), Map.of())
+            );
+            ensureRelevantMedicines(targetStore, targetStock);
             for (StoreMedicineSnapshot snapshot : targetStock.values()) {
                 if (!isShortage(snapshot)) {
                     continue;
@@ -125,6 +133,9 @@ public class ReplenishmentService {
                         .manufacturerName(snapshot.medicine.getManufacturer() != null
                                 ? snapshot.medicine.getManufacturer().getName()
                                 : null)
+                        .medicineForm(snapshot.medicine.getMedicineForm())
+                        .packSize(snapshot.medicine.getPackSize())
+                        .packSizeLabel(snapshot.medicine.getPackSizeLabel())
                         .reorderLevel(snapshot.reorderLevel)
                         .currentQuantityStrips(snapshot.totalStrips)
                         .shortageQuantityStrips(shortageQty)
@@ -187,7 +198,7 @@ public class ReplenishmentService {
 
         int requestedStrips = request.getQuantityStrips() == null ? 0 : request.getQuantityStrips();
         if (requestedStrips <= 0) {
-            throw new BusinessRuleException("Transfer quantity must be at least 1 strip");
+            throw new BusinessRuleException("Transfer quantity must be at least 1 pack");
         }
 
         int donorTotalStock = inventoryBatchRepository.findSellableBatches(fromStore.getStoreId(), request.getMedicineId(), LocalDate.now())
@@ -214,8 +225,8 @@ public class ReplenishmentService {
                         .quantityStrips(requestedStrips)
                         .quantityLoose(request.getQuantityLoose() == null ? 0 : request.getQuantityLoose())
                         .status("PENDING")
-                        .requestedBy(currentUser)
-                        .build()
+                .requestedBy(currentUser)
+                .build()
         );
 
         auditLogService.log(
@@ -379,6 +390,18 @@ public class ReplenishmentService {
                 : medicine.getPts() != null ? medicine.getPts() : medicine.getMrp();
 
         return new SupplierInfo(fallbackSupplier, purchaseRate);
+    }
+
+    private void ensureRelevantMedicines(Store targetStore, Map<UUID, StoreMedicineSnapshot> targetStock) {
+        LinkedHashSet<UUID> relevantMedicineIds = new LinkedHashSet<>(targetStock.keySet());
+        relevantMedicineIds.addAll(purchaseOrderItemRepository.findDistinctMedicineIdsByStoreId(targetStore.getStoreId()));
+        relevantMedicineIds.addAll(invoiceItemRepository.findDistinctMedicineIdsByStoreId(targetStore.getStoreId()));
+
+        medicineRepository.findAllById(relevantMedicineIds)
+                .forEach(medicine -> targetStock.computeIfAbsent(
+                        medicine.getMedicineId(),
+                        ignored -> new StoreMedicineSnapshot(targetStore, medicine)
+                ));
     }
 
     private boolean isShortage(StoreMedicineSnapshot snapshot) {
