@@ -142,6 +142,12 @@ public class SecurityConfiguration {
                                         PharmaRoleName.PHARMACIST.name(),
                                         PharmaRoleName.SALES_ASSISTANT.name()
                                 )
+                                .antMatchers("/api/v1/documents/**")
+                                .hasAnyRole(
+                                        PharmaRoleName.SUPER_ADMIN.name(),
+                                        PharmaRoleName.STORE_MANAGER.name(),
+                                        PharmaRoleName.PHARMACIST.name()
+                                )
                                 .antMatchers("/api/v1/compliance/**")
                                 .hasAnyRole(
                                         PharmaRoleName.SUPER_ADMIN.name(),

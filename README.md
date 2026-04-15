@@ -5,6 +5,7 @@ This repository contains the PharmaFlow/LifePill pharmacy SaaS demo stack:
 - `frontend/` - React legacy-first UI
 - `backend/pos-system/` - Spring Boot API
 - `render.yaml` - free demo hosting blueprint for Render
+- `docs/operations/` - first-customer operational runbooks
 
 GitHub repo:
 
@@ -46,11 +47,26 @@ App URLs:
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:8080`
 
+## Phase 1 Hardening
+
+The backend now includes:
+
+- Flyway migration support with baseline-on-migrate
+- Hibernate schema validation by default
+- prescription/document upload with local fallback and S3-ready storage
+- root CI workflow in `.github/workflows/ci.yml`
+- PostgreSQL backup and restore scripts in `scripts/`
+
 ## Notes
 
 - The free demo stack is suitable for sales demos and internal testing, not production.
 - Free Render services can sleep after inactivity.
-- Uploaded files on the free backend are ephemeral until production storage is added.
+- For a paid customer, configure object storage and keep `HIBERNATE_DDL_AUTO=validate`.
+
+## First Paid Customer
+
+- Phase 1 deployment checklist: `docs/operations/FIRST_CUSTOMER_PHASE1.md`
+- Backup and restore runbook: `docs/operations/BACKUP_RESTORE.md`
 
 ## Medicine Catalogue
 

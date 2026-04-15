@@ -503,7 +503,7 @@ CREATE TABLE public.manufacturers (
 --
 
 CREATE TABLE public.medicine_substitutes (
-    id bigint NOT NULL,
+    id integer NOT NULL,
     medicine_id uuid,
     substitute_id uuid,
     is_generic boolean DEFAULT false,
@@ -517,7 +517,7 @@ CREATE TABLE public.medicine_substitutes (
 --
 
 CREATE SEQUENCE public.medicine_substitutes_id_seq
-    AS bigint
+    AS integer
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE

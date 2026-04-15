@@ -1,4 +1,4 @@
-import { getPharmaFlowApiBaseUrl } from '../utils/apiBaseUrls';
+import { getBackendBaseUrl, getPharmaFlowApiBaseUrl } from '../utils/apiBaseUrls';
 
 const BASE_URL = getPharmaFlowApiBaseUrl();
 
@@ -69,6 +69,16 @@ const fetchText = async (input: RequestInfo | URL, init?: RequestInit): Promise<
     throw new Error(await extractErrorMessage(response));
   }
   return response.text();
+};
+
+const resolveDocumentUrl = (documentUrl: string) => {
+  if (documentUrl.startsWith('http://') || documentUrl.startsWith('https://')) {
+    return documentUrl;
+  }
+  if (documentUrl.startsWith('/')) {
+    return `${getBackendBaseUrl()}${documentUrl}`;
+  }
+  return `${BASE_URL}/${documentUrl.replace(/^\/+/, '')}`;
 };
 
 export interface BatchSnapshot {
@@ -901,6 +911,15 @@ export interface CreditNoteResponse {
   createdAt: string;
 }
 
+export interface UploadedDocumentResponse {
+  documentId: string;
+  documentUrl: string;
+  originalFileName: string;
+  contentType: string;
+  sizeBytes: number;
+  storageProvider: string;
+}
+
 export const MedicineAPI = {
   search: (query: string): Promise<MedicineSearchResult[]> =>
     fetchJson(`${BASE_URL}/medicines/search?q=${encodeURIComponent(query)}`, {
@@ -1449,4 +1468,55 @@ export const PlatformAPI = {
     fetchJson(`${BASE_URL}/platform/context`, {
       headers: getHeaders(),
     }),
+};
+
+export const DocumentAPI = {
+  uploadPrescription: async (file: File): Promise<UploadedDocumentResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${BASE_URL}/documents/prescriptions`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response));
+    }
+
+    return response.json();
+  },
+
+  openProtectedDocument: async (documentUrl: string) => {
+    const resolvedUrl = resolveDocumentUrl(documentUrl);
+    if (
+      (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://')) &&
+      !resolvedUrl.startsWith(getBackendBaseUrl())
+    ) {
+      window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const response = await fetch(resolvedUrl, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response));
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const tab = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+    if (!tab) {
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.target = '_blank';
+      anchor.rel = 'noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    }
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  },
 };

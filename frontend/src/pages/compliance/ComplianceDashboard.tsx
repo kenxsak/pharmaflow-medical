@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
-import { ComplianceAPI, ScheduleRegisterResponse } from '../../services/api';
+import { ComplianceAPI, DocumentAPI, ScheduleRegisterResponse } from '../../services/api';
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
 import { downloadCsv } from '../../utils/exportCsv';
 
@@ -304,9 +304,13 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                     <td className="px-3 py-3 text-right">{entry.quantitySold}</td>
                     <td className="px-3 py-3">
                       {entry.prescriptionUrl ? (
-                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
-                          Attached
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void DocumentAPI.openProtectedDocument(entry.prescriptionUrl!)}
+                          className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
+                        >
+                          Open attached
+                        </button>
                       ) : (
                         <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-700">
                           Missing

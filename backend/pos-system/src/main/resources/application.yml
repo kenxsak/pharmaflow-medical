@@ -10,7 +10,7 @@ spring:
     password: ${DATABASE_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+      ddl-auto: ${HIBERNATE_DDL_AUTO:validate}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -19,6 +19,11 @@ spring:
         non_contextual_creation: true
     show-sql: ${JDBC_SHOW_SQL}
     open-in-view: ${HIBERNATE_OPEN_IN_VIEW:false}
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    locations: classpath:db/migration
+    clean-disabled: true
   security:
     user:
       name: ${SPRING_SECURITY_USERNAME}
@@ -59,6 +64,13 @@ aws:
   secret.key: ${AWS_SECRET_KEY}
   s3.bucket: ${AWS_S3_BUCKET}
   region: ${AWS_REGION}
+
+pharmaflow:
+  storage:
+    provider: ${PHARMAFLOW_STORAGE_PROVIDER:auto}
+    local-root: ${PHARMAFLOW_STORAGE_LOCAL_ROOT:./data/documents}
+    max-file-size-bytes: ${PHARMAFLOW_STORAGE_MAX_FILE_SIZE_BYTES:10485760}
+    allowed-content-types: ${PHARMAFLOW_STORAGE_ALLOWED_CONTENT_TYPES:application/pdf,image/jpeg,image/png,image/webp}
 
 # CORS Configuration - All settings loaded from environment variables
 # See CorsFilter.java in filter package for implementation

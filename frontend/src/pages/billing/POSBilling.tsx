@@ -5,6 +5,7 @@ import {
   BillingItem,
   CustomerAPI,
   CustomerLookupResponse,
+  DocumentAPI,
   GstCalculationResponse,
   MedicineAPI,
   MedicineSearchResult,
@@ -80,6 +81,8 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
   const [patientName, setPatientName] = useState('');
   const [doctorName, setDoctorName] = useState('');
   const [prescriptionUrl, setPrescriptionUrl] = useState('');
+  const [prescriptionFileName, setPrescriptionFileName] = useState('');
+  const [uploadingPrescription, setUploadingPrescription] = useState(false);
   const [substitutesByMedicineId, setSubstitutesByMedicineId] = useState<Record<string, SubstituteResult[]>>({});
   const searchRef = useRef<HTMLInputElement>(null);
   const userRole = localStorage.getItem('pharmaflow_role') || '';
@@ -351,6 +354,24 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
 
   const totalAmount = gstSummary?.totalAmount ?? 0;
 
+  const handlePrescriptionUpload = async (file?: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    setUploadingPrescription(true);
+    try {
+      const uploaded = await DocumentAPI.uploadPrescription(file);
+      setPrescriptionUrl(uploaded.documentUrl);
+      setPrescriptionFileName(uploaded.originalFileName);
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to upload prescription.');
+    } finally {
+      setUploadingPrescription(false);
+    }
+  };
+
   const lookupCustomer = async (phoneOverride?: string) => {
     const phoneToLookup = (phoneOverride ?? customerPhone).trim();
     if (!phoneToLookup) {
@@ -391,6 +412,8 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     setPatientName('');
     setDoctorName('');
     setPrescriptionUrl('');
+    setPrescriptionFileName('');
+    setUploadingPrescription(false);
     setGstSummary(null);
   };
 
@@ -783,13 +806,56 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
                   className="w-full rounded-xl border border-amber-200 px-3 py-2"
                 />
                 {requiresPrescription && (
-                  <input
-                    type="text"
-                    value={prescriptionUrl}
-                    onChange={(event) => setPrescriptionUrl(event.target.value)}
-                    placeholder="Prescription file path or document reference"
-                    className="w-full rounded-xl border border-amber-200 px-3 py-2"
-                  />
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium uppercase tracking-wide text-amber-700">
+                      Prescription file
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg,image/webp"
+                      onChange={(event) => void handlePrescriptionUpload(event.target.files?.[0])}
+                      className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm"
+                    />
+                    {uploadingPrescription && (
+                      <div className="text-xs text-amber-700">Uploading prescription…</div>
+                    )}
+                    {prescriptionUrl && (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                        <div className="font-medium">{prescriptionFileName || 'Uploaded prescription'}</div>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void DocumentAPI.openProtectedDocument(prescriptionUrl)}
+                            className="rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-medium text-emerald-800"
+                          >
+                            Open file
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPrescriptionUrl('');
+                              setPrescriptionFileName('');
+                            }}
+                            className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-800"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      value={prescriptionUrl.startsWith('/api/v1/documents/') ? '' : prescriptionUrl}
+                      onChange={(event) => {
+                        setPrescriptionUrl(event.target.value);
+                        if (event.target.value) {
+                          setPrescriptionFileName('');
+                        }
+                      }}
+                      placeholder="Or paste an external prescription reference URL"
+                      className="w-full rounded-xl border border-amber-200 px-3 py-2"
+                    />
+                  </div>
                 )}
               </div>
             )}

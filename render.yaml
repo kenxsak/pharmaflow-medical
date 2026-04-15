@@ -41,7 +41,7 @@ services:
       - key: JDBC_SHOW_SQL
         value: "false"
       - key: HIBERNATE_DDL_AUTO
-        value: update
+        value: validate
       - key: HIBERNATE_OPEN_IN_VIEW
         value: "false"
       - key: SPRING_SECURITY_USERNAME
@@ -64,6 +64,10 @@ services:
         value: ""
       - key: AWS_REGION
         value: ap-south-1
+      - key: PHARMAFLOW_STORAGE_PROVIDER
+        value: auto
+      - key: PHARMAFLOW_STORAGE_LOCAL_ROOT
+        value: /tmp/pharmaflow-documents
       - key: JWT_SECRET
         generateValue: true
       - key: MAIL_HEALTH

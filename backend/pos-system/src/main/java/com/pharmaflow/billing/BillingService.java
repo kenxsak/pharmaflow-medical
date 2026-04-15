@@ -16,6 +16,8 @@ import com.pharmaflow.common.ForbiddenActionException;
 import com.pharmaflow.compliance.ScheduleHComplianceService;
 import com.pharmaflow.customer.Customer;
 import com.pharmaflow.customer.CustomerRepository;
+import com.pharmaflow.customer.PatientPrescription;
+import com.pharmaflow.customer.PatientPrescriptionRepository;
 import com.pharmaflow.inventory.InventoryBatch;
 import com.pharmaflow.inventory.InventoryBatchRepository;
 import com.pharmaflow.medicine.Medicine;
@@ -57,6 +59,7 @@ public class BillingService {
     private final ScheduleHComplianceService scheduleHComplianceService;
     private final PharmaUserRepository pharmaUserRepository;
     private final AuditLogService auditLogService;
+    private final PatientPrescriptionRepository patientPrescriptionRepository;
 
     @Value("${pharmaflow.invoice.prefix:TN}")
     private String invoicePrefix;
@@ -225,6 +228,8 @@ public class BillingService {
                             request.getPrescriptionUrl()
                     );
                 }
+
+                recordPatientHistory(customer, invoice, medicine, allocation.quantity(), request);
 
                 subtotal = subtotal.add(allocation.lineMrp());
                 discountAmount = discountAmount.add(allocation.breakdown().getDiscountAmount());
@@ -652,6 +657,40 @@ public class BillingService {
 
     private Integer safe(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private void recordPatientHistory(
+            Customer customer,
+            Invoice invoice,
+            Medicine medicine,
+            BigDecimal quantity,
+            InvoiceCreateRequest request
+    ) {
+        if (customer == null || medicine == null) {
+            return;
+        }
+
+        boolean shouldPersist = scheduleHComplianceService.requiresComplianceRecord(medicine.getScheduleType())
+                || Boolean.TRUE.equals(medicine.getRequiresRx())
+                || (request.getPrescriptionUrl() != null && !request.getPrescriptionUrl().isBlank())
+                || (request.getDoctorName() != null && !request.getDoctorName().isBlank());
+
+        if (!shouldPersist) {
+            return;
+        }
+
+        patientPrescriptionRepository.save(
+                PatientPrescription.builder()
+                        .customer(customer)
+                        .medicine(medicine)
+                        .invoiceId(invoice.getInvoiceId())
+                        .doctorName(resolveDoctorName(request, customer))
+                        .doctorRegNo(request.getDoctorRegNo())
+                        .prescriptionUrl(request.getPrescriptionUrl())
+                        .quantity(quantity)
+                        .notes("Captured from POS billing invoice " + invoice.getInvoiceNo())
+                        .build()
+        );
     }
 
     private record BatchAllocationPlan(

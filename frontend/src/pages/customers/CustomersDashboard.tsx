@@ -4,6 +4,7 @@ import {
   CustomerAPI,
   CustomerCreateRequest,
   CustomerLookupResponse,
+  DocumentAPI,
   PatientHistoryResponse,
 } from '../../services/api';
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
@@ -547,14 +548,13 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
                       <td className="px-3 py-3 text-right">{entry.quantity || 0}</td>
                       <td className="px-3 py-3">
                         {entry.prescriptionUrl ? (
-                          <a
-                            href={entry.prescriptionUrl}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => void DocumentAPI.openProtectedDocument(entry.prescriptionUrl!)}
                             className="text-cyan-700 underline"
                           >
                             Open
-                          </a>
+                          </button>
                         ) : (
                           '—'
                         )}

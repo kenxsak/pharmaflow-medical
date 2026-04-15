@@ -56,6 +56,11 @@ public class TenantAccessService {
                 TenantFeatureCode.Q13_CREDIT_MANAGEMENT.getCode(),
                 TenantFeatureCode.Q22_PATIENT_HISTORY.getCode()
         ));
+        map.put("/api/v1/documents", Set.of(
+                TenantFeatureCode.Q8_RX_DIGITIZATION.getCode(),
+                TenantFeatureCode.Q21_DOCTOR_TRACKING.getCode(),
+                TenantFeatureCode.Q22_PATIENT_HISTORY.getCode()
+        ));
         map.put("/api/v1/compliance", Set.of(
                 TenantFeatureCode.Q5_H1_NARCOTIC.getCode(),
                 TenantFeatureCode.Q17_SCHEDULE_TRACKING.getCode(),

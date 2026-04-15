@@ -4,6 +4,7 @@ import {
   AuditAPI,
   AuditLogEntry,
   BillingAPI,
+  DocumentAPI,
   InvoiceHistoryItem,
   InvoiceResponse,
 } from '../../services/api';
@@ -389,14 +390,13 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
                     <div>Due: ₹{selectedInvoice.amountDue.toFixed(2)}</div>
                   </div>
                   {selectedInvoice.prescriptionUrl && (
-                    <a
-                      href={selectedInvoice.prescriptionUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => void DocumentAPI.openProtectedDocument(selectedInvoice.prescriptionUrl!)}
                       className="mt-3 inline-flex text-sm font-medium text-sky-700 underline"
                     >
                       Open prescription reference
-                    </a>
+                    </button>
                   )}
                 </div>
 
