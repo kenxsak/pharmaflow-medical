@@ -12,6 +12,7 @@ if [ "$AUTO_IMPORT" != "true" ]; then
 fi
 
 DATASET_PATH="${PHARMAFLOW_MEDICINE_DATASET_PATH:-/app/import-data/updated_indian_medicine_data.csv}"
+STAGING_DATASET_PATH="${PHARMAFLOW_MEDICINE_STAGING_DATASET_PATH:-/tmp/staging_indian_medicine_data.csv}"
 IMPORT_SQL_PATH="${PHARMAFLOW_MEDICINE_IMPORT_SQL_PATH:-/app/import-sql/import_indian_medicine_dataset.sql}"
 SUBSTITUTE_SQL_PATH="${PHARMAFLOW_MEDICINE_SUBSTITUTE_SQL_PATH:-/app/import-sql/build_medicine_substitutes.sql}"
 CATALOG_SOURCE="${PHARMAFLOW_MEDICINE_CATALOG_SOURCE:-JUNIORALIVE_GITHUB}"
@@ -27,6 +28,11 @@ if [ ! -f "$IMPORT_SQL_PATH" ] || [ ! -f "$SUBSTITUTE_SQL_PATH" ]; then
   log "Import SQL assets are missing. Skipping import."
   exit 0
 fi
+
+staging_dir="$(dirname "$STAGING_DATASET_PATH")"
+mkdir -p "$staging_dir"
+cp "$DATASET_PATH" "$STAGING_DATASET_PATH"
+log "Staged tracked medicine CSV at $STAGING_DATASET_PATH"
 
 JDBC_URL="${SPRING_DATASOURCE_URL:-${DATABASE_URL:-}}"
 DB_USERNAME="${SPRING_DATASOURCE_USERNAME:-${DATABASE_USERNAME:-}}"
