@@ -2,6 +2,8 @@
 
 \echo 'Preparing PharmaFlow medicine catalogue for dataset import...'
 
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+
 ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_size_label VARCHAR(200);
 ALTER TABLE medicines ADD COLUMN IF NOT EXISTS composition_summary TEXT;
 ALTER TABLE medicines ADD COLUMN IF NOT EXISTS search_keywords TEXT;
@@ -49,7 +51,7 @@ WITH normalized AS (
 )
 INSERT INTO manufacturers (manufacturer_id, name, short_code, is_active)
 SELECT
-    uuid_generate_v4(),
+    public.uuid_generate_v4(),
     manufacturer_name,
     UPPER(LEFT(REGEXP_REPLACE(manufacturer_name, '[^A-Za-z0-9]', '', 'g'), 20)),
     TRUE
@@ -83,7 +85,7 @@ normalized AS (
 )
 INSERT INTO salt_compositions (salt_id, salt_name, generic_name, drug_class)
 SELECT
-    uuid_generate_v4(),
+    public.uuid_generate_v4(),
     salt_name,
     generic_name,
     'Allopathy'
@@ -262,7 +264,7 @@ INSERT INTO medicines (
     is_active
 )
 SELECT
-    uuid_generate_v4(),
+    public.uuid_generate_v4(),
     p.brand_name,
     NULLIF(p.generic_name, ''),
     s.salt_id,
