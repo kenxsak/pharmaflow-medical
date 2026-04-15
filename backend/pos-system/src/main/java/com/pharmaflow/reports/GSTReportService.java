@@ -1,6 +1,7 @@
 package com.pharmaflow.reports;
 
 import com.pharmaflow.inventory.dto.ExpiryAlertSummary;
+import com.pharmaflow.inventory.dto.ExpiryActionQueueResponse;
 import com.pharmaflow.inventory.dto.ShortageItemResponse;
 import com.pharmaflow.reports.dto.GSTR1Row;
 import com.pharmaflow.reports.dto.GSTR3BReport;
@@ -26,6 +27,10 @@ public class GSTReportService {
 
     public ExpiryAlertSummary getExpiryAlerts(UUID storeId) {
         return reportService.getExpiryAlerts(storeId);
+    }
+
+    public ExpiryActionQueueResponse getExpiryActionQueue(UUID storeId, int limit) {
+        return reportService.getExpiryActionQueue(storeId, limit);
     }
 
     public List<ShortageItemResponse> getShortageReport(UUID storeId) {

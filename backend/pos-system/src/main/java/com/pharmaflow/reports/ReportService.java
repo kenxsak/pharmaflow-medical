@@ -8,6 +8,7 @@ import com.pharmaflow.inventory.InventoryBatch;
 import com.pharmaflow.inventory.InventoryBatchRepository;
 import com.pharmaflow.inventory.ExpiryAlertService;
 import com.pharmaflow.inventory.dto.ExpiryAlertSummary;
+import com.pharmaflow.inventory.dto.ExpiryActionQueueResponse;
 import com.pharmaflow.inventory.dto.ShortageItemResponse;
 import com.pharmaflow.medicine.Medicine;
 import com.pharmaflow.reports.dto.DailySalesRow;
@@ -91,6 +92,10 @@ public class ReportService {
 
     public ExpiryAlertSummary getExpiryAlerts(UUID storeId) {
         return expiryAlertService.getExpiryAlerts(storeId);
+    }
+
+    public ExpiryActionQueueResponse getExpiryActionQueue(UUID storeId, int limit) {
+        return expiryAlertService.getExpiryActionQueue(storeId, limit);
     }
 
     public List<ShortageItemResponse> getShortageReport(UUID storeId) {

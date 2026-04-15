@@ -810,6 +810,40 @@ export interface ExpiryAlertSummary {
   totalAtRiskValue: number;
 }
 
+export interface ExpiryActionRecommendation {
+  batchId: string;
+  medicineId: string;
+  brandName: string;
+  genericName?: string;
+  batchNumber: string;
+  expiryDate: string;
+  daysToExpiry: number;
+  quantityStrips: number;
+  quantityLoose: number;
+  mrp: number;
+  stockValue: number;
+  expiryStatus: string;
+  inventoryState: string;
+  recommendedAction: string;
+  actionLabel: string;
+  actionSeverity: string;
+  actionReason: string;
+  suggestedSupplierId?: string;
+  suggestedSupplierName?: string;
+  canQuarantine?: boolean;
+  canCreateRtv?: boolean;
+  canCreateDump?: boolean;
+}
+
+export interface ExpiryActionQueueResponse {
+  recommendationCount: number;
+  immediateActionCount: number;
+  quarantineCandidateCount: number;
+  rtvCandidateValue: number;
+  dumpCandidateValue: number;
+  recommendations: ExpiryActionRecommendation[];
+}
+
 export interface CustomerLookupResponse {
   customerId: string;
   name: string;
@@ -1493,6 +1527,11 @@ export const ReportsAPI = {
 
   getExpiryAlerts: (storeId: string): Promise<ExpiryAlertSummary> =>
     fetchJson(`${BASE_URL}/reports/expiry-alerts?storeId=${storeId}`, {
+      headers: getHeaders(),
+    }),
+
+  getExpiryActionQueue: (storeId: string, limit = 20): Promise<ExpiryActionQueueResponse> =>
+    fetchJson(`${BASE_URL}/reports/expiry-actions?storeId=${storeId}&limit=${limit}`, {
       headers: getHeaders(),
     }),
 

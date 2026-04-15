@@ -1,6 +1,7 @@
 package com.pharmaflow.reports;
 
 import com.pharmaflow.inventory.dto.ExpiryAlertSummary;
+import com.pharmaflow.inventory.dto.ExpiryActionQueueResponse;
 import com.pharmaflow.inventory.dto.ShortageItemResponse;
 import com.pharmaflow.reports.dto.DailySalesRow;
 import com.pharmaflow.reports.dto.ExpiryLossRow;
@@ -67,6 +68,14 @@ public class ReportsController {
     @GetMapping("/expiry-alerts")
     public ExpiryAlertSummary getExpiryAlerts(@RequestParam UUID storeId) {
         return gstReportService.getExpiryAlerts(storeId);
+    }
+
+    @GetMapping("/expiry-actions")
+    public ExpiryActionQueueResponse getExpiryActionQueue(
+            @RequestParam UUID storeId,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        return gstReportService.getExpiryActionQueue(storeId, limit);
     }
 
     @GetMapping("/shortage")

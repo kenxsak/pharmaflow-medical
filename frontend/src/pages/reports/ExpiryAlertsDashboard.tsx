@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
 import {
+  CreditNoteItemRequest,
   ExpiryAlertSummary,
+  ExpiryActionQueueResponse,
+  ExpiryActionRecommendation,
+  InventoryAPI,
+  PurchaseAPI,
   ReportsAPI,
   ShortageItemResponse,
   StockBatchResponse,
@@ -32,6 +37,27 @@ const expirySteps = [
     tone: 'border-sky-200 bg-sky-50 text-sky-900',
   },
 ];
+
+const actionSeverityStyles: Record<string, string> = {
+  HIGH: 'border-rose-200 bg-rose-50 text-rose-900',
+  MEDIUM: 'border-amber-200 bg-amber-50 text-amber-900',
+  LOW: 'border-sky-200 bg-sky-50 text-sky-900',
+};
+
+const actionButtonStyles = 'rounded-2xl border px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50';
+
+const formatDaysToExpiry = (daysToExpiry: number) => {
+  if (daysToExpiry < 0) {
+    return `${Math.abs(daysToExpiry)} days overdue`;
+  }
+  if (daysToExpiry === 0) {
+    return 'Expires today';
+  }
+  if (daysToExpiry === 1) {
+    return '1 day left';
+  }
+  return `${daysToExpiry} days left`;
+};
 
 const AlertSection: React.FC<{
   title: string;
@@ -117,28 +143,134 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
 }) => {
   const context = usePharmaFlowContext();
   const [alerts, setAlerts] = useState<ExpiryAlertSummary | null>(null);
+  const [actionQueue, setActionQueue] = useState<ExpiryActionQueueResponse | null>(null);
   const [shortageItems, setShortageItems] = useState<ShortageItemResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const storeId = context.storeId;
 
-  useEffect(() => {
+  const loadDashboard = async () => {
     if (!storeId) {
       setAlerts(null);
+      setActionQueue(null);
       setShortageItems([]);
       setError('Choose an active store from Setup to load expiry alerts.');
       return;
     }
 
-    Promise.all([ReportsAPI.getExpiryAlerts(storeId), ReportsAPI.getShortageReport(storeId)])
-      .then(([expirySummary, shortageSummary]) => {
-        setAlerts(expirySummary);
-        setShortageItems(shortageSummary);
-        setError(null);
-      })
-      .catch((loadError) => {
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load expiry alerts right now.');
-      });
+    try {
+      const [expirySummary, shortageSummary, expiryActionSummary] = await Promise.all([
+        ReportsAPI.getExpiryAlerts(storeId),
+        ReportsAPI.getShortageReport(storeId),
+        ReportsAPI.getExpiryActionQueue(storeId, 16),
+      ]);
+      setAlerts(expirySummary);
+      setShortageItems(shortageSummary);
+      setActionQueue(expiryActionSummary);
+      setError(null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load expiry alerts right now.');
+    }
+  };
+
+  useEffect(() => {
+    if (!storeId) {
+      void loadDashboard();
+      return;
+    }
+
+    void loadDashboard();
   }, [storeId]);
+
+  const immediateActions = useMemo(
+    () =>
+      (actionQueue?.recommendations || []).filter((recommendation) =>
+        ['QUARANTINE_NOW', 'RTV_NOW', 'DUMP_NOW'].includes(recommendation.recommendedAction)
+      ),
+    [actionQueue]
+  );
+
+  const planningActions = useMemo(
+    () =>
+      (actionQueue?.recommendations || []).filter(
+        (recommendation) => !['QUARANTINE_NOW', 'RTV_NOW', 'DUMP_NOW'].includes(recommendation.recommendedAction)
+      ),
+    [actionQueue]
+  );
+
+  const buildCreditNoteItems = (recommendation: ExpiryActionRecommendation): CreditNoteItemRequest[] => {
+    const items: CreditNoteItemRequest[] = [];
+    if (recommendation.quantityStrips > 0) {
+      items.push({
+        medicineId: recommendation.medicineId,
+        batchId: recommendation.batchId,
+        quantity: recommendation.quantityStrips,
+        unitType: 'STRIP',
+        mrp: recommendation.mrp,
+        reason: recommendation.recommendedAction === 'RTV_NOW' ? 'NEAR_EXPIRY_SUPPLIER_RETURN' : 'EXPIRY_WRITE_OFF',
+      });
+    }
+    if (recommendation.quantityLoose > 0) {
+      items.push({
+        medicineId: recommendation.medicineId,
+        batchId: recommendation.batchId,
+        quantity: recommendation.quantityLoose,
+        unitType: 'UNIT',
+        mrp: recommendation.mrp,
+        reason: recommendation.recommendedAction === 'RTV_NOW' ? 'NEAR_EXPIRY_SUPPLIER_RETURN' : 'EXPIRY_WRITE_OFF',
+      });
+    }
+    return items;
+  };
+
+  const handleQuarantine = async (recommendation: ExpiryActionRecommendation) => {
+    try {
+      setBusyKey(`quarantine-${recommendation.batchId}`);
+      await InventoryAPI.quarantineBatch(recommendation.batchId, {
+        reasonCode: 'EXPIRY_BLOCK',
+        notes: 'Blocked from sale via expiry action cockpit.',
+      });
+      setMessage(`Batch ${recommendation.batchNumber} was quarantined from the expiry dashboard.`);
+      setError(null);
+      await loadDashboard();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to quarantine batch.');
+      setMessage(null);
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const handleCreateCreditNote = async (
+    recommendation: ExpiryActionRecommendation,
+    cnType: 'VENDOR_RETURN' | 'DUMP'
+  ) => {
+    try {
+      setBusyKey(`${cnType}-${recommendation.batchId}`);
+      await PurchaseAPI.createCreditNote({
+        supplierId: cnType === 'VENDOR_RETURN' ? recommendation.suggestedSupplierId : undefined,
+        cnType,
+        notes:
+          cnType === 'VENDOR_RETURN'
+            ? 'Created from expiry action cockpit to recover near-expiry stock.'
+            : 'Created from expiry action cockpit to write off unrecoverable stock.',
+        items: buildCreditNoteItems(recommendation),
+      });
+      setMessage(
+        cnType === 'VENDOR_RETURN'
+          ? `RTV claim created for batch ${recommendation.batchNumber}.`
+          : `Dump note created for batch ${recommendation.batchNumber}.`
+      );
+      setError(null);
+      await loadDashboard();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to create expiry action note.');
+      setMessage(null);
+    } finally {
+      setBusyKey(null);
+    }
+  };
 
   return (
     <PharmaFlowShell
@@ -182,6 +314,13 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageItems.length}</div>
                 <div className="mt-1 text-sm text-slate-500">Reorder alerts in the active store</div>
               </div>
+              <div className="rounded-3xl bg-white p-4 shadow-sm">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Urgent Recovery Actions</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">
+                  {actionQueue?.immediateActionCount ?? 0}
+                </div>
+                <div className="mt-1 text-sm text-slate-500">Batches needing quarantine, RTV, or dump now</div>
+              </div>
             </div>
           </div>
         </section>
@@ -215,10 +354,168 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
           </div>
         )}
 
+        {message && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            {message}
+          </div>
+        )}
+
         {!alerts && !error && (
           <div className="rounded-3xl bg-white px-6 py-16 text-center text-slate-400 shadow-sm">
             Loading expiry alerts...
           </div>
+        )}
+
+        {actionQueue && (
+          <section className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Expiry Action Queue</h2>
+                <p className="text-sm text-slate-500">
+                  Convert visibility into action: block expired stock, raise RTV claims, and write off unrecoverable batches.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Quarantine now</div>
+                  <div className="mt-1 text-xl font-semibold text-slate-950">
+                    {actionQueue.quarantineCandidateCount}
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">RTV candidate value</div>
+                  <div className="mt-1 text-xl font-semibold text-slate-950">
+                    ₹{actionQueue.rtvCandidateValue.toFixed(2)}
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Dump candidate value</div>
+                  <div className="mt-1 text-xl font-semibold text-slate-950">
+                    ₹{actionQueue.dumpCandidateValue.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  Immediate action
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {immediateActions.map((recommendation) => {
+                    const quarantineBusy = busyKey === `quarantine-${recommendation.batchId}`;
+                    const rtvBusy = busyKey === `VENDOR_RETURN-${recommendation.batchId}`;
+                    const dumpBusy = busyKey === `DUMP-${recommendation.batchId}`;
+                    return (
+                      <div
+                        key={recommendation.batchId}
+                        className={`rounded-3xl border p-5 ${
+                          actionSeverityStyles[recommendation.actionSeverity] || actionSeverityStyles.HIGH
+                        }`}
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <div className="text-lg font-semibold text-slate-950">{recommendation.brandName}</div>
+                            <div className="mt-1 text-sm text-slate-600">
+                              Batch {recommendation.batchNumber} • {recommendation.expiryDate} •{' '}
+                              {formatDaysToExpiry(recommendation.daysToExpiry)}
+                            </div>
+                            <div className="mt-2 text-sm text-slate-600">
+                              Qty {recommendation.quantityStrips} strips / {recommendation.quantityLoose} loose • Value ₹
+                              {recommendation.stockValue.toFixed(2)}
+                            </div>
+                            <div className="mt-2 inline-flex rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                              {recommendation.actionLabel}
+                            </div>
+                          </div>
+                          <div className="rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-700">
+                            <div className="font-semibold">{recommendation.inventoryState}</div>
+                            <div className="mt-1">{recommendation.expiryStatus}</div>
+                            {recommendation.suggestedSupplierName && (
+                              <div className="mt-2">Supplier: {recommendation.suggestedSupplierName}</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="mt-3 text-sm leading-6 text-slate-700">{recommendation.actionReason}</p>
+
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          {recommendation.canQuarantine && (
+                            <button
+                              type="button"
+                              onClick={() => void handleQuarantine(recommendation)}
+                              disabled={quarantineBusy}
+                              className={`${actionButtonStyles} border-rose-300 bg-white text-rose-900`}
+                            >
+                              {quarantineBusy ? 'Blocking…' : 'Block from sale'}
+                            </button>
+                          )}
+                          {recommendation.canCreateRtv && (
+                            <button
+                              type="button"
+                              onClick={() => void handleCreateCreditNote(recommendation, 'VENDOR_RETURN')}
+                              disabled={rtvBusy || !recommendation.suggestedSupplierId}
+                              className={`${actionButtonStyles} border-amber-300 bg-white text-amber-900`}
+                            >
+                              {rtvBusy ? 'Creating RTV…' : 'Create RTV claim'}
+                            </button>
+                          )}
+                          {recommendation.canCreateDump && (
+                            <button
+                              type="button"
+                              onClick={() => void handleCreateCreditNote(recommendation, 'DUMP')}
+                              disabled={dumpBusy}
+                              className={`${actionButtonStyles} border-slate-300 bg-white text-slate-900`}
+                            >
+                              {dumpBusy ? 'Writing off…' : 'Create dump note'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {!immediateActions.length && (
+                    <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-500 lg:col-span-2">
+                      No urgent expiry actions are currently queued for this store.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!!planningActions.length && (
+                <div>
+                  <div className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Planning and review
+                  </div>
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {planningActions.map((recommendation) => (
+                      <div key={recommendation.batchId} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-base font-semibold text-slate-950">{recommendation.brandName}</div>
+                            <div className="mt-1 text-sm text-slate-600">
+                              Batch {recommendation.batchNumber} • {recommendation.expiryDate} •{' '}
+                              {formatDaysToExpiry(recommendation.daysToExpiry)}
+                            </div>
+                          </div>
+                          <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            {recommendation.actionLabel}
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-slate-600">{recommendation.actionReason}</p>
+                        {recommendation.suggestedSupplierName && (
+                          <div className="mt-3 text-sm text-slate-500">
+                            Recent supplier context: {recommendation.suggestedSupplierName}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
         )}
 
         {alerts && (
