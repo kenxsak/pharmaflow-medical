@@ -21,9 +21,16 @@ public class CreditNoteResponse {
     private String cnNumber;
     private String cnType;
     private String status;
+    private String claimState;
     private UUID supplierId;
     private UUID originalInvoiceId;
     private BigDecimal totalAmount;
+    private BigDecimal claimAmount;
+    private BigDecimal settledAmount;
     private String notes;
+    private LocalDateTime dispatchedAt;
+    private LocalDateTime acknowledgedAt;
+    private LocalDateTime resolvedAt;
+    private String resolutionNotes;
     private LocalDateTime createdAt;
 }

@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -96,5 +97,11 @@ public class ScheduleHComplianceService {
         LocalDateTime start = LocalDateTime.of(year, month, 1, 0, 0);
         LocalDateTime end = start.plusMonths(1);
         return scheduleDrugRegisterRepository.findNarcoticReport(storeId, start, end);
+    }
+
+    public List<ScheduleDrugRegister> searchArchive(UUID storeId, String scheduleType, String query, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 200));
+        return scheduleDrugRegisterRepository.searchByStoreId(storeId, scheduleType, query, PageRequest.of(0, safeLimit))
+                .getContent();
     }
 }

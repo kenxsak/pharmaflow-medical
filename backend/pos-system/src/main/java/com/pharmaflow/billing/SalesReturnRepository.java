@@ -1,0 +1,11 @@
+package com.pharmaflow.billing;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface SalesReturnRepository extends JpaRepository<SalesReturn, UUID> {
+
+    List<SalesReturn> findByInvoiceInvoiceIdOrderByCreatedAtDesc(UUID invoiceId);
+}

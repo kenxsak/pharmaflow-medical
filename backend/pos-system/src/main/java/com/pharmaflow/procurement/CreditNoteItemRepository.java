@@ -26,4 +26,6 @@ public interface CreditNoteItemRepository extends JpaRepository<CreditNoteItem, 
     Page<CreditNoteItem> searchByStoreId(@Param("storeId") UUID storeId,
                                          @Param("query") String query,
                                          Pageable pageable);
+
+    java.util.List<CreditNoteItem> findByCreditNoteCnId(UUID creditNoteId);
 }

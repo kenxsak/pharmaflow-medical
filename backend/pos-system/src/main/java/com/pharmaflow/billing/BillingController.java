@@ -5,6 +5,8 @@ import com.pharmaflow.billing.dto.GstCalculationResponse;
 import com.pharmaflow.billing.dto.InvoiceCreateRequest;
 import com.pharmaflow.billing.dto.InvoiceHistoryItemResponse;
 import com.pharmaflow.billing.dto.InvoiceResponse;
+import com.pharmaflow.billing.dto.SalesReturnCreateRequest;
+import com.pharmaflow.billing.dto.SalesReturnResponse;
 import com.pharmaflow.audit.AuditLogService;
 import com.pharmaflow.audit.dto.AuditLogResponse;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +59,19 @@ public class BillingController {
     @GetMapping("/invoice/{invoiceId}")
     public InvoiceResponse getInvoice(@PathVariable UUID invoiceId) {
         return billingService.getInvoice(invoiceId);
+    }
+
+    @GetMapping("/invoice/{invoiceId}/returns")
+    public List<SalesReturnResponse> listSalesReturns(@PathVariable UUID invoiceId) {
+        return billingService.listSalesReturns(invoiceId);
+    }
+
+    @PostMapping("/invoice/{invoiceId}/returns")
+    public SalesReturnResponse createSalesReturn(
+            @PathVariable UUID invoiceId,
+            @Valid @RequestBody SalesReturnCreateRequest request
+    ) {
+        return billingService.createSalesReturn(invoiceId, request);
     }
 
     @GetMapping("/invoices")

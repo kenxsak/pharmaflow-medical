@@ -9,6 +9,10 @@ import com.pharmaflow.inventory.InventoryBatchRepository;
 import com.pharmaflow.inventory.StockTransfer;
 import com.pharmaflow.inventory.StockTransferRepository;
 import com.pharmaflow.medicine.Medicine;
+import com.pharmaflow.procurement.CreditNote;
+import com.pharmaflow.procurement.CreditNoteRepository;
+import com.pharmaflow.procurement.PurchaseOrder;
+import com.pharmaflow.procurement.PurchaseOrderRepository;
 import com.pharmaflow.reports.dto.OperationsOverviewResponse;
 import com.pharmaflow.reports.dto.StoreOperationsKpiRow;
 import com.pharmaflow.store.Store;
@@ -40,6 +44,8 @@ public class OperationsOverviewService {
     private final InvoiceRepository invoiceRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final StockTransferRepository stockTransferRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final CreditNoteRepository creditNoteRepository;
     private final CurrentPharmaUserService currentPharmaUserService;
     private final StoreService storeService;
     private final TenantAccessService tenantAccessService;
@@ -80,6 +86,21 @@ public class OperationsOverviewService {
                 .stream()
                 .filter(this::isOpenTransfer)
                 .collect(Collectors.toList());
+        List<PurchaseOrder> purchaseOrders = purchaseOrderRepository.findByStoreStoreIdInOrderByPoDateDesc(storeIds);
+        List<CreditNote> creditNotes = creditNoteRepository.findByStoreStoreIdInOrderByCreatedAtDesc(storeIds);
+
+        long pendingReceiptCount = purchaseOrders.stream()
+                .filter(this::isPendingReceipt)
+                .count();
+        List<CreditNote> unresolvedCreditNotes = creditNotes.stream()
+                .filter(this::isUnresolvedCreditNote)
+                .collect(Collectors.toList());
+        long pendingRtvCount = unresolvedCreditNotes.stream()
+                .filter(this::isVendorReturnClaim)
+                .count();
+        BigDecimal unresolvedCreditNoteValue = scale(unresolvedCreditNotes.stream()
+                .map(CreditNote::getClaimAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         Map<UUID, StoreAccumulator> storeAccumulators = new LinkedHashMap<>();
         for (Store store : stores) {
@@ -202,6 +223,10 @@ public class OperationsOverviewService {
                 .stockValue(scale(rows.stream().map(StoreOperationsKpiRow::getStockValue).reduce(BigDecimal.ZERO, BigDecimal::add)))
                 .nearExpiryValue(scale(rows.stream().map(StoreOperationsKpiRow::getNearExpiryValue).reduce(BigDecimal.ZERO, BigDecimal::add)))
                 .pendingTransferCount(activeTransfers.size())
+                .pendingReceiptCount(Math.toIntExact(pendingReceiptCount))
+                .pendingRtvCount(Math.toIntExact(pendingRtvCount))
+                .unresolvedCreditNoteCount(unresolvedCreditNotes.size())
+                .unresolvedCreditNoteValue(unresolvedCreditNoteValue)
                 .stores(rows)
                 .build();
     }
@@ -233,6 +258,28 @@ public class OperationsOverviewService {
         return "PENDING".equals(normalized)
                 || "APPROVED".equals(normalized)
                 || "IN_TRANSIT".equals(normalized);
+    }
+
+    private boolean isPendingReceipt(PurchaseOrder purchaseOrder) {
+        if (purchaseOrder == null || purchaseOrder.getStatus() == null) {
+            return false;
+        }
+        String normalized = purchaseOrder.getStatus().trim().toUpperCase();
+        return !"RECEIVED".equals(normalized) && !"CANCELLED".equals(normalized);
+    }
+
+    private boolean isUnresolvedCreditNote(CreditNote creditNote) {
+        if (creditNote == null || creditNote.getClaimState() == null) {
+            return false;
+        }
+        String normalized = creditNote.getClaimState().trim().toUpperCase();
+        return !"SETTLED".equals(normalized)
+                && !"CANCELLED".equals(normalized)
+                && !"WRITEOFF".equals(normalized);
+    }
+
+    private boolean isVendorReturnClaim(CreditNote creditNote) {
+        return creditNote != null && "VENDOR_RETURN".equalsIgnoreCase(creditNote.getCnType());
     }
 
     private BigDecimal estimateInventoryValue(InventoryBatch batch) {

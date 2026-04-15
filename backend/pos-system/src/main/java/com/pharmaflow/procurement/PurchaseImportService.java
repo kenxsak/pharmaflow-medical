@@ -6,6 +6,7 @@ import com.pharmaflow.auth.PharmaUserRepository;
 import com.pharmaflow.common.BusinessRuleException;
 import com.pharmaflow.inventory.InventoryBatch;
 import com.pharmaflow.inventory.InventoryBatchRepository;
+import com.pharmaflow.inventory.InventoryMovementService;
 import com.pharmaflow.medicine.Medicine;
 import com.pharmaflow.medicine.MedicineRepository;
 import com.pharmaflow.procurement.dto.PurchaseImportRequest;
@@ -41,6 +42,7 @@ public class PurchaseImportService {
     private final MedicineRepository medicineRepository;
     private final PharmaUserRepository pharmaUserRepository;
     private final AuditLogService auditLogService;
+    private final InventoryMovementService inventoryMovementService;
 
     @Transactional
     public PurchaseImportResponse importPurchaseInvoice(UUID storeId, PurchaseImportRequest request) {
@@ -68,6 +70,7 @@ public class PurchaseImportService {
 
         ResolvedPurchaseOrder resolvedPurchaseOrder = resolvePurchaseOrder(store, supplier, request, currentUser);
         PurchaseOrder purchaseOrder = resolvedPurchaseOrder.purchaseOrder;
+        validateDuplicateRows(request.getRows());
 
         BigDecimal subtotal = BigDecimal.ZERO;
         BigDecimal totalGst = BigDecimal.ZERO;
@@ -81,10 +84,10 @@ public class PurchaseImportService {
             int freeQtyLoose = row.getFreeQtyLoose() == null ? 0 : row.getFreeQtyLoose();
             int receivedQuantity = row.getQuantity() + freeQty;
             int receivedLooseQuantity = quantityLoose + freeQtyLoose;
-            validateRowQuantities(row, receivedQuantity, receivedLooseQuantity);
+            validateRowQuantities(row, receivedQuantity, receivedLooseQuantity, medicine);
 
             InventoryBatch batch = inventoryBatchRepository
-                    .findByStoreStoreIdAndMedicineMedicineIdAndBatchNumberIgnoreCase(
+                    .findByStoreAndMedicineAndBatchNumberForUpdate(
                             storeId,
                             medicine.getMedicineId(),
                             row.getBatchNumber()
@@ -98,16 +101,15 @@ public class PurchaseImportService {
                         .batchNumber(row.getBatchNumber())
                         .manufactureDate(row.getManufactureDate())
                         .expiryDate(row.getExpiryDate())
-                        .quantityStrips(receivedQuantity)
-                        .quantityLoose(receivedLooseQuantity)
+                        .quantityStrips(0)
+                        .quantityLoose(0)
                         .purchaseRate(row.getPurchaseRate())
                         .mrp(row.getMrp())
                         .isActive(true)
+                        .inventoryState("SELLABLE")
                         .build();
                 createdBatches++;
             } else {
-                batch.setQuantityStrips(safe(batch.getQuantityStrips()) + receivedQuantity);
-                batch.setQuantityLoose(safe(batch.getQuantityLoose()) + receivedLooseQuantity);
                 batch.setManufactureDate(row.getManufactureDate());
                 batch.setExpiryDate(row.getExpiryDate());
                 batch.setPurchaseRate(row.getPurchaseRate());
@@ -116,6 +118,18 @@ public class PurchaseImportService {
                 updatedBatches++;
             }
             batch = inventoryBatchRepository.save(batch);
+
+            inventoryMovementService.applyPackLooseDelta(
+                    batch.getBatchId(),
+                    receivedQuantity,
+                    receivedLooseQuantity,
+                    "PURCHASE_RECEIPT",
+                    "SUPPLIER_INWARD",
+                    "PURCHASE_ORDER",
+                    purchaseOrder.getPoId().toString(),
+                    "Supplier invoice " + request.getInvoiceNumber(),
+                    currentUser
+            );
 
             purchaseOrderItemRepository.save(
                     PurchaseOrderItem.builder()
@@ -129,12 +143,12 @@ public class PurchaseImportService {
                             .freeQtyLoose(freeQtyLoose)
                             .purchaseRate(row.getPurchaseRate())
                             .mrp(row.getMrp())
-                            .gstRate(safe(row.getGstRate()))
+                            .gstRate(row.getGstRate() != null ? row.getGstRate() : safe(medicine.getGstRate()))
                             .build()
             );
 
             BigDecimal lineSubtotal = row.getPurchaseRate().multiply(toPackEquivalentQuantity(medicine, row.getQuantity(), quantityLoose));
-            BigDecimal lineGst = lineSubtotal.multiply(safe(row.getGstRate()))
+            BigDecimal lineGst = lineSubtotal.multiply(row.getGstRate() != null ? row.getGstRate() : safe(medicine.getGstRate()))
                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
             subtotal = subtotal.add(lineSubtotal);
             totalGst = totalGst.add(lineGst);
@@ -283,7 +297,10 @@ public class PurchaseImportService {
         return packQuantity.add(looseEquivalent).setScale(4, RoundingMode.HALF_UP);
     }
 
-    private void validateRowQuantities(PurchaseImportRowRequest row, int receivedQuantity, int receivedLooseQuantity) {
+    private void validateRowQuantities(PurchaseImportRowRequest row,
+                                       int receivedQuantity,
+                                       int receivedLooseQuantity,
+                                       Medicine medicine) {
         if (row.getQuantity() == null || row.getQuantity() < 0) {
             throw new BusinessRuleException("Purchase quantity must be zero or greater");
         }
@@ -301,6 +318,40 @@ public class PurchaseImportService {
         }
         if (row.getBatchNumber() == null || row.getBatchNumber().isBlank()) {
             throw new BusinessRuleException("Batch number is required for purchase import");
+        }
+        if (row.getExpiryDate() == null || !row.getExpiryDate().isAfter(java.time.LocalDate.now())) {
+            throw new BusinessRuleException("Expired stock cannot be inwarded as sellable inventory");
+        }
+        if (row.getManufactureDate() != null && !row.getManufactureDate().isBefore(row.getExpiryDate())) {
+            throw new BusinessRuleException("Manufacture date must be before expiry date");
+        }
+        if (row.getPurchaseRate() == null || row.getPurchaseRate().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleException("Purchase rate must be greater than zero");
+        }
+        if (row.getMrp() == null || row.getMrp().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleException("MRP must be greater than zero");
+        }
+        if (row.getPurchaseRate().compareTo(row.getMrp()) > 0) {
+            throw new BusinessRuleException("Purchase rate cannot exceed MRP");
+        }
+        BigDecimal effectiveGst = row.getGstRate() != null ? row.getGstRate() : safe(medicine.getGstRate());
+        if (effectiveGst.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessRuleException("GST rate cannot be negative");
+        }
+    }
+
+    private void validateDuplicateRows(List<PurchaseImportRowRequest> rows) {
+        java.util.Set<String> uniqueKeys = new java.util.LinkedHashSet<>();
+        for (PurchaseImportRowRequest row : rows) {
+            String medicineKey = row.getMedicineId() != null
+                    ? row.getMedicineId().toString()
+                    : row.getBarcode() != null && !row.getBarcode().isBlank()
+                    ? "BARCODE:" + row.getBarcode().trim().toLowerCase()
+                    : "BRAND:" + (row.getBrandName() == null ? "" : row.getBrandName().trim().toLowerCase());
+            String compositeKey = medicineKey + "|" + row.getBatchNumber().trim().toLowerCase();
+            if (!uniqueKeys.add(compositeKey)) {
+                throw new BusinessRuleException("Duplicate batch rows detected in the same inward invoice for " + row.getBatchNumber());
+            }
         }
     }
 

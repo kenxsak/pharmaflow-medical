@@ -181,6 +181,22 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
     [receivedOrders]
   );
 
+  const pendingClaimValue = useMemo(
+    () =>
+      creditNotes
+        .filter((note) => !['SETTLED', 'CANCELLED', 'WRITEOFF'].includes((note.claimState || '').toUpperCase()))
+        .reduce((sum, note) => sum + Number(note.claimAmount || note.totalAmount || 0), 0),
+    [creditNotes]
+  );
+
+  const unresolvedCreditNotes = useMemo(
+    () =>
+      creditNotes.filter(
+        (note) => !['SETTLED', 'CANCELLED', 'WRITEOFF'].includes((note.claimState || '').toUpperCase())
+      ),
+    [creditNotes]
+  );
+
   const updateRow = (index: number, partial: Partial<PurchaseImportRow>) => {
     setRows((prev) =>
       prev.map((row, rowIndex) => (rowIndex === index ? { ...row, ...partial } : row))
@@ -355,7 +371,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
   const handleCreateCreditNote = async () => {
     clearImportState();
-    if (!selectedSupplierId) {
+    if (creditNoteType !== 'DUMP' && !selectedSupplierId) {
       setError('Choose a supplier before creating a credit note.');
       return;
     }
@@ -366,7 +382,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
     try {
       const response = await PurchaseAPI.createCreditNote({
-        supplierId: selectedSupplierId,
+        supplierId: creditNoteType === 'DUMP' ? undefined : selectedSupplierId,
         cnNumber: creditNoteNumber || undefined,
         cnType: creditNoteType,
         notes: creditNoteNotes || undefined,
@@ -387,6 +403,59 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       await loadData();
     } catch (creditError) {
       setError(creditError instanceof Error ? creditError.message : 'Unable to create credit note.');
+    }
+  };
+
+  const handleDispatchCreditNote = async (creditNoteId: string) => {
+    clearImportState();
+    try {
+      const response = await PurchaseAPI.dispatchCreditNote(creditNoteId);
+      setMessage(`Credit note ${response.cnNumber} dispatched to supplier.`);
+      await loadData();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to dispatch credit note.');
+    }
+  };
+
+  const handleAcknowledgeCreditNote = async (creditNoteId: string) => {
+    clearImportState();
+    try {
+      const response = await PurchaseAPI.acknowledgeCreditNote(creditNoteId);
+      setMessage(`Credit note ${response.cnNumber} acknowledged by supplier.`);
+      await loadData();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to acknowledge credit note.');
+    }
+  };
+
+  const handleSettleCreditNote = async (note: CreditNoteResponse) => {
+    clearImportState();
+    const defaultAmount = Number(note.claimAmount || note.totalAmount || 0).toFixed(2);
+    const rawAmount = window.prompt(`Settled amount for ${note.cnNumber}`, defaultAmount);
+    if (rawAmount === null) {
+      return;
+    }
+    const rawNotes = window.prompt('Settlement notes (optional)') || undefined;
+    try {
+      const response = await PurchaseAPI.settleCreditNote(note.creditNoteId, {
+        settledAmount: Number(rawAmount),
+        notes: rawNotes,
+      });
+      setMessage(`Credit note ${response.cnNumber} settled.`);
+      await loadData();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to settle credit note.');
+    }
+  };
+
+  const handleCancelCreditNote = async (creditNoteId: string) => {
+    clearImportState();
+    try {
+      const response = await PurchaseAPI.cancelCreditNote(creditNoteId);
+      setMessage(`Credit note ${response.cnNumber} cancelled and stock restored.`);
+      await loadData();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to cancel credit note.');
     }
   };
 
@@ -1038,6 +1107,23 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               Use this area to show that RTV and supplier-credit workflows are visible operational steps, not hidden back-office work.
             </div>
 
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Pending claim value</div>
+                <div className="mt-2 text-2xl font-semibold text-slate-950">₹{pendingClaimValue.toFixed(2)}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Unresolved actions</div>
+                <div className="mt-2 text-2xl font-semibold text-slate-950">{unresolvedCreditNotes.length}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Dump / write-off notes</div>
+                <div className="mt-2 text-2xl font-semibold text-slate-950">
+                  {creditNotes.filter((note) => note.cnType === 'DUMP').length}
+                </div>
+              </div>
+            </div>
+
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50 text-slate-500">
@@ -1046,7 +1132,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     <th className="px-3 py-2 text-left">Type</th>
                     <th className="px-3 py-2 text-left">Created</th>
                     <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-left">Claim</th>
                     <th className="px-3 py-2 text-right">Total</th>
+                    <th className="px-3 py-2 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1062,12 +1150,73 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                           {note.status}
                         </span>
                       </td>
+                      <td className="px-3 py-3">
+                        <div className="text-sm font-medium text-slate-900">{note.claimState || '—'}</div>
+                        <div className="text-xs text-slate-500">
+                          Claim ₹{Number(note.claimAmount || note.totalAmount || 0).toFixed(2)}
+                          {note.settledAmount ? ` • Settled ₹${Number(note.settledAmount || 0).toFixed(2)}` : ''}
+                        </div>
+                      </td>
                       <td className="px-3 py-3 text-right">₹{Number(note.totalAmount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {note.cnType !== 'DUMP' && note.status === 'PENDING' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void handleDispatchCreditNote(note.creditNoteId)}
+                                className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700"
+                              >
+                                Dispatch
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleCancelCreditNote(note.creditNoteId)}
+                                className="rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                          {note.cnType !== 'DUMP' && note.status === 'DISPATCHED' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void handleAcknowledgeCreditNote(note.creditNoteId)}
+                                className="rounded-full bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700"
+                              >
+                                Acknowledge
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleSettleCreditNote(note)}
+                                className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                              >
+                                Settle
+                              </button>
+                            </>
+                          )}
+                          {note.cnType !== 'DUMP' && note.status === 'ACKNOWLEDGED' && (
+                            <button
+                              type="button"
+                              onClick={() => void handleSettleCreditNote(note)}
+                              className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                            >
+                              Settle
+                            </button>
+                          )}
+                          {note.cnType === 'DUMP' && (
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                              Write-off
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                   {!creditNotes.length && (
                     <tr>
-                      <td colSpan={5} className="px-3 py-10 text-center text-slate-400">
+                      <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
                         No credit notes created yet.
                       </td>
                     </tr>

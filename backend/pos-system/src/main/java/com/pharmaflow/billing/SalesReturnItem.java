@@ -1,4 +1,4 @@
-package com.pharmaflow.procurement;
+package com.pharmaflow.billing;
 
 import com.pharmaflow.inventory.InventoryBatch;
 import com.pharmaflow.medicine.Medicine;
@@ -21,22 +21,26 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Table(name = "credit_note_items")
+@Table(name = "sales_return_items")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreditNoteItem {
+public class SalesReturnItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "cn_item_id")
-    private UUID cnItemId;
+    @Column(name = "return_item_id")
+    private UUID returnItemId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cn_id")
-    private CreditNote creditNote;
+    @JoinColumn(name = "return_id")
+    private SalesReturn salesReturn;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invoice_item_id")
+    private InvoiceItem invoiceItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medicine_id")
@@ -49,11 +53,11 @@ public class CreditNoteItem {
     @Column(name = "quantity", nullable = false, precision = 10, scale = 3)
     private BigDecimal quantity;
 
-    @Column(name = "unit_type", nullable = false, length = 20)
+    @Column(name = "unit_type", length = 20)
     private String unitType;
 
-    @Column(name = "mrp", nullable = false, precision = 10, scale = 2)
-    private BigDecimal mrp;
+    @Column(name = "line_total", nullable = false, precision = 12, scale = 2)
+    private BigDecimal lineTotal;
 
     @Column(name = "reason", length = 200)
     private String reason;

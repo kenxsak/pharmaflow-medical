@@ -11,6 +11,10 @@ import com.pharmaflow.billing.dto.InvoiceCreateRequest;
 import com.pharmaflow.billing.dto.InvoiceHistoryItemResponse;
 import com.pharmaflow.billing.dto.InvoiceItemResponse;
 import com.pharmaflow.billing.dto.InvoiceResponse;
+import com.pharmaflow.billing.dto.SalesReturnCreateRequest;
+import com.pharmaflow.billing.dto.SalesReturnItemRequest;
+import com.pharmaflow.billing.dto.SalesReturnItemResponse;
+import com.pharmaflow.billing.dto.SalesReturnResponse;
 import com.pharmaflow.common.BusinessRuleException;
 import com.pharmaflow.common.ForbiddenActionException;
 import com.pharmaflow.compliance.ScheduleHComplianceService;
@@ -20,6 +24,7 @@ import com.pharmaflow.customer.PatientPrescription;
 import com.pharmaflow.customer.PatientPrescriptionRepository;
 import com.pharmaflow.inventory.InventoryBatch;
 import com.pharmaflow.inventory.InventoryBatchRepository;
+import com.pharmaflow.inventory.InventoryMovementService;
 import com.pharmaflow.medicine.Medicine;
 import com.pharmaflow.medicine.MedicineRepository;
 import com.pharmaflow.store.Store;
@@ -60,6 +65,9 @@ public class BillingService {
     private final PharmaUserRepository pharmaUserRepository;
     private final AuditLogService auditLogService;
     private final PatientPrescriptionRepository patientPrescriptionRepository;
+    private final SalesReturnRepository salesReturnRepository;
+    private final SalesReturnItemRepository salesReturnItemRepository;
+    private final InventoryMovementService inventoryMovementService;
 
     @Value("${pharmaflow.invoice.prefix:TN}")
     private String invoicePrefix;
@@ -181,8 +189,17 @@ public class BillingService {
 
             for (BatchAllocationPlan allocation : allocations) {
                 InventoryBatch batch = allocation.batch();
-                deductInventory(batch, medicine, allocation.quantity(), itemRequest.getUnitType());
-                inventoryBatchRepository.save(batch);
+                inventoryMovementService.applyQuantity(
+                        batch.getBatchId(),
+                        allocation.quantity().negate(),
+                        itemRequest.getUnitType(),
+                        "SALE",
+                        "POS_BILLING",
+                        "INVOICE",
+                        invoice.getInvoiceId().toString(),
+                        "Invoice " + invoice.getInvoiceNo(),
+                        currentUser
+                );
 
                 InvoiceItem savedItem = invoiceItemRepository.save(
                         InvoiceItem.builder()
@@ -301,6 +318,132 @@ public class BillingService {
                 .collect(Collectors.toList());
 
         return toInvoiceResponse(invoice, items);
+    }
+
+    @Transactional
+    public SalesReturnResponse createSalesReturn(UUID invoiceId, SalesReturnCreateRequest request) {
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Sales return must contain at least one item");
+        }
+
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+        ensureInvoiceInTenantScope(invoice);
+        if (Boolean.TRUE.equals(invoice.getIsCancelled())) {
+            throw new BusinessRuleException("Cancelled invoices cannot be returned");
+        }
+
+        PharmaUser currentUser = getCurrentPharmaUser();
+        if (currentUser == null) {
+            throw new ForbiddenActionException("Authenticated PharmaFlow user is required for sales returns");
+        }
+
+        List<InvoiceItem> invoiceItems = invoiceItemRepository.findByInvoiceInvoiceId(invoiceId);
+        java.util.Map<UUID, InvoiceItem> invoiceItemsById = invoiceItems.stream()
+                .collect(Collectors.toMap(InvoiceItem::getItemId, item -> item));
+
+        SalesReturn salesReturn = salesReturnRepository.save(
+                SalesReturn.builder()
+                        .returnNumber(generateSalesReturnNo(invoice.getStore()))
+                        .store(invoice.getStore())
+                        .invoice(invoice)
+                        .customer(invoice.getCustomer())
+                        .settlementType(request.getSettlementType())
+                        .notes(request.getNotes())
+                        .createdBy(currentUser)
+                        .build()
+        );
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        List<SalesReturnItemResponse> itemResponses = new ArrayList<>();
+
+        for (SalesReturnItemRequest itemRequest : request.getItems()) {
+            InvoiceItem invoiceItem = invoiceItemsById.get(itemRequest.getInvoiceItemId());
+            if (invoiceItem == null) {
+                throw new BusinessRuleException("Invoice item does not belong to the selected invoice");
+            }
+            if (invoiceItem.getBatch() == null || invoiceItem.getBatch().getBatchId() == null) {
+                throw new BusinessRuleException("Invoice item is missing its original batch reference");
+            }
+
+            BigDecimal soldQuantity = safe(invoiceItem.getQuantity());
+            BigDecimal alreadyReturned = safe(salesReturnItemRepository.sumReturnedQuantityByInvoiceItem(invoiceItem.getItemId()));
+            BigDecimal requestedQuantity = safe(itemRequest.getQuantity());
+            if (requestedQuantity.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new BusinessRuleException("Return quantity must be greater than zero");
+            }
+            if (alreadyReturned.add(requestedQuantity).compareTo(soldQuantity) > 0) {
+                throw new BusinessRuleException("Return quantity exceeds the unreturned sold quantity");
+            }
+
+            inventoryMovementService.applyQuantity(
+                    invoiceItem.getBatch().getBatchId(),
+                    requestedQuantity,
+                    invoiceItem.getUnitType(),
+                    "SALE_RETURN",
+                    "CUSTOMER_RETURN",
+                    "SALES_RETURN",
+                    salesReturn.getReturnId().toString(),
+                    itemRequest.getReason(),
+                    currentUser
+            );
+
+            BigDecimal lineTotal = calculateReturnLineTotal(invoiceItem, requestedQuantity);
+            SalesReturnItem savedItem = salesReturnItemRepository.save(
+                    SalesReturnItem.builder()
+                            .salesReturn(salesReturn)
+                            .invoiceItem(invoiceItem)
+                            .medicine(invoiceItem.getMedicine())
+                            .batch(invoiceItem.getBatch())
+                            .quantity(requestedQuantity)
+                            .unitType(invoiceItem.getUnitType())
+                            .lineTotal(lineTotal)
+                            .reason(trim(itemRequest.getReason()))
+                            .build()
+            );
+
+            totalAmount = totalAmount.add(lineTotal);
+            itemResponses.add(toSalesReturnItemResponse(savedItem));
+        }
+
+        salesReturn.setTotalAmount(totalAmount.setScale(2, RoundingMode.HALF_UP));
+        salesReturnRepository.save(salesReturn);
+
+        if ("CREDIT".equalsIgnoreCase(invoice.getPaymentMode()) && invoice.getCustomer() != null) {
+            Customer customer = invoice.getCustomer();
+            customer.setCurrentBalance(safe(customer.getCurrentBalance()).subtract(totalAmount).max(BigDecimal.ZERO));
+            customerRepository.save(customer);
+        }
+
+        auditLogService.log(
+                invoice.getStore(),
+                currentUser,
+                "SALES_RETURN_CREATED",
+                "INVOICE",
+                invoice.getInvoiceId().toString(),
+                null,
+                "{\"returnNumber\":\"" + salesReturn.getReturnNumber() + "\",\"totalAmount\":\"" + totalAmount + "\"}"
+        );
+
+        return toSalesReturnResponse(salesReturn, itemResponses);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SalesReturnResponse> listSalesReturns(UUID invoiceId) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+        ensureInvoiceInTenantScope(invoice);
+
+        return salesReturnRepository.findByInvoiceInvoiceIdOrderByCreatedAtDesc(invoiceId)
+                .stream()
+                .map(salesReturn -> {
+                    List<SalesReturnItemResponse> items = salesReturnItemRepository.findBySalesReturnReturnId(salesReturn.getReturnId())
+                            .stream()
+                            .map(this::toSalesReturnItemResponse)
+                            .collect(Collectors.toList());
+                    return toSalesReturnResponse(salesReturn, items);
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -507,20 +650,6 @@ public class BillingService {
                 : batch.getMrp() != null ? batch.getMrp() : medicine.getMrp();
     }
 
-    private void deductInventory(InventoryBatch batch, Medicine medicine, BigDecimal quantity, String unitType) {
-        int packSize = medicine.getPackSize() == null || medicine.getPackSize() <= 0 ? 1 : medicine.getPackSize();
-        int requestedLooseUnits = toLooseUnits(quantity, unitType, medicine);
-        int availableLooseUnits = safe(batch.getQuantityStrips()) * packSize + safe(batch.getQuantityLoose());
-        if (requestedLooseUnits > availableLooseUnits) {
-            throw new IllegalArgumentException("Insufficient stock for batch " + batch.getBatchNumber());
-        }
-
-        int remainingLooseUnits = availableLooseUnits - requestedLooseUnits;
-        batch.setQuantityStrips(remainingLooseUnits / packSize);
-        batch.setQuantityLoose(remainingLooseUnits % packSize);
-        batch.setIsActive(remainingLooseUnits > 0);
-    }
-
     private void validateCartItem(
             PharmaUser currentUser,
             InventoryBatch batch,
@@ -691,6 +820,62 @@ public class BillingService {
                         .notes("Captured from POS billing invoice " + invoice.getInvoiceNo())
                         .build()
         );
+    }
+
+    private String generateSalesReturnNo(Store store) {
+        String storeCode = store != null && store.getStoreCode() != null
+                ? store.getStoreCode().replaceAll("[^A-Za-z0-9]", "")
+                : "STORE";
+        return storeCode + "/SR/" + System.currentTimeMillis();
+    }
+
+    private BigDecimal calculateReturnLineTotal(InvoiceItem invoiceItem, BigDecimal requestedQuantity) {
+        BigDecimal soldQuantity = safe(invoiceItem.getQuantity());
+        if (soldQuantity.compareTo(BigDecimal.ZERO) <= 0) {
+            return safe(invoiceItem.getTotal()).setScale(2, RoundingMode.HALF_UP);
+        }
+        return safe(invoiceItem.getTotal())
+                .multiply(requestedQuantity)
+                .divide(soldQuantity, 2, RoundingMode.HALF_UP);
+    }
+
+    private SalesReturnResponse toSalesReturnResponse(SalesReturn salesReturn, List<SalesReturnItemResponse> items) {
+        return SalesReturnResponse.builder()
+                .returnId(salesReturn.getReturnId())
+                .returnNumber(salesReturn.getReturnNumber())
+                .invoiceId(salesReturn.getInvoice() != null ? salesReturn.getInvoice().getInvoiceId() : null)
+                .invoiceNo(salesReturn.getInvoice() != null ? salesReturn.getInvoice().getInvoiceNo() : null)
+                .settlementType(salesReturn.getSettlementType())
+                .status(salesReturn.getStatus())
+                .totalAmount(salesReturn.getTotalAmount())
+                .notes(salesReturn.getNotes())
+                .createdByName(salesReturn.getCreatedBy() != null ? salesReturn.getCreatedBy().getFullName() : null)
+                .createdAt(salesReturn.getCreatedAt())
+                .items(items)
+                .build();
+    }
+
+    private SalesReturnItemResponse toSalesReturnItemResponse(SalesReturnItem item) {
+        return SalesReturnItemResponse.builder()
+                .returnItemId(item.getReturnItemId())
+                .invoiceItemId(item.getInvoiceItem() != null ? item.getInvoiceItem().getItemId() : null)
+                .medicineId(item.getMedicine() != null ? item.getMedicine().getMedicineId() : null)
+                .medicineName(item.getMedicine() != null ? item.getMedicine().getBrandName() : null)
+                .batchId(item.getBatch() != null ? item.getBatch().getBatchId() : null)
+                .batchNumber(item.getBatch() != null ? item.getBatch().getBatchNumber() : null)
+                .quantity(item.getQuantity())
+                .unitType(item.getUnitType())
+                .lineTotal(item.getLineTotal())
+                .reason(item.getReason())
+                .build();
+    }
+
+    private String trim(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private record BatchAllocationPlan(

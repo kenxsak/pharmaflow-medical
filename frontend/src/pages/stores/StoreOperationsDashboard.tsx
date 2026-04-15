@@ -365,6 +365,26 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
                 <div className="text-sm text-slate-500">Stock capital</div>
                 <div className="mt-1 text-2xl font-semibold text-slate-900">{formatCurrency(overview?.stockValue)}</div>
               </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="text-sm text-slate-500">Pending inward receipts</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{overview?.pendingReceiptCount || 0}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="text-sm text-slate-500">Open RTV claims</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">{overview?.pendingRtvCount || 0}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="text-sm text-slate-500">Unresolved credit notes</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">
+                  {overview?.unresolvedCreditNoteCount || 0}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="text-sm text-slate-500">Claim value at risk</div>
+                <div className="mt-1 text-2xl font-semibold text-slate-900">
+                  {formatCurrency(overview?.unresolvedCreditNoteValue)}
+                </div>
+              </div>
             </div>
 
             <div className="mt-5 rounded-3xl bg-slate-950 p-4 text-sm text-white">

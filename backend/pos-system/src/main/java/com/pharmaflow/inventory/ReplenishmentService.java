@@ -64,6 +64,7 @@ public class ReplenishmentService {
     private final StoreRepository storeRepository;
     private final TenantAccessService tenantAccessService;
     private final AuditLogService auditLogService;
+    private final InventoryMovementService inventoryMovementService;
 
     public ReplenishmentInsightResponse getInsights(UUID focusStoreId, int limit) {
         PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
@@ -430,8 +431,17 @@ public class ReplenishmentService {
             throw new BusinessRuleException("Dispatch would drop the source store below reorder level");
         }
 
-        applyLooseUnits(batch, availableLooseUnits - requestedLooseUnits);
-        inventoryBatchRepository.save(batch);
+        inventoryMovementService.applyPackLooseDelta(
+                batch.getBatchId(),
+                -safe(transfer.getQuantityStrips()),
+                -safe(transfer.getQuantityLoose()),
+                "TRANSFER_OUT",
+                "INTER_STORE_TRANSFER",
+                "STOCK_TRANSFER",
+                transfer.getTransferId().toString(),
+                "Dispatch to " + transfer.getToStore().getStoreCode(),
+                currentUser
+        );
 
         LocalDateTime now = LocalDateTime.now();
         if (transfer.getApprovedAt() == null) {
@@ -490,20 +500,26 @@ public class ReplenishmentService {
                     .quantityStrips(0)
                     .quantityLoose(0)
                     .isActive(true)
+                    .inventoryState("SELLABLE")
                     .build();
         }
-
-        int destinationLooseUnits = toLooseUnits(
-                destinationBatch.getQuantityStrips(),
-                destinationBatch.getQuantityLoose(),
-                sourceBatch.getMedicine()
-        );
-        applyLooseUnits(destinationBatch, destinationLooseUnits + transferredLooseUnits);
         destinationBatch.setManufactureDate(sourceBatch.getManufactureDate());
         destinationBatch.setExpiryDate(sourceBatch.getExpiryDate());
         destinationBatch.setPurchaseRate(sourceBatch.getPurchaseRate());
         destinationBatch.setMrp(sourceBatch.getMrp());
-        inventoryBatchRepository.save(destinationBatch);
+        destinationBatch = inventoryBatchRepository.save(destinationBatch);
+
+        inventoryMovementService.applyPackLooseDelta(
+                destinationBatch.getBatchId(),
+                safe(transfer.getQuantityStrips()),
+                safe(transfer.getQuantityLoose()),
+                "TRANSFER_IN",
+                "INTER_STORE_TRANSFER",
+                "STOCK_TRANSFER",
+                transfer.getTransferId().toString(),
+                "Received from " + transfer.getFromStore().getStoreCode(),
+                currentUser
+        );
 
         transfer.setStatus("RECEIVED");
         transfer.setReceivedBy(currentUser);

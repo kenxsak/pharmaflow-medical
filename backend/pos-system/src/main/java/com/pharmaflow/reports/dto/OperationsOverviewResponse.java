@@ -34,5 +34,9 @@ public class OperationsOverviewResponse {
     private BigDecimal stockValue;
     private BigDecimal nearExpiryValue;
     private int pendingTransferCount;
+    private int pendingReceiptCount;
+    private int pendingRtvCount;
+    private int unresolvedCreditNoteCount;
+    private BigDecimal unresolvedCreditNoteValue;
     private List<StoreOperationsKpiRow> stores;
 }

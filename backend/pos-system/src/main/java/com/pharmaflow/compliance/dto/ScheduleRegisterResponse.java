@@ -31,6 +31,7 @@ public class ScheduleRegisterResponse {
     private BigDecimal quantitySold;
     private String batchNumber;
     private UUID pharmacistId;
+    private String pharmacistName;
     private String prescriptionUrl;
     private String remarks;
 }

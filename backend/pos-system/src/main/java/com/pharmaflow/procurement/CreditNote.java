@@ -60,6 +60,15 @@ public class CreditNote {
     @Column(name = "status", length = 20)
     private String status;
 
+    @Column(name = "claim_state", nullable = false, length = 20)
+    private String claimState;
+
+    @Column(name = "claim_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal claimAmount;
+
+    @Column(name = "settled_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal settledAmount;
+
     @Column(name = "notes")
     private String notes;
 
@@ -73,6 +82,18 @@ public class CreditNote {
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
 
+    @Column(name = "dispatched_at")
+    private LocalDateTime dispatchedAt;
+
+    @Column(name = "acknowledged_at")
+    private LocalDateTime acknowledgedAt;
+
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+
+    @Column(name = "resolution_notes", length = 500)
+    private String resolutionNotes;
+
     @PrePersist
     public void prePersist() {
         if (cnType == null || cnType.isBlank()) {
@@ -80,6 +101,15 @@ public class CreditNote {
         }
         if (status == null || status.isBlank()) {
             status = "PENDING";
+        }
+        if (claimState == null || claimState.isBlank()) {
+            claimState = status;
+        }
+        if (claimAmount == null) {
+            claimAmount = totalAmount == null ? BigDecimal.ZERO : totalAmount;
+        }
+        if (settledAmount == null) {
+            settledAmount = BigDecimal.ZERO;
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();

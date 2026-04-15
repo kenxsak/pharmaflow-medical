@@ -6,6 +6,7 @@ import com.pharmaflow.procurement.dto.PurchaseImportRowRequest;
 import com.pharmaflow.procurement.dto.PurchaseOrderSummaryResponse;
 import com.pharmaflow.procurement.dto.CreditNoteCreateRequest;
 import com.pharmaflow.procurement.dto.CreditNoteResponse;
+import com.pharmaflow.procurement.dto.CreditNoteSettlementRequest;
 import com.pharmaflow.procurement.dto.ReorderDraftRequest;
 import com.pharmaflow.procurement.dto.ReorderDraftResponse;
 import com.pharmaflow.procurement.dto.SupplierCreateRequest;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -101,6 +103,39 @@ public class PurchaseImportController {
             @Valid @RequestBody CreditNoteCreateRequest request
     ) {
         return creditNoteService.createCreditNote(storeId, request);
+    }
+
+    @PostMapping("/credit-notes/{creditNoteId}/dispatch")
+    public CreditNoteResponse dispatchCreditNote(
+            @RequestHeader("X-Store-ID") UUID storeId,
+            @PathVariable UUID creditNoteId
+    ) {
+        return creditNoteService.dispatchCreditNote(storeId, creditNoteId);
+    }
+
+    @PostMapping("/credit-notes/{creditNoteId}/acknowledge")
+    public CreditNoteResponse acknowledgeCreditNote(
+            @RequestHeader("X-Store-ID") UUID storeId,
+            @PathVariable UUID creditNoteId
+    ) {
+        return creditNoteService.acknowledgeCreditNote(storeId, creditNoteId);
+    }
+
+    @PostMapping("/credit-notes/{creditNoteId}/settle")
+    public CreditNoteResponse settleCreditNote(
+            @RequestHeader("X-Store-ID") UUID storeId,
+            @PathVariable UUID creditNoteId,
+            @Valid @RequestBody CreditNoteSettlementRequest request
+    ) {
+        return creditNoteService.settleCreditNote(storeId, creditNoteId, request);
+    }
+
+    @PostMapping("/credit-notes/{creditNoteId}/cancel")
+    public CreditNoteResponse cancelCreditNote(
+            @RequestHeader("X-Store-ID") UUID storeId,
+            @PathVariable UUID creditNoteId
+    ) {
+        return creditNoteService.cancelCreditNote(storeId, creditNoteId);
     }
 
     private List<PurchaseImportRowRequest> parseCsv(MultipartFile file) throws IOException {

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface CreditNoteRepository extends JpaRepository<CreditNote, UUID> {
@@ -24,4 +25,7 @@ public interface CreditNoteRepository extends JpaRepository<CreditNote, UUID> {
     Page<CreditNote> searchByStoreId(@Param("storeId") UUID storeId,
                                      @Param("query") String query,
                                      Pageable pageable);
+
+    @Query("select cn from CreditNote cn where cn.store.storeId in :storeIds order by cn.createdAt desc")
+    List<CreditNote> findByStoreStoreIdInOrderByCreatedAtDesc(@Param("storeIds") List<UUID> storeIds);
 }

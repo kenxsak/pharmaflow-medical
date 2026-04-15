@@ -1,6 +1,9 @@
 package com.pharmaflow.inventory;
 
 import com.pharmaflow.inventory.dto.ExpiryAlertSummary;
+import com.pharmaflow.inventory.dto.InventoryAdjustmentRequest;
+import com.pharmaflow.inventory.dto.InventoryBatchStateRequest;
+import com.pharmaflow.inventory.dto.InventoryMovementResponse;
 import com.pharmaflow.inventory.dto.ReplenishmentInsightResponse;
 import com.pharmaflow.inventory.dto.ShortageItemResponse;
 import com.pharmaflow.inventory.dto.StockTransferCreateRequest;
@@ -29,6 +32,7 @@ public class InventoryController {
     private final InventoryService inventoryService;
     private final ExpiryAlertService expiryAlertService;
     private final ReplenishmentService replenishmentService;
+    private final InventoryMovementService inventoryMovementService;
 
     @GetMapping("/stock/{medicineId}")
     public List<StockBatchResponse> getStock(
@@ -102,5 +106,36 @@ public class InventoryController {
     @PostMapping("/transfers/{transferId}/receive")
     public StockTransferResponse receiveTransfer(@PathVariable UUID transferId) {
         return replenishmentService.receiveTransfer(transferId);
+    }
+
+    @GetMapping("/movements")
+    public List<InventoryMovementResponse> getInventoryMovements(
+            @RequestParam("storeId") UUID storeId,
+            @RequestParam(value = "batchId", required = false) UUID batchId,
+            @RequestParam(value = "medicineId", required = false) UUID medicineId,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        return inventoryMovementService.listMovements(storeId, batchId, medicineId, limit);
+    }
+
+    @PostMapping("/adjustments")
+    public InventoryMovementResponse adjustInventory(@Valid @RequestBody InventoryAdjustmentRequest request) {
+        return inventoryMovementService.adjustStock(request);
+    }
+
+    @PostMapping("/batches/{batchId}/quarantine")
+    public InventoryMovementResponse quarantineBatch(
+            @PathVariable UUID batchId,
+            @Valid @RequestBody InventoryBatchStateRequest request
+    ) {
+        return inventoryMovementService.quarantineBatch(batchId, request);
+    }
+
+    @PostMapping("/batches/{batchId}/release")
+    public InventoryMovementResponse releaseBatch(
+            @PathVariable UUID batchId,
+            @Valid @RequestBody InventoryBatchStateRequest request
+    ) {
+        return inventoryMovementService.releaseBatch(batchId, request);
     }
 }

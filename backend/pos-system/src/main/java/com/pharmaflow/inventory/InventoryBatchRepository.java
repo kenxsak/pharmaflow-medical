@@ -54,6 +54,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             "where ib.store.storeId = :storeId " +
             "and ib.medicine.medicineId = :medicineId " +
             "and ib.isActive = true " +
+            "and upper(coalesce(ib.inventoryState, 'SELLABLE')) = 'SELLABLE' " +
             "and ib.expiryDate > :today " +
             "and (coalesce(ib.quantityStrips, 0) > 0 or coalesce(ib.quantityLoose, 0) > 0) " +
             "order by ib.expiryDate asc, ib.createdAt asc")
@@ -66,6 +67,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             "where ib.store.storeId = :storeId " +
             "and ib.medicine.medicineId = :medicineId " +
             "and ib.isActive = true " +
+            "and upper(coalesce(ib.inventoryState, 'SELLABLE')) = 'SELLABLE' " +
             "and ib.expiryDate > :today " +
             "and (coalesce(ib.quantityStrips, 0) > 0 or coalesce(ib.quantityLoose, 0) > 0) " +
             "order by ib.expiryDate asc, ib.createdAt asc")
@@ -109,7 +111,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
             @Param("to") LocalDate to
     );
 
-    @Query("select ib from InventoryBatch ib join ib.medicine m where ib.store.storeId = :storeId and ib.isActive = true and ib.quantityStrips <= coalesce(m.reorderLevel, 0) order by ib.expiryDate asc")
+    @Query("select ib from InventoryBatch ib join ib.medicine m where ib.store.storeId = :storeId and ib.isActive = true and upper(coalesce(ib.inventoryState, 'SELLABLE')) = 'SELLABLE' and ib.quantityStrips <= coalesce(m.reorderLevel, 0) order by ib.expiryDate asc")
     List<InventoryBatch> findStockBelowReorderLevel(@Param("storeId") UUID storeId);
 
     @Query("select ib from InventoryBatch ib " +

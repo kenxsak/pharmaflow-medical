@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
 import {
+  InventoryAPI,
+  InventoryMovementResponse,
   MedicineAPI,
   MedicineSearchResult,
   PurchaseAPI,
@@ -29,6 +31,15 @@ const expiryBadgeClasses: Record<string, string> = {
   OK: 'bg-emerald-100 text-emerald-700',
 };
 
+const inventoryStateClasses: Record<string, string> = {
+  SELLABLE: 'bg-emerald-100 text-emerald-700',
+  QUARANTINED: 'bg-amber-100 text-amber-800',
+  DAMAGED: 'bg-rose-100 text-rose-700',
+  RTV_PENDING: 'bg-violet-100 text-violet-700',
+  DUMPED: 'bg-slate-200 text-slate-700',
+  EXPIRED: 'bg-rose-100 text-rose-700',
+};
+
 interface OpeningStockDraft {
   supplierId: string;
   newSupplierName: string;
@@ -45,6 +56,8 @@ interface OpeningStockDraft {
   mrp: number;
   gstRate: number;
 }
+
+type BatchActionMode = 'ADJUST_ADD' | 'ADJUST_REMOVE' | 'QUARANTINE' | 'RELEASE';
 
 const createOpeningStockDraft = (
   medicine: MedicineSearchResult | null,
@@ -88,6 +101,14 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
   const [stockRows, setStockRows] = useState<StockBatchResponse[]>([]);
   const [shortageRows, setShortageRows] = useState<ShortageItemResponse[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
+  const [movements, setMovements] = useState<InventoryMovementResponse[]>([]);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [isBatchActionOpen, setIsBatchActionOpen] = useState(false);
+  const [batchActionMode, setBatchActionMode] = useState<BatchActionMode>('ADJUST_ADD');
+  const [batchActionQuantity, setBatchActionQuantity] = useState(1);
+  const [batchActionUnitType, setBatchActionUnitType] = useState('STRIP');
+  const [batchActionReason, setBatchActionReason] = useState('MANUAL_RECOUNT');
+  const [batchActionNotes, setBatchActionNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isOpeningStockOpen, setIsOpeningStockOpen] = useState(false);
@@ -138,15 +159,93 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
     }
 
     try {
-      const rows = await MedicineAPI.getStock(medicine.medicineId, storeId);
+      const [rows, movementRows] = await Promise.all([
+        MedicineAPI.getStock(medicine.medicineId, storeId),
+        InventoryAPI.getMovements(storeId, { medicineId: medicine.medicineId, limit: 25 }),
+      ]);
       setSelectedMedicine(medicine);
       setStockRows(rows);
+      setMovements(movementRows);
+      setSelectedBatchId(rows[0]?.batchId || null);
       setSearchResults([]);
       setSearchQuery(medicine.brandName);
       setMessage(null);
       setError(null);
     } catch (stockError) {
       setError(stockError instanceof Error ? stockError.message : 'Unable to load stock.');
+    }
+  };
+
+  const openBatchAction = (mode: BatchActionMode) => {
+    if (!selectedBatch) {
+      setError('Select a batch first before taking an inventory action.');
+      return;
+    }
+
+    setBatchActionMode(mode);
+    setBatchActionQuantity(1);
+    setBatchActionUnitType('STRIP');
+    setBatchActionReason(
+      mode === 'QUARANTINE'
+        ? 'QUALITY_HOLD'
+        : mode === 'RELEASE'
+        ? 'QUALITY_REVIEW_CLEARED'
+        : 'MANUAL_RECOUNT'
+    );
+    setBatchActionNotes('');
+    setIsBatchActionOpen(true);
+    setError(null);
+  };
+
+  const refreshSelectedMedicine = async () => {
+    if (!selectedMedicine || !storeId) {
+      return;
+    }
+    await loadStock(selectedMedicine);
+    const refreshedShortage = await ReportsAPI.getShortageReport(storeId);
+    setShortageRows(refreshedShortage);
+  };
+
+  const handleBatchActionSubmit = async () => {
+    if (!selectedBatch) {
+      return;
+    }
+
+    try {
+      if (batchActionMode === 'ADJUST_ADD' || batchActionMode === 'ADJUST_REMOVE') {
+        await InventoryAPI.adjustStock({
+          batchId: selectedBatch.batchId,
+          quantity: Number(batchActionQuantity || 0),
+          unitType: batchActionUnitType,
+          adjustmentType: batchActionMode,
+          reasonCode: batchActionReason,
+          notes: batchActionNotes || undefined,
+        });
+      } else if (batchActionMode === 'QUARANTINE') {
+        await InventoryAPI.quarantineBatch(selectedBatch.batchId, {
+          reasonCode: batchActionReason,
+          notes: batchActionNotes || undefined,
+        });
+      } else {
+        await InventoryAPI.releaseBatch(selectedBatch.batchId, {
+          reasonCode: batchActionReason,
+          notes: batchActionNotes || undefined,
+        });
+      }
+
+      setIsBatchActionOpen(false);
+      setMessage(
+        batchActionMode === 'QUARANTINE'
+          ? `Batch ${selectedBatch.batchNumber} moved to quarantine.`
+          : batchActionMode === 'RELEASE'
+          ? `Batch ${selectedBatch.batchNumber} released back to sellable stock.`
+          : `Batch ${selectedBatch.batchNumber} updated successfully.`
+      );
+      setError(null);
+      await refreshSelectedMedicine();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to complete batch action.');
+      setMessage(null);
     }
   };
 
@@ -292,6 +391,11 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
   const selectedUnitProfile = useMemo(
     () => (selectedMedicine ? getMedicineUnitProfile(selectedMedicine) : null),
     [selectedMedicine]
+  );
+
+  const selectedBatch = useMemo(
+    () => stockRows.find((row) => row.batchId === selectedBatchId) || null,
+    [selectedBatchId, stockRows]
   );
 
   return (
@@ -515,6 +619,58 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
             </div>
           )}
 
+          {selectedBatch && (
+            <div className="mb-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-slate-400">Selected batch</div>
+                  <div className="mt-2 text-lg font-semibold text-slate-950">
+                    {selectedBatch.batchNumber}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-600">
+                    {selectedBatch.expiryDate} • {selectedBatch.inventoryState || 'SELLABLE'} •{' '}
+                    {selectedMedicine
+                      ? `${formatPrimaryQuantity(selectedBatch.quantityStrips, selectedMedicine)} + ${formatSecondaryQuantity(
+                          selectedBatch.quantityLoose,
+                          selectedMedicine
+                        )}`
+                      : `${selectedBatch.quantityStrips} / ${selectedBatch.quantityLoose}`}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openBatchAction('ADJUST_ADD')}
+                    className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800"
+                  >
+                    Add stock
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openBatchAction('ADJUST_REMOVE')}
+                    className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-800"
+                  >
+                    Remove stock
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openBatchAction('QUARANTINE')}
+                    className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800"
+                  >
+                    Quarantine
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openBatchAction('RELEASE')}
+                    className="rounded-2xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-800"
+                  >
+                    Release
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-slate-500">
@@ -524,17 +680,33 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                   <th className="px-3 py-2 text-right">{selectedUnitProfile ? selectedUnitProfile.primaryUnitLabel : 'Packs'}</th>
                   <th className="px-3 py-2 text-right">{selectedUnitProfile ? selectedUnitProfile.secondaryUnitLabel : 'Loose'}</th>
                   <th className="px-3 py-2 text-right">MRP</th>
+                  <th className="px-3 py-2 text-left">State</th>
                   <th className="px-3 py-2 text-left">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {stockRows.map((row) => (
-                  <tr key={row.batchId} className="border-t border-slate-100">
+                  <tr
+                    key={row.batchId}
+                    className={`cursor-pointer border-t border-slate-100 hover:bg-sky-50 ${
+                      selectedBatchId === row.batchId ? 'bg-sky-50' : ''
+                    }`}
+                    onClick={() => setSelectedBatchId(row.batchId)}
+                  >
                     <td className="px-3 py-3 font-medium">{row.batchNumber}</td>
                     <td className="px-3 py-3">{row.expiryDate}</td>
                     <td className="px-3 py-3 text-right">{row.quantityStrips}</td>
                     <td className="px-3 py-3 text-right">{row.quantityLoose}</td>
                     <td className="px-3 py-3 text-right">₹{row.mrp.toFixed(2)}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          inventoryStateClasses[row.inventoryState || 'SELLABLE'] || 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {(row.inventoryState || 'SELLABLE').replace('_', ' ')}
+                      </span>
+                    </td>
                     <td className="px-3 py-3">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -548,10 +720,84 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 ))}
                 {!stockRows.length && (
                   <tr>
-                    <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
+                    <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
                       {selectedMedicine
                         ? 'No active stock exists yet for this medicine in the selected store. Use Add opening stock above.'
                         : 'Search and select a medicine to open its batch-wise stock.'}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold">Batch Movement Ledger</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Every sale, return, adjustment, transfer, dump, and quarantine action is tracked here.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
+              {movements.length} movement{movements.length === 1 ? '' : 's'}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Time</th>
+                  <th className="px-3 py-2 text-left">Batch</th>
+                  <th className="px-3 py-2 text-left">Movement</th>
+                  <th className="px-3 py-2 text-left">Reason</th>
+                  <th className="px-3 py-2 text-right">Pack Δ</th>
+                  <th className="px-3 py-2 text-right">Loose Δ</th>
+                  <th className="px-3 py-2 text-left">State After</th>
+                </tr>
+              </thead>
+              <tbody>
+                {movements.map((movement) => (
+                  <tr key={movement.movementId} className="border-t border-slate-100">
+                    <td className="px-3 py-3">
+                      {new Date(movement.createdAt).toLocaleString('en-IN', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="font-medium text-slate-900">{movement.batchNumber || '—'}</div>
+                      <div className="text-xs text-slate-500">{movement.brandName || '—'}</div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="font-medium text-slate-900">{movement.movementType.replace(/_/g, ' ')}</div>
+                      <div className="text-xs text-slate-500">
+                        {movement.actorName || 'System'} • {movement.referenceType || 'Manual'}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div>{movement.reasonCode?.replace(/_/g, ' ') || '—'}</div>
+                      {movement.notes && <div className="text-xs text-slate-500">{movement.notes}</div>}
+                    </td>
+                    <td className="px-3 py-3 text-right">{movement.quantityStripsDelta ?? 0}</td>
+                    <td className="px-3 py-3 text-right">{movement.quantityLooseDelta ?? 0}</td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
+                          inventoryStateClasses[movement.inventoryStateAfter || 'SELLABLE'] || 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {(movement.inventoryStateAfter || 'SELLABLE').replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!movements.length && (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
+                      Select a medicine to inspect recent stock movements.
                     </td>
                   </tr>
                 )}
@@ -832,6 +1078,118 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                 <div>A purchase inward row is created for the selected store.</div>
                 <div>The batch becomes visible in stock view immediately.</div>
                 <div>The same medicine can then be searched and billed from the counter screen.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </LegacyModal>
+
+      <LegacyModal
+        open={isBatchActionOpen}
+        onClose={() => setIsBatchActionOpen(false)}
+        title={
+          batchActionMode === 'QUARANTINE'
+            ? 'Quarantine batch'
+            : batchActionMode === 'RELEASE'
+            ? 'Release batch'
+            : batchActionMode === 'ADJUST_ADD'
+            ? 'Add stock'
+            : 'Remove stock'
+        }
+        description="Use this operator action when physical stock does not match the system or when a batch needs to be blocked from sale."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsBatchActionOpen(false)}
+              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleBatchActionSubmit()}
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+            >
+              Save action
+            </button>
+          </>
+        }
+      >
+        <div className="grid gap-4 xl:grid-cols-[1.05fr,0.95fr]">
+          <div className="grid gap-3 md:grid-cols-2">
+            {batchActionMode !== 'QUARANTINE' && batchActionMode !== 'RELEASE' && (
+              <>
+                <label className="space-y-1 text-sm">
+                  <span className="font-medium text-slate-700">Quantity</span>
+                  <input
+                    type="number"
+                    min={0.001}
+                    step="0.001"
+                    value={batchActionQuantity}
+                    onChange={(event) => setBatchActionQuantity(Number(event.target.value))}
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="font-medium text-slate-700">Unit</span>
+                  <select
+                    value={batchActionUnitType}
+                    onChange={(event) => setBatchActionUnitType(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+                  >
+                    <option value="STRIP">{selectedUnitProfile?.primaryUnitLabel || 'Strip'}</option>
+                    <option value="TABLET">{selectedUnitProfile?.secondaryUnitLabel || 'Unit'}</option>
+                  </select>
+                </label>
+              </>
+            )}
+
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">Reason code</span>
+              <input
+                type="text"
+                value={batchActionReason}
+                onChange={(event) => setBatchActionReason(event.target.value.toUpperCase().replace(/\s+/g, '_'))}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="font-medium text-slate-700">Notes</span>
+              <textarea
+                rows={4}
+                value={batchActionNotes}
+                onChange={(event) => setBatchActionNotes(event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-4 py-3"
+              />
+            </label>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="text-sm font-semibold text-slate-950">Action preview</div>
+              <div className="mt-3 space-y-2 text-sm text-slate-600">
+                <div>Batch: <span className="font-semibold text-slate-950">{selectedBatch?.batchNumber || '—'}</span></div>
+                <div>Current state: <span className="font-semibold text-slate-950">{selectedBatch?.inventoryState || 'SELLABLE'}</span></div>
+                <div>Action: <span className="font-semibold text-slate-950">{batchActionMode.replace(/_/g, ' ')}</span></div>
+                {batchActionMode !== 'QUARANTINE' && batchActionMode !== 'RELEASE' && (
+                  <div>
+                    Quantity:{' '}
+                    <span className="font-semibold text-slate-950">
+                      {batchActionQuantity} {batchActionUnitType}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="text-sm font-semibold text-slate-950">What gets recorded</div>
+              <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                <div>The batch ledger stores the stock delta, resulting state, reason code, notes, and operator name.</div>
+                <div>Quarantine keeps the batch visible but blocks it from sellable stock queries.</div>
+                <div>Release is only allowed when the batch is non-expired and has remaining quantity.</div>
               </div>
             </div>
           </div>

@@ -28,4 +28,5 @@ public class StockBatchResponse {
     private BigDecimal purchaseRate;
     private BigDecimal mrp;
     private String expiryStatus;
+    private String inventoryState;
 }

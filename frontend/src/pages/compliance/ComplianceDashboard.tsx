@@ -41,6 +41,8 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
   const [patientFilter, setPatientFilter] = useState('');
   const [inspectorRows, setInspectorRows] = useState<ScheduleRegisterResponse[]>([]);
   const [narcoticRows, setNarcoticRows] = useState<ScheduleRegisterResponse[]>([]);
+  const [archiveQuery, setArchiveQuery] = useState('');
+  const [archiveRows, setArchiveRows] = useState<ScheduleRegisterResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const storeId = context.storeId;
@@ -59,16 +61,22 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
     Promise.all([
       ComplianceAPI.getDrugInspectorReport(storeId, month, year, schedule || undefined),
       ComplianceAPI.getNarcoticReport(storeId, month, year),
+      ComplianceAPI.searchPrescriptionArchive(storeId, {
+        schedule: schedule || undefined,
+        query: archiveQuery || undefined,
+        limit: 50,
+      }),
     ])
-      .then(([scheduleEntries, narcoticEntries]) => {
+      .then(([scheduleEntries, narcoticEntries, archiveEntries]) => {
         setInspectorRows(scheduleEntries);
         setNarcoticRows(narcoticEntries);
+        setArchiveRows(archiveEntries);
       })
       .catch((loadError) => {
         setError(loadError instanceof Error ? loadError.message : 'Unable to load compliance data.');
       })
       .finally(() => setLoading(false));
-  }, [month, schedule, storeId, year]);
+  }, [archiveQuery, month, schedule, storeId, year]);
 
   const filteredInspectorRows = useMemo(() => {
     const query = patientFilter.trim().toLowerCase();
@@ -171,6 +179,11 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                 <div className="mt-2 text-3xl font-semibold text-slate-950">{narcoticRows.length}</div>
                 <div className="mt-1 text-sm text-slate-500">Monthly narcotic-specific movements</div>
               </div>
+              <div className="rounded-3xl bg-white p-4 shadow-sm">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Archive Hits</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">{archiveRows.length}</div>
+                <div className="mt-1 text-sm text-slate-500">Searchable prescription archive entries</div>
+              </div>
             </div>
           </div>
         </section>
@@ -197,7 +210,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
               Store: {context.storeCode || 'Not selected'}
             </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-5">
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Month</span>
               <select
@@ -247,6 +260,17 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                 className="w-full rounded-2xl border border-slate-300 px-3 py-2"
               />
             </label>
+
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Archive search</span>
+              <input
+                type="text"
+                value={archiveQuery}
+                onChange={(event) => setArchiveQuery(event.target.value)}
+                placeholder="Prescription archive lookup"
+                className="w-full rounded-2xl border border-slate-300 px-3 py-2"
+              />
+            </label>
           </div>
         </section>
 
@@ -283,6 +307,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                   <th className="px-3 py-2 text-left">Medicine</th>
                   <th className="px-3 py-2 text-left">Patient</th>
                   <th className="px-3 py-2 text-left">Doctor</th>
+                  <th className="px-3 py-2 text-left">Pharmacist</th>
                   <th className="px-3 py-2 text-left">Batch</th>
                   <th className="px-3 py-2 text-right">Qty</th>
                   <th className="px-3 py-2 text-left">Prescription</th>
@@ -300,6 +325,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                     <td className="px-3 py-3 font-medium">{entry.medicineName}</td>
                     <td className="px-3 py-3">{entry.patientName}</td>
                     <td className="px-3 py-3">{entry.doctorName}</td>
+                    <td className="px-3 py-3">{entry.pharmacistName || '—'}</td>
                     <td className="px-3 py-3">{entry.batchNumber}</td>
                     <td className="px-3 py-3 text-right">{entry.quantitySold}</td>
                     <td className="px-3 py-3">
@@ -321,7 +347,7 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                 ))}
                 {!loading && !filteredInspectorRows.length && (
                   <tr>
-                    <td colSpan={8} className="px-3 py-10 text-center text-slate-400">
+                    <td colSpan={9} className="px-3 py-10 text-center text-slate-400">
                       No compliance entries found for the selected period.
                     </td>
                   </tr>
@@ -376,6 +402,74 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
                   <tr>
                     <td colSpan={6} className="px-3 py-10 text-center text-slate-400">
                       No narcotic entries found for this month.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="rounded-3xl bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Searchable Prescription Archive</h2>
+              <p className="text-sm text-slate-500">
+                Search by patient, medicine, doctor, or schedule to retrieve historical controlled-drug evidence fast.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
+              {archiveRows.length} archive record{archiveRows.length === 1 ? '' : 's'}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Sale Date</th>
+                  <th className="px-3 py-2 text-left">Medicine</th>
+                  <th className="px-3 py-2 text-left">Patient</th>
+                  <th className="px-3 py-2 text-left">Doctor</th>
+                  <th className="px-3 py-2 text-left">Pharmacist</th>
+                  <th className="px-3 py-2 text-left">Schedule</th>
+                  <th className="px-3 py-2 text-left">Prescription</th>
+                </tr>
+              </thead>
+              <tbody>
+                {archiveRows.map((entry) => (
+                  <tr key={`archive-${entry.registerId}`} className="border-t border-slate-100">
+                    <td className="px-3 py-3">{formatDateTime(entry.saleDate)}</td>
+                    <td className="px-3 py-3 font-medium">{entry.medicineName}</td>
+                    <td className="px-3 py-3">{entry.patientName}</td>
+                    <td className="px-3 py-3">{entry.doctorName}</td>
+                    <td className="px-3 py-3">{entry.pharmacistName || '—'}</td>
+                    <td className="px-3 py-3">
+                      <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-medium text-sky-800">
+                        {entry.scheduleType}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      {entry.prescriptionUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => void DocumentAPI.openProtectedDocument(entry.prescriptionUrl!)}
+                          className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700"
+                        >
+                          Open archive file
+                        </button>
+                      ) : (
+                        <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                          Missing
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!loading && !archiveRows.length && (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
+                      No archive entries found for the current search.
                     </td>
                   </tr>
                 )}

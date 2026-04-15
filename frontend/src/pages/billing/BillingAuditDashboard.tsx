@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
+import LegacyModal from '../../shared/legacy/LegacyModal';
 import {
   AuditAPI,
   AuditLogEntry,
@@ -7,6 +8,7 @@ import {
   DocumentAPI,
   InvoiceHistoryItem,
   InvoiceResponse,
+  SalesReturnResponse,
 } from '../../services/api';
 import { usePharmaFlowContext } from '../../utils/pharmaflowContext';
 
@@ -54,6 +56,11 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
   const [selectedInvoiceAudit, setSelectedInvoiceAudit] = useState<AuditLogEntry[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceResponse | null>(null);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [salesReturns, setSalesReturns] = useState<SalesReturnResponse[]>([]);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [returnNotes, setReturnNotes] = useState('');
+  const [returnSettlementType, setReturnSettlementType] = useState('RESTOCK');
+  const [returnQuantities, setReturnQuantities] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const storeId = context.storeId;
 
@@ -92,6 +99,7 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
       setSelectedInvoiceAudit([]);
       setSelectedInvoice(null);
       setSelectedInvoiceId(null);
+      setSalesReturns([]);
       return;
     }
 
@@ -100,13 +108,22 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
 
   const openInvoice = async (invoiceId: string) => {
     try {
-      const [invoice, invoiceAudit] = await Promise.all([
+      const [invoice, invoiceAudit, invoiceReturns] = await Promise.all([
         BillingAPI.getInvoice(invoiceId),
         BillingAPI.getInvoiceAudit(invoiceId),
+        BillingAPI.listSalesReturns(invoiceId),
       ]);
       setSelectedInvoice(invoice);
       setSelectedInvoiceId(invoiceId);
       setSelectedInvoiceAudit(invoiceAudit);
+      setSalesReturns(invoiceReturns);
+      setReturnQuantities(
+        Object.fromEntries(
+          invoice.items.map((item) => [item.itemId, 0])
+        )
+      );
+      setReturnNotes('');
+      setReturnSettlementType('RESTOCK');
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load invoice details.');
@@ -171,6 +188,57 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     } catch (shareError) {
       setError(shareError instanceof Error ? shareError.message : 'Unable to prepare WhatsApp share.');
+    }
+  };
+
+  const openReturnModal = () => {
+    if (!selectedInvoice) {
+      return;
+    }
+    setReturnQuantities(
+      Object.fromEntries(selectedInvoice.items.map((item) => [item.itemId, 0]))
+    );
+    setReturnNotes('');
+    setReturnSettlementType('RESTOCK');
+    setIsReturnModalOpen(true);
+  };
+
+  const handleCreateSalesReturn = async () => {
+    if (!selectedInvoice) {
+      return;
+    }
+
+    const items = Object.entries(returnQuantities)
+      .filter(([, quantity]) => Number(quantity) > 0)
+      .map(([invoiceItemId, quantity]) => ({
+        invoiceItemId,
+        quantity: Number(quantity),
+        reason: returnNotes || undefined,
+      }));
+
+    if (!items.length) {
+      setError('Enter at least one return quantity before saving the sales return.');
+      return;
+    }
+
+    try {
+      await BillingAPI.createSalesReturn(selectedInvoice.invoiceId, {
+        settlementType: returnSettlementType,
+        notes: returnNotes || undefined,
+        items,
+      });
+      const [invoice, invoiceReturns, invoiceAudit] = await Promise.all([
+        BillingAPI.getInvoice(selectedInvoice.invoiceId),
+        BillingAPI.listSalesReturns(selectedInvoice.invoiceId),
+        BillingAPI.getInvoiceAudit(selectedInvoice.invoiceId),
+      ]);
+      setSelectedInvoice(invoice);
+      setSalesReturns(invoiceReturns);
+      setSelectedInvoiceAudit(invoiceAudit);
+      setIsReturnModalOpen(false);
+      setError(null);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Unable to create sales return.');
     }
   };
 
@@ -363,6 +431,13 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
                       >
                         WhatsApp
                       </button>
+                      <button
+                        type="button"
+                        onClick={openReturnModal}
+                        className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800"
+                      >
+                        Sales return
+                      </button>
                     </div>
                   </div>
                   {(selectedInvoice.doctorName || selectedInvoice.prescriptionAttached) && (
@@ -432,6 +507,55 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-950">Sales Return Ledger</div>
+                      <div className="mt-1 text-xs text-slate-600">
+                        Linked returns restore stock against the original invoice items.
+                      </div>
+                    </div>
+                    <div className="rounded-full bg-white px-3 py-1 text-xs text-slate-600">
+                      {salesReturns.length} return{salesReturns.length === 1 ? '' : 's'}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-3">
+                    {salesReturns.map((salesReturn) => (
+                      <div key={salesReturn.returnId} className="rounded-2xl bg-white p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-medium text-slate-900">{salesReturn.returnNumber}</div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              {new Date(salesReturn.createdAt).toLocaleString('en-IN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              })}{' '}
+                              • {salesReturn.createdByName || 'System'}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-slate-900">
+                              ₹{Number(salesReturn.totalAmount || 0).toFixed(2)}
+                            </div>
+                            <div className="text-xs text-slate-500">{salesReturn.status}</div>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-600">
+                          {salesReturn.items
+                            .map((item) => `${item.medicineName || 'Item'} x ${Number(item.quantity || 0)}`)
+                            .join(', ')}
+                        </div>
+                      </div>
+                    ))}
+                    {!salesReturns.length && (
+                      <div className="rounded-2xl bg-white px-4 py-6 text-center text-sm text-slate-400">
+                        No sales returns created yet for this invoice.
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="rounded-3xl border border-slate-200 bg-white p-4">
@@ -559,6 +683,94 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
           )}
         </section>
       </div>
+
+      <LegacyModal
+        open={isReturnModalOpen}
+        onClose={() => setIsReturnModalOpen(false)}
+        title="Create sales return"
+        description="Select the original invoice lines and the quantity being returned. Stock will be restored against the original batch."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsReturnModalOpen(false)}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCreateSalesReturn()}
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Save return
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Settlement type</span>
+              <select
+                value={returnSettlementType}
+                onChange={(event) => setReturnSettlementType(event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-3 py-3"
+              >
+                <option value="RESTOCK">Restock</option>
+                <option value="REFUND">Refund</option>
+                <option value="CREDIT_NOTE">Credit note</option>
+              </select>
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="font-medium text-slate-700">Return notes</span>
+              <input
+                type="text"
+                value={returnNotes}
+                onChange={(event) => setReturnNotes(event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 px-3 py-3"
+              />
+            </label>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 text-left">Medicine</th>
+                  <th className="px-3 py-2 text-left">Batch</th>
+                  <th className="px-3 py-2 text-right">Sold qty</th>
+                  <th className="px-3 py-2 text-right">Return qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(selectedInvoice?.items || []).map((item) => (
+                  <tr key={item.itemId} className="border-t border-slate-100">
+                    <td className="px-3 py-3 font-medium">{item.medicineName}</td>
+                    <td className="px-3 py-3">{item.batchNumber || '—'}</td>
+                    <td className="px-3 py-3 text-right">{item.quantity}</td>
+                    <td className="px-3 py-3 text-right">
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.001"
+                        value={returnQuantities[item.itemId] ?? 0}
+                        onChange={(event) =>
+                          setReturnQuantities((current) => ({
+                            ...current,
+                            [item.itemId]: Number(event.target.value) || 0,
+                          }))
+                        }
+                        className="w-24 rounded-xl border border-slate-300 px-2 py-1 text-right"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </LegacyModal>
     </PharmaFlowShell>
   );
 };

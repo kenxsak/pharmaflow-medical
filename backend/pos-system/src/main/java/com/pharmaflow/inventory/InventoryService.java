@@ -24,6 +24,7 @@ public class InventoryService {
 
     private final InventoryBatchRepository inventoryBatchRepository;
     private final MedicineRepository medicineRepository;
+    private final InventoryMovementService inventoryMovementService;
 
     public List<StockBatchResponse> getStock(UUID storeId, UUID medicineId) {
         return inventoryBatchRepository.findByStoreStoreIdAndMedicineMedicineIdAndIsActiveTrueOrderByExpiryDateAsc(storeId, medicineId)
@@ -60,23 +61,18 @@ public class InventoryService {
 
     @Transactional
     public InventoryBatch deductStock(UUID batchId, BigDecimal quantity, String unitType) {
-        InventoryBatch batch = getBatchOrThrow(batchId);
-        Medicine medicine = batch.getMedicine() != null
-                ? batch.getMedicine()
-                : medicineRepository.findById(batch.getMedicine().getMedicineId())
-                .orElseThrow(() -> new IllegalArgumentException("Medicine not found for batch"));
-
-        int requestedLooseUnits = toLooseUnits(quantity, unitType, medicine.getPackSize());
-        int availableLooseUnits = safe(batch.getQuantityStrips()) * safePackSize(medicine) + safe(batch.getQuantityLoose());
-        if (requestedLooseUnits > availableLooseUnits) {
-            throw new BusinessRuleException("Insufficient stock for batch " + batch.getBatchNumber());
-        }
-
-        int remainingLooseUnits = availableLooseUnits - requestedLooseUnits;
-        batch.setQuantityStrips(remainingLooseUnits / safePackSize(medicine));
-        batch.setQuantityLoose(remainingLooseUnits % safePackSize(medicine));
-        batch.setIsActive(remainingLooseUnits > 0);
-        return inventoryBatchRepository.save(batch);
+        InventoryMovement movement = inventoryMovementService.applyQuantity(
+                batchId,
+                quantity.negate(),
+                unitType,
+                "ADJUST_REMOVE",
+                "LEGACY_DEDUCT",
+                "LEGACY_SERVICE",
+                batchId.toString(),
+                "Legacy inventory deduction path",
+                null
+        );
+        return movement.getBatch();
     }
 
     @Transactional
@@ -95,21 +91,18 @@ public class InventoryService {
 
     @Transactional
     public InventoryBatch addStock(UUID batchId, BigDecimal quantity, String unitType) {
-        InventoryBatch batch = getBatchOrThrow(batchId);
-        Medicine medicine = batch.getMedicine() != null
-                ? batch.getMedicine()
-                : medicineRepository.findById(batch.getMedicine().getMedicineId())
-                .orElseThrow(() -> new IllegalArgumentException("Medicine not found for batch"));
-
-        int looseUnitsToAdd = toLooseUnits(quantity, unitType, medicine.getPackSize());
-        int updatedLooseUnits = safe(batch.getQuantityStrips()) * safePackSize(medicine)
-                + safe(batch.getQuantityLoose())
-                + looseUnitsToAdd;
-
-        batch.setQuantityStrips(updatedLooseUnits / safePackSize(medicine));
-        batch.setQuantityLoose(updatedLooseUnits % safePackSize(medicine));
-        batch.setIsActive(updatedLooseUnits > 0);
-        return inventoryBatchRepository.save(batch);
+        InventoryMovement movement = inventoryMovementService.applyQuantity(
+                batchId,
+                quantity,
+                unitType,
+                "ADJUST_ADD",
+                "LEGACY_ADD",
+                "LEGACY_SERVICE",
+                batchId.toString(),
+                "Legacy inventory add path",
+                null
+        );
+        return movement.getBatch();
     }
 
     public StockBatchResponse toStockBatchResponse(InventoryBatch batch) {
@@ -125,6 +118,7 @@ public class InventoryService {
                 .purchaseRate(batch.getPurchaseRate())
                 .mrp(batch.getMrp())
                 .expiryStatus(expiryStatus(batch.getExpiryDate()))
+                .inventoryState(batch.getInventoryState())
                 .build();
     }
 

@@ -69,6 +69,9 @@ public class InventoryBatch {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @Column(name = "inventory_state", nullable = false, length = 30)
+    private String inventoryState;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -85,6 +88,9 @@ public class InventoryBatch {
         }
         if (isActive == null) {
             isActive = true;
+        }
+        if (inventoryState == null || inventoryState.isBlank()) {
+            inventoryState = "SELLABLE";
         }
     }
 }

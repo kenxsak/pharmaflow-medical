@@ -64,6 +64,20 @@ public class ComplianceController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/prescription-archive")
+    public List<ScheduleRegisterResponse> searchPrescriptionArchive(
+            @RequestParam UUID storeId,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String schedule,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        int safeLimit = Math.max(1, Math.min(limit, 200));
+        return scheduleHComplianceService.searchArchive(storeId, schedule, query, safeLimit)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
     private ScheduleRegisterResponse toResponse(ScheduleDrugRegister entry) {
         return ScheduleRegisterResponse.builder()
                 .registerId(entry.getRegisterId())
@@ -80,6 +94,7 @@ public class ComplianceController {
                 .quantitySold(entry.getQuantitySold())
                 .batchNumber(entry.getBatchNumber())
                 .pharmacistId(entry.getPharmacist() != null ? entry.getPharmacist().getUserId() : null)
+                .pharmacistName(entry.getPharmacist() != null ? entry.getPharmacist().getFullName() : null)
                 .prescriptionUrl(entry.getPrescriptionUrl())
                 .remarks(entry.getRemarks())
                 .build();

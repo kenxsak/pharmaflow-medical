@@ -141,6 +141,7 @@ export interface StockBatchResponse {
   purchaseRate: number;
   mrp: number;
   expiryStatus: string;
+  inventoryState?: string;
 }
 
 export interface BillingItem {
@@ -343,6 +344,10 @@ export interface OperationsOverviewResponse {
   stockValue: number;
   nearExpiryValue: number;
   pendingTransferCount: number;
+  pendingReceiptCount: number;
+  pendingRtvCount: number;
+  unresolvedCreditNoteCount: number;
+  unresolvedCreditNoteValue: number;
   stores: StoreOperationsKpiRow[];
 }
 
@@ -694,6 +699,45 @@ export interface InvoiceItemResponse {
   total: number;
 }
 
+export interface SalesReturnItemRequest {
+  invoiceItemId: string;
+  quantity: number;
+  reason?: string;
+}
+
+export interface SalesReturnCreateRequest {
+  settlementType?: string;
+  notes?: string;
+  items: SalesReturnItemRequest[];
+}
+
+export interface SalesReturnItemResponse {
+  returnItemId: string;
+  invoiceItemId: string;
+  medicineId?: string;
+  medicineName?: string;
+  batchId?: string;
+  batchNumber?: string;
+  quantity: number;
+  unitType?: string;
+  lineTotal?: number;
+  reason?: string;
+}
+
+export interface SalesReturnResponse {
+  returnId: string;
+  returnNumber: string;
+  invoiceId: string;
+  invoiceNo?: string;
+  settlementType?: string;
+  status: string;
+  totalAmount: number;
+  notes?: string;
+  createdByName?: string;
+  createdAt: string;
+  items: SalesReturnItemResponse[];
+}
+
 export interface InvoiceResponse {
   invoiceId: string;
   invoiceNo: string;
@@ -778,6 +822,7 @@ export interface ScheduleRegisterResponse {
   quantitySold: number;
   batchNumber?: string;
   pharmacistId?: string;
+  pharmacistName?: string;
   prescriptionUrl?: string;
   remarks?: string;
 }
@@ -904,11 +949,58 @@ export interface CreditNoteResponse {
   cnNumber: string;
   cnType?: string;
   status: string;
+  claimState?: string;
   supplierId?: string;
   originalInvoiceId?: string;
   totalAmount: number;
+  claimAmount?: number;
+  settledAmount?: number;
   notes?: string;
+  dispatchedAt?: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
+  resolutionNotes?: string;
   createdAt: string;
+}
+
+export interface CreditNoteSettlementRequest {
+  settledAmount: number;
+  notes?: string;
+}
+
+export interface InventoryMovementResponse {
+  movementId: string;
+  storeId: string;
+  batchId?: string;
+  medicineId?: string;
+  brandName?: string;
+  batchNumber?: string;
+  movementType: string;
+  referenceType?: string;
+  referenceId?: string;
+  reasonCode?: string;
+  notes?: string;
+  quantityStripsDelta?: number;
+  quantityLooseDelta?: number;
+  quantityStripsAfter?: number;
+  quantityLooseAfter?: number;
+  inventoryStateAfter?: string;
+  actorName?: string;
+  createdAt: string;
+}
+
+export interface InventoryAdjustmentRequest {
+  batchId: string;
+  quantity: number;
+  unitType: string;
+  adjustmentType: string;
+  reasonCode: string;
+  notes?: string;
+}
+
+export interface InventoryBatchStateRequest {
+  reasonCode: string;
+  notes?: string;
 }
 
 export interface UploadedDocumentResponse {
@@ -950,6 +1042,48 @@ export const InventoryAPI = {
         headers: getHeaders(),
       }
     ),
+
+  getMovements: (
+    storeId: string,
+    options?: { batchId?: string; medicineId?: string; limit?: number }
+  ): Promise<InventoryMovementResponse[]> =>
+    fetchJson(
+      `${BASE_URL}/inventory/movements?storeId=${encodeURIComponent(storeId)}${
+        options?.batchId ? `&batchId=${encodeURIComponent(options.batchId)}` : ''
+      }${options?.medicineId ? `&medicineId=${encodeURIComponent(options.medicineId)}` : ''}&limit=${
+        options?.limit ?? 50
+      }`,
+      {
+        headers: getHeaders(),
+      }
+    ),
+
+  adjustStock: (payload: InventoryAdjustmentRequest): Promise<InventoryMovementResponse> =>
+    fetchJson(`${BASE_URL}/inventory/adjustments`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  quarantineBatch: (
+    batchId: string,
+    payload: InventoryBatchStateRequest
+  ): Promise<InventoryMovementResponse> =>
+    fetchJson(`${BASE_URL}/inventory/batches/${batchId}/quarantine`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  releaseBatch: (
+    batchId: string,
+    payload: InventoryBatchStateRequest
+  ): Promise<InventoryMovementResponse> =>
+    fetchJson(`${BASE_URL}/inventory/batches/${batchId}/release`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
 
   getReplenishmentInsights: (
     storeId?: string,
@@ -1037,6 +1171,21 @@ export const BillingAPI = {
   getInvoice: (invoiceId: string): Promise<InvoiceResponse> =>
     fetchJson(`${BASE_URL}/billing/invoice/${invoiceId}`, {
       headers: getHeaders(),
+    }),
+
+  listSalesReturns: (invoiceId: string): Promise<SalesReturnResponse[]> =>
+    fetchJson(`${BASE_URL}/billing/invoice/${invoiceId}/returns`, {
+      headers: getHeaders(),
+    }),
+
+  createSalesReturn: (
+    invoiceId: string,
+    payload: SalesReturnCreateRequest
+  ): Promise<SalesReturnResponse> =>
+    fetchJson(`${BASE_URL}/billing/invoice/${invoiceId}/returns`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     }),
 
   printInvoice: (invoiceId: string): Promise<string> =>
@@ -1268,6 +1417,21 @@ export const ComplianceAPI = {
         headers: getHeaders(),
       },
     ),
+
+  searchPrescriptionArchive: (
+    storeId: string,
+    options?: { query?: string; schedule?: string; limit?: number }
+  ): Promise<ScheduleRegisterResponse[]> =>
+    fetchJson(
+      `${BASE_URL}/compliance/prescription-archive?storeId=${encodeURIComponent(storeId)}${
+        options?.query ? `&query=${encodeURIComponent(options.query)}` : ''
+      }${options?.schedule ? `&schedule=${encodeURIComponent(options.schedule)}` : ''}&limit=${
+        options?.limit ?? 50
+      }`,
+      {
+        headers: getHeaders(),
+      }
+    ),
 };
 
 export const ReportsAPI = {
@@ -1412,6 +1576,34 @@ export const PurchaseAPI = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
+    }),
+
+  dispatchCreditNote: (creditNoteId: string): Promise<CreditNoteResponse> =>
+    fetchJson(`${BASE_URL}/purchases/credit-notes/${creditNoteId}/dispatch`, {
+      method: 'POST',
+      headers: getHeaders(),
+    }),
+
+  acknowledgeCreditNote: (creditNoteId: string): Promise<CreditNoteResponse> =>
+    fetchJson(`${BASE_URL}/purchases/credit-notes/${creditNoteId}/acknowledge`, {
+      method: 'POST',
+      headers: getHeaders(),
+    }),
+
+  settleCreditNote: (
+    creditNoteId: string,
+    payload: CreditNoteSettlementRequest
+  ): Promise<CreditNoteResponse> =>
+    fetchJson(`${BASE_URL}/purchases/credit-notes/${creditNoteId}/settle`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  cancelCreditNote: (creditNoteId: string): Promise<CreditNoteResponse> =>
+    fetchJson(`${BASE_URL}/purchases/credit-notes/${creditNoteId}/cancel`, {
+      method: 'POST',
+      headers: getHeaders(),
     }),
 };
 
