@@ -78,7 +78,14 @@ const MainDashboard = () => {
       case 'Users':
         return <UsersAccessDashboard embedded />;
       case 'Help':
-        return <PharmaFlowHelpCenter embedded />;
+        return (
+          <PharmaFlowHelpCenter
+            embedded
+            onOpenWorkspace={(workspaceKey) =>
+              setSelectedItem(normalizeManagerWorkspaceKey(workspaceKey, user))
+            }
+          />
+        );
       case 'Enterprise':
         return <EnterpriseReadinessDashboard embedded />;
       case 'Setup':

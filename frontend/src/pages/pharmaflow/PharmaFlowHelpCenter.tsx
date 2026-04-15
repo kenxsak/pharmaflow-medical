@@ -24,6 +24,53 @@ interface HelpFaqItem {
   audiences: Array<'saas-admin' | 'company-admin' | 'store-ops'>;
 }
 
+const resolveHelpWorkspaceKey = (route: string) => {
+  if (route === '/cashier-dashboard') {
+    return 'Billing';
+  }
+  if (route.includes('/billing-history')) {
+    return 'Bills';
+  }
+  if (route.includes('/billing')) {
+    return 'Billing';
+  }
+  if (route.includes('/customers')) {
+    return 'Customers';
+  }
+  if (route.includes('/inventory')) {
+    return 'Inventory';
+  }
+  if (route.includes('/procurement')) {
+    return 'Purchases';
+  }
+  if (route.includes('/compliance')) {
+    return 'Compliance';
+  }
+  if (route.includes('/reports')) {
+    return 'Reports';
+  }
+  if (route.includes('/stores')) {
+    return 'Stores';
+  }
+  if (route.includes('/platform')) {
+    return 'Platform';
+  }
+  if (route.includes('/users')) {
+    return 'Users';
+  }
+  if (route.includes('/enterprise')) {
+    return 'Enterprise';
+  }
+  if (route.includes('/setup')) {
+    return 'Setup';
+  }
+  if (route.includes('/help')) {
+    return 'Help';
+  }
+
+  return 'Dashboard';
+};
+
 const setupCards: HelpCard[] = [
   {
     title: 'SaaS Admin Setup',
@@ -180,7 +227,10 @@ const moduleMap = [
   },
 ];
 
-const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+const PharmaFlowHelpCenter: React.FC<{
+  embedded?: boolean;
+  onOpenWorkspace?: (workspaceKey: string) => void;
+}> = ({ embedded = false, onOpenWorkspace }) => {
   const context = usePharmaFlowContext();
   const persona = getPharmaFlowPersona(context);
   const roleLabel = getPharmaFlowRoleLabel(context.role, context.platformOwner);
@@ -201,20 +251,43 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     : canAccessCompanyControls(context)
       ? { route: '/lifepill/users', label: 'Open users and access' }
       : { route: '/lifepill/billing', label: 'Open store workspace' };
+  const renderWorkspaceAction = (
+    route: string,
+    label: string,
+    className: string
+  ) => {
+    const workspaceKey = resolveHelpWorkspaceKey(route);
+    const shouldOpenInline = embedded && Boolean(onOpenWorkspace);
+
+    if (shouldOpenInline) {
+      return (
+        <button
+          type="button"
+          onClick={() => onOpenWorkspace?.(workspaceKey)}
+          className={className}
+        >
+          {label}
+        </button>
+      );
+    }
+
+    return (
+      <Link to={route} className={className}>
+        {label}
+      </Link>
+    );
+  };
 
   return (
     <PharmaFlowShell
       embedded={embedded}
       title="Help and FAQ"
       description="Use this page for setup instructions, role-specific onboarding, and quick answers while keeping the working modules free of scattered explanatory notes."
-      actions={
-        <Link
-          to={primaryAction.route}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
-        >
-          {primaryAction.label}
-        </Link>
-      }
+      actions={renderWorkspaceAction(
+        primaryAction.route,
+        primaryAction.label,
+        'rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700'
+      )}
     >
       <section className="rounded-[2rem] border border-sky-200 bg-sky-50 px-5 py-5 text-sm text-sky-950 shadow-sm">
         <div className="text-lg font-semibold">Current session</div>
@@ -239,12 +312,11 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                 </div>
               ))}
             </div>
-            <Link
-              to={card.route}
-              className="mt-5 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-            >
-              {card.routeLabel}
-            </Link>
+            {renderWorkspaceAction(
+              card.route,
+              card.routeLabel,
+              'mt-5 inline-flex rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white'
+            )}
           </div>
         ))}
       </section>
@@ -267,9 +339,7 @@ const PharmaFlowHelpCenter: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                   <td className="px-4 py-3 font-medium text-slate-900">{item.title}</td>
                   <td className="px-4 py-3 text-slate-600">{item.summary}</td>
                   <td className="px-4 py-3">
-                    <Link to={item.route} className="text-sm font-medium text-sky-700">
-                      Open
-                    </Link>
+                    {renderWorkspaceAction(item.route, 'Open', 'text-sm font-medium text-sky-700')}
                   </td>
                 </tr>
               ))}
