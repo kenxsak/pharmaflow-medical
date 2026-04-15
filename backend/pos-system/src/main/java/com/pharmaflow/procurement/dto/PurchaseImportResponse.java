@@ -17,7 +17,9 @@ import java.util.UUID;
 public class PurchaseImportResponse {
 
     private UUID purchaseOrderId;
+    private UUID receiptId;
     private String poNumber;
+    private String receiptNumber;
     private String invoiceNumber;
     private String status;
     private String orderType;

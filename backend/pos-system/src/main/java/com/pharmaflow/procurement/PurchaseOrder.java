@@ -67,6 +67,15 @@ public class PurchaseOrder {
     @Column(name = "received_at")
     private LocalDateTime receivedAt;
 
+    @Column(name = "close_reason", length = 50)
+    private String closeReason;
+
+    @Column(name = "closed_notes", length = 1000)
+    private String closedNotes;
+
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
+
     @Column(name = "notes", length = 1000)
     private String notes;
 

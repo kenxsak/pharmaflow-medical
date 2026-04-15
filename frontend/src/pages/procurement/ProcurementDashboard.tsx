@@ -7,6 +7,7 @@ import {
   PurchaseImportRequest,
   PurchaseImportResponse,
   PurchaseOrderSummary,
+  PurchaseReceiptSummary,
   PurchaseImportRow,
   StockBatchResponse,
   SupplierCreateRequest,
@@ -73,6 +74,8 @@ const getReceiptStateTone = (state?: string) => {
       return 'bg-emerald-100 text-emerald-800';
     case 'PARTIALLY_RECEIVED':
       return 'bg-amber-100 text-amber-800';
+    case 'SHORT_CLOSED':
+      return 'bg-slate-200 text-slate-800';
     case 'PLANNED':
       return 'bg-violet-100 text-violet-800';
     default:
@@ -86,6 +89,8 @@ const getInvoiceMatchTone = (state?: string) => {
       return 'bg-emerald-100 text-emerald-800';
     case 'PARTIALLY_MATCHED':
       return 'bg-amber-100 text-amber-800';
+    case 'SHORT_CLOSED':
+      return 'bg-slate-200 text-slate-800';
     case 'INVOICE_MISSING':
       return 'bg-rose-100 text-rose-800';
     default:
@@ -101,6 +106,8 @@ const getSettlementTone = (state?: string) => {
       return 'bg-amber-100 text-amber-800';
     case 'CLAIM_PENDING':
       return 'bg-rose-100 text-rose-800';
+    case 'SHORT_CLOSED':
+      return 'bg-slate-200 text-slate-800';
     default:
       return 'bg-slate-100 text-slate-700';
   }
@@ -114,6 +121,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   const context = usePharmaFlowContext();
   const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderSummary[]>([]);
+  const [purchaseReceipts, setPurchaseReceipts] = useState<PurchaseReceiptSummary[]>([]);
   const [creditNotes, setCreditNotes] = useState<CreditNoteResponse[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -143,14 +151,16 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
 
   const loadData = async () => {
     try {
-      const [supplierItems, orderItems, creditNoteItems] = await Promise.all([
+      const [supplierItems, orderItems, creditNoteItems, receiptItems] = await Promise.all([
         PurchaseAPI.listSuppliers(),
         PurchaseAPI.listPurchaseOrders(),
         PurchaseAPI.listCreditNotes(creditQuery, 50),
+        PurchaseAPI.listReceipts(),
       ]);
       setSuppliers(supplierItems);
       setPurchaseOrders(orderItems);
       setCreditNotes(creditNoteItems);
+      setPurchaseReceipts(receiptItems);
       if (!selectedSupplierId && supplierItems.length > 0) {
         setSelectedSupplierId(supplierItems[0].supplierId);
       }
@@ -163,6 +173,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
     if (!storeId) {
       setSuppliers([]);
       setPurchaseOrders([]);
+      setPurchaseReceipts([]);
       setCreditNotes([]);
       setSelectedSupplierId('');
       setStockSearchResults([]);
@@ -200,13 +211,12 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   const plannedOrders = useMemo(
     () =>
       purchaseOrders.filter(
-        (order) => order.orderType === 'PLANNED_ORDER' && order.status !== 'RECEIVED' && order.status !== 'CANCELLED'
+        (order) =>
+          order.orderType === 'PLANNED_ORDER' &&
+          order.status !== 'RECEIVED' &&
+          order.status !== 'CANCELLED' &&
+          order.status !== 'SHORT_CLOSED'
       ),
-    [purchaseOrders]
-  );
-
-  const receivedOrders = useMemo(
-    () => purchaseOrders.filter((order) => order.status === 'RECEIVED'),
     [purchaseOrders]
   );
 
@@ -216,8 +226,8 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
   );
 
   const receivedPurchaseValue = useMemo(
-    () => receivedOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0),
-    [receivedOrders]
+    () => purchaseReceipts.reduce((sum, receipt) => sum + Number(receipt.totalAmount || 0), 0),
+    [purchaseReceipts]
   );
 
   const partiallyReceivedOrders = useMemo(
@@ -360,9 +370,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       setMessage(
         response.linkedToExistingPlan
           ? response.receiptState === 'PARTIALLY_RECEIVED'
-            ? `Imported ${response.importedRows} rows into planned PO ${response.poNumber}. ${response.receivedLineCount || 0} lines are now received and ${response.pendingLineCount || 0} are still pending.`
-            : `Imported ${response.importedRows} rows and completed planned PO ${response.poNumber}.`
-          : `Imported ${response.importedRows} rows successfully.`
+            ? `Receipt ${response.receiptNumber} posted to planned PO ${response.poNumber}. ${response.receivedLineCount || 0} lines are now received and ${response.pendingLineCount || 0} are still pending.`
+            : `Receipt ${response.receiptNumber} completed planned PO ${response.poNumber}.`
+          : `Receipt ${response.receiptNumber} posted successfully for invoice ${response.invoiceNumber}.`
       );
       resetManualForm();
       await loadData();
@@ -400,9 +410,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
       setMessage(
         response.linkedToExistingPlan
           ? response.receiptState === 'PARTIALLY_RECEIVED'
-            ? `CSV import linked to planned PO ${response.poNumber}. ${response.pendingLineCount || 0} planned lines are still pending receipt.`
-            : `CSV import completed and closed planned PO ${response.poNumber}.`
-          : `CSV import completed for invoice ${response.invoiceNumber}.`
+            ? `CSV receipt ${response.receiptNumber} posted to planned PO ${response.poNumber}. ${response.pendingLineCount || 0} planned lines are still pending receipt.`
+            : `CSV receipt ${response.receiptNumber} completed planned PO ${response.poNumber}.`
+          : `CSV receipt ${response.receiptNumber} completed for invoice ${response.invoiceNumber}.`
       );
       setCsvFile(null);
       setInvoiceNumber('');
@@ -518,6 +528,30 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
     }
   };
 
+  const handleCloseShortReceipt = async (order: PurchaseOrderSummary) => {
+    clearImportState();
+    const reason = window.prompt(
+      `Short-close reason for ${order.poNumber}`,
+      order.closeReason || 'SHORT_SUPPLY'
+    );
+    if (reason === null) {
+      return;
+    }
+    const notes = window.prompt('Short-close notes (optional)', order.notes || '') || undefined;
+    try {
+      const response = await PurchaseAPI.closeShortReceipt(order.purchaseOrderId, {
+        reason,
+        notes,
+      });
+      setMessage(
+        `PO ${response.poNumber} short-closed with reason ${response.closeReason || 'SHORT_SUPPLY'}.`
+      );
+      await loadData();
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : 'Unable to short-close purchase order.');
+    }
+  };
+
   const downloadTemplate = () => {
     downloadCsv(
       'purchase-import-template.csv',
@@ -610,7 +644,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <section className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
             <div className="font-semibold">Latest inward receipt</div>
             <div className="mt-1">
-              PO {importResult.poNumber} • {importResult.receiptState || importResult.status} • invoices{' '}
+              Receipt {importResult.receiptNumber} • PO {importResult.poNumber} • {importResult.receiptState || importResult.status} • invoices{' '}
               {importResult.invoiceCount || 0} • received lines {importResult.receivedLineCount || importResult.importedRows}
               {typeof importResult.pendingLineCount === 'number' ? ` • pending lines ${importResult.pendingLineCount}` : ''}
             </div>
@@ -774,6 +808,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
             {importResult && (
               <div className="mt-4 rounded-3xl bg-emerald-50 p-4 text-sm text-emerald-900">
                 <div className="font-semibold">Last import summary</div>
+                <div className="mt-2">Receipt: {importResult.receiptNumber}</div>
                 <div className="mt-2">Rows imported: {importResult.importedRows}</div>
                 <div>Created batches: {importResult.createdBatches}</div>
                 <div>Updated batches: {importResult.updatedBatches}</div>
@@ -1334,6 +1369,7 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                     <th className="px-3 py-2 text-left">Receipt</th>
                     <th className="px-3 py-2 text-left">Invoice match</th>
                     <th className="px-3 py-2 text-left">Settlement</th>
+                    <th className="px-3 py-2 text-right">Action</th>
                     <th className="px-3 py-2 text-right">Value</th>
                   </tr>
                 </thead>
@@ -1377,12 +1413,21 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
                           </div>
                         )}
                       </td>
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => void handleCloseShortReceipt(order)}
+                          className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+                        >
+                          Close short
+                        </button>
+                      </td>
                       <td className="px-3 py-3 text-right">₹{Number(order.totalAmount || 0).toFixed(2)}</td>
                     </tr>
                   ))}
                   {!plannedOrders.length && (
                     <tr>
-                      <td colSpan={8} className="px-3 py-10 text-center text-slate-400">
+                      <td colSpan={9} className="px-3 py-10 text-center text-slate-400">
                         No planned supplier orders are waiting right now.
                       </td>
                     </tr>
@@ -1395,9 +1440,9 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-xl font-semibold">Received Inward History</h2>
+                <h2 className="text-xl font-semibold">Receipt Register</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Confirm that invoices, inward batches, and supplier receipts are being recorded with receipt progress and settlement context.
+                  Confirm that each inward event now has its own GRN-style receipt header instead of only showing rolled-up PO rows.
                 </p>
               </div>
               <div className="rounded-2xl bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
@@ -1408,46 +1453,59 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
+                    <th className="px-3 py-2 text-left">Receipt</th>
                     <th className="px-3 py-2 text-left">PO</th>
                     <th className="px-3 py-2 text-left">Invoice</th>
                     <th className="px-3 py-2 text-left">Supplier</th>
                     <th className="px-3 py-2 text-left">Received</th>
+                    <th className="px-3 py-2 text-left">Lines</th>
                     <th className="px-3 py-2 text-left">Match</th>
                     <th className="px-3 py-2 text-left">Settlement</th>
                     <th className="px-3 py-2 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {receivedOrders.map((order) => (
-                    <tr key={order.purchaseOrderId} className="border-t border-slate-100">
+                  {purchaseReceipts.map((receipt) => (
+                    <tr key={receipt.receiptId} className="border-t border-slate-100">
                       <td className="px-3 py-3 font-medium">
-                        <div>{order.poNumber}</div>
-                        <div className="text-xs text-slate-500">{order.summaryText || `${order.itemCount || 0} items`}</div>
-                      </td>
-                      <td className="px-3 py-3">{order.invoiceNumber || '—'}</td>
-                      <td className="px-3 py-3">{order.supplierName || '—'}</td>
-                      <td className="px-3 py-3">
-                        <div>{formatDate(order.receivedAt || order.poDate)}</div>
+                        <div>{receipt.receiptNumber}</div>
                         <div className="text-xs text-slate-500">
-                          {order.receiptCount || order.invoiceCount || 0} receipts • {order.invoiceCount || 0} invoices
+                          <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${getReceiptStateTone(receipt.status)}`}>
+                            {receipt.status}
+                          </span>
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getInvoiceMatchTone(order.invoiceMatchState)}`}>
-                          {order.invoiceMatchState || order.status}
+                        <div>{receipt.poNumber || '—'}</div>
+                        <div className="text-xs text-slate-500">{receipt.summaryText || 'No inward lines'}</div>
+                      </td>
+                      <td className="px-3 py-3">{receipt.supplierInvoiceNumber || '—'}</td>
+                      <td className="px-3 py-3">{receipt.supplierName || '—'}</td>
+                      <td className="px-3 py-3">
+                        <div>{formatDate(receipt.receiptDate)}</div>
+                        <div className="text-xs text-slate-500">
+                          {receipt.receivedByName || 'Recorded by system'}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        {receipt.lineCount || 0}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getInvoiceMatchTone(receipt.invoiceMatchState)}`}>
+                          {receipt.invoiceMatchState || receipt.status}
                         </span>
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getSettlementTone(order.supplierSettlementState)}`}>
-                          {order.supplierSettlementState || '—'}
+                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${getSettlementTone(receipt.supplierSettlementState)}`}>
+                          {receipt.supplierSettlementState || '—'}
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-right">₹{Number(order.totalAmount || 0).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-right">₹{Number(receipt.totalAmount || 0).toFixed(2)}</td>
                     </tr>
                   ))}
-                  {!receivedOrders.length && (
+                  {!purchaseReceipts.length && (
                     <tr>
-                      <td colSpan={7} className="px-3 py-10 text-center text-slate-400">
+                      <td colSpan={9} className="px-3 py-10 text-center text-slate-400">
                         No inward receipts recorded yet.
                       </td>
                     </tr>

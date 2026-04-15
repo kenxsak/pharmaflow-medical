@@ -611,7 +611,9 @@ export interface PurchaseImportRequest {
 
 export interface PurchaseImportResponse {
   purchaseOrderId: string;
+  receiptId: string;
   poNumber: string;
+  receiptNumber: string;
   invoiceNumber: string;
   status: string;
   orderType: string;
@@ -642,6 +644,8 @@ export interface PurchaseOrderSummary {
   orderType: string;
   supplierReference?: string;
   expectedDeliveryDate?: string;
+  closedAt?: string;
+  closeReason?: string;
   notes?: string;
   itemCount?: number;
   summaryText?: string;
@@ -655,6 +659,30 @@ export interface PurchaseOrderSummary {
   unresolvedClaimAmount?: number;
   subtotal: number;
   totalAmount: number;
+}
+
+export interface PurchaseReceiptSummary {
+  receiptId: string;
+  receiptNumber: string;
+  purchaseOrderId?: string;
+  poNumber?: string;
+  supplierName?: string;
+  supplierInvoiceNumber?: string;
+  receivedByName?: string;
+  receiptDate?: string;
+  status: string;
+  invoiceMatchState?: string;
+  supplierSettlementState?: string;
+  lineCount?: number;
+  summaryText?: string;
+  subtotal?: number;
+  totalAmount?: number;
+  notes?: string;
+}
+
+export interface PurchaseOrderCloseRequest {
+  reason?: string;
+  notes?: string;
 }
 
 export interface InvoiceRequest {
@@ -1538,8 +1566,23 @@ export const PurchaseAPI = {
       headers: getHeaders(),
     }),
 
+  listReceipts: (limit = 50): Promise<PurchaseReceiptSummary[]> =>
+    fetchJson(`${BASE_URL}/purchases/receipts?limit=${limit}`, {
+      headers: getHeaders(),
+    }),
+
   createReorderDraft: (payload: ReorderDraftRequest): Promise<ReorderDraftResponse> =>
     fetchJson(`${BASE_URL}/purchases/orders/draft`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  closeShortReceipt: (
+    purchaseOrderId: string,
+    payload: PurchaseOrderCloseRequest
+  ): Promise<PurchaseOrderSummary> =>
+    fetchJson(`${BASE_URL}/purchases/orders/${purchaseOrderId}/close-short`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),

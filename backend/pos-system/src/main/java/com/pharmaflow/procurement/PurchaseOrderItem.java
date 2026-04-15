@@ -40,6 +40,10 @@ public class PurchaseOrderItem {
     private PurchaseOrder purchaseOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchase_receipt_id")
+    private PurchaseReceipt purchaseReceipt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medicine_id")
     private Medicine medicine;
 

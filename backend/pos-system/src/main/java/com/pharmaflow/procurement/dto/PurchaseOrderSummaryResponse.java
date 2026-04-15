@@ -29,6 +29,8 @@ public class PurchaseOrderSummaryResponse {
     private String orderType;
     private String supplierReference;
     private LocalDate expectedDeliveryDate;
+    private LocalDateTime closedAt;
+    private String closeReason;
     private String notes;
     private Integer itemCount;
     private String summaryText;

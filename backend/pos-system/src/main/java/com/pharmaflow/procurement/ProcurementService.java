@@ -6,9 +6,11 @@ import com.pharmaflow.auth.PharmaUser;
 import com.pharmaflow.common.BusinessRuleException;
 import com.pharmaflow.medicine.Medicine;
 import com.pharmaflow.medicine.MedicineRepository;
+import com.pharmaflow.procurement.dto.PurchaseOrderCloseRequest;
 import com.pharmaflow.procurement.dto.PurchaseOrderSummaryResponse;
 import com.pharmaflow.procurement.dto.ReorderDraftRequest;
 import com.pharmaflow.procurement.dto.ReorderDraftResponse;
+import com.pharmaflow.procurement.dto.PurchaseReceiptSummaryResponse;
 import com.pharmaflow.procurement.dto.SupplierCreateRequest;
 import com.pharmaflow.procurement.dto.SupplierResponse;
 import com.pharmaflow.store.Store;
@@ -40,6 +42,7 @@ public class ProcurementService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final PurchaseOrderPlanLineRepository purchaseOrderPlanLineRepository;
+    private final PurchaseReceiptRepository purchaseReceiptRepository;
     private final CreditNoteRepository creditNoteRepository;
     private final MedicineRepository medicineRepository;
     private final StoreRepository storeRepository;
@@ -93,23 +96,140 @@ public class ProcurementService {
                 store.getStoreId(),
                 PageRequest.of(0, safeLimit)
         );
+        return toPurchaseOrderSummaries(store.getStoreId(), orders);
+    }
 
+    @Transactional(readOnly = true)
+    public List<PurchaseReceiptSummaryResponse> listPurchaseReceipts(UUID storeId, int limit) {
+        Store store = storeService.requireAccessibleStore(storeId);
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        List<PurchaseReceipt> receipts = purchaseReceiptRepository.findByStoreId(
+                store.getStoreId(),
+                PageRequest.of(0, safeLimit)
+        );
+
+        List<UUID> receiptIds = receipts.stream()
+                .map(PurchaseReceipt::getReceiptId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        Map<UUID, List<PurchaseOrderItem>> receiptLinesByReceipt = receiptIds.isEmpty()
+                ? Map.of()
+                : purchaseOrderItemRepository.findByPurchaseReceiptReceiptIdIn(receiptIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                line -> line.getPurchaseReceipt().getReceiptId(),
+                                LinkedHashMap::new,
+                                Collectors.toList()
+                        ));
+        Map<UUID, BigDecimal> unresolvedClaimAmountBySupplier = buildUnresolvedClaimAmountBySupplier(store.getStoreId());
+
+        return receipts.stream()
+                .map(receipt -> {
+                    List<PurchaseOrderItem> receiptLines = receiptLinesByReceipt.getOrDefault(receipt.getReceiptId(), List.of());
+                    LineSummary summary = buildReceiptLineSummary(receiptLines);
+                    BigDecimal unresolvedClaimAmount = resolveUnresolvedClaimAmount(receipt.getPurchaseOrder(), unresolvedClaimAmountBySupplier);
+                    return PurchaseReceiptSummaryResponse.builder()
+                            .receiptId(receipt.getReceiptId())
+                            .receiptNumber(receipt.getReceiptNumber())
+                            .purchaseOrderId(receipt.getPurchaseOrder() != null ? receipt.getPurchaseOrder().getPoId() : null)
+                            .poNumber(receipt.getPurchaseOrder() != null ? receipt.getPurchaseOrder().getPoNumber() : null)
+                            .supplierName(receipt.getPurchaseOrder() != null && receipt.getPurchaseOrder().getSupplier() != null
+                                    ? receipt.getPurchaseOrder().getSupplier().getName()
+                                    : null)
+                            .supplierInvoiceNumber(receipt.getSupplierInvoiceNumber())
+                            .receivedByName(receipt.getCreatedBy() != null ? receipt.getCreatedBy().getFullName() : null)
+                            .receiptDate(receipt.getReceiptDate())
+                            .status(receipt.getStatus())
+                            .invoiceMatchState(resolveReceiptInvoiceMatchState(receipt, receiptLines))
+                            .supplierSettlementState(resolveSupplierSettlementState(receipt.getPurchaseOrder(), unresolvedClaimAmount))
+                            .lineCount(receiptLines.size())
+                            .summaryText(summary.summaryText)
+                            .subtotal(receipt.getSubtotal())
+                            .totalAmount(receipt.getTotalAmount())
+                            .notes(receipt.getNotes())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public PurchaseOrderSummaryResponse closePurchaseOrderShort(UUID storeId,
+                                                               UUID purchaseOrderId,
+                                                               PurchaseOrderCloseRequest request) {
+        Store store = storeService.requireAccessibleStore(storeId);
+        PurchaseOrder purchaseOrder = requireAccessiblePurchaseOrder(store.getStoreId(), purchaseOrderId);
+        if (!"PLANNED_ORDER".equalsIgnoreCase(purchaseOrder.getOrderType())) {
+            throw new BusinessRuleException("Only planned purchase orders can be short-closed");
+        }
+        if ("RECEIVED".equalsIgnoreCase(purchaseOrder.getStatus())) {
+            throw new BusinessRuleException("This purchase order is already fully received");
+        }
+        if ("CANCELLED".equalsIgnoreCase(purchaseOrder.getStatus())) {
+            throw new BusinessRuleException("Cancelled purchase orders cannot be closed again");
+        }
+        if ("SHORT_CLOSED".equalsIgnoreCase(purchaseOrder.getStatus())) {
+            throw new BusinessRuleException("This purchase order is already short-closed");
+        }
+
+        List<PurchaseOrderPlanLine> plannedLines = purchaseOrderPlanLineRepository.findByPurchaseOrderPoId(purchaseOrder.getPoId());
+        List<PurchaseOrderItem> receiptLines = purchaseOrderItemRepository.findByPurchaseOrderPoIdIn(List.of(purchaseOrder.getPoId()));
+        Map<UUID, BigDecimal> remainingByMedicine = buildRemainingReceiptQuantityByMedicine(receiptLines);
+
+        int shortClosedLineCount = 0;
+        for (PurchaseOrderPlanLine plannedLine : plannedLines) {
+            Medicine medicine = plannedLine.getMedicine();
+            BigDecimal plannedQuantity = toPackEquivalentQuantity(medicine, plannedLine.getQuantity(), plannedLine.getQuantityLoose());
+            BigDecimal remainingReceived = medicine != null && medicine.getMedicineId() != null
+                    ? remainingByMedicine.getOrDefault(medicine.getMedicineId(), BigDecimal.ZERO)
+                    : BigDecimal.ZERO;
+
+            if (remainingReceived.compareTo(plannedQuantity) >= 0) {
+                plannedLine.setLineStatus("RECEIVED");
+                if (medicine != null && medicine.getMedicineId() != null) {
+                    remainingByMedicine.put(medicine.getMedicineId(), remainingReceived.subtract(plannedQuantity));
+                }
+                continue;
+            }
+
+            plannedLine.setLineStatus("SHORT_CLOSED");
+            shortClosedLineCount++;
+            if (medicine != null && medicine.getMedicineId() != null) {
+                remainingByMedicine.put(medicine.getMedicineId(), BigDecimal.ZERO);
+            }
+        }
+
+        purchaseOrder.setStatus("SHORT_CLOSED");
+        purchaseOrder.setCloseReason(normalizeCloseReason(request != null ? request.getReason() : null));
+        purchaseOrder.setClosedNotes(trim(request != null ? request.getNotes() : null));
+        purchaseOrder.setClosedAt(LocalDateTime.now());
+        purchaseOrderPlanLineRepository.saveAll(plannedLines);
+        purchaseOrderRepository.save(purchaseOrder);
+
+        PharmaUser currentUser = currentPharmaUserService.requireCurrentUser();
+        auditLogService.log(
+                store,
+                currentUser,
+                "PURCHASE_ORDER_SHORT_CLOSED",
+                "PURCHASE_ORDER",
+                purchaseOrder.getPoId().toString(),
+                null,
+                "{\"poNumber\":\"" + purchaseOrder.getPoNumber() + "\",\"reason\":\""
+                        + purchaseOrder.getCloseReason() + "\",\"shortClosedLines\":\"" + shortClosedLineCount + "\"}"
+        );
+
+        return toPurchaseOrderSummary(
+                purchaseOrder,
+                receiptLines,
+                plannedLines,
+                resolveUnresolvedClaimAmount(purchaseOrder, buildUnresolvedClaimAmountBySupplier(store.getStoreId()))
+        );
+    }
+
+    private List<PurchaseOrderSummaryResponse> toPurchaseOrderSummaries(UUID storeId, List<PurchaseOrder> orders) {
         List<UUID> purchaseOrderIds = orders.stream()
                 .map(PurchaseOrder::getPoId)
                 .collect(Collectors.toList());
-        List<CreditNote> creditNotes = creditNoteRepository.findByStoreStoreIdOrderByCreatedAtDesc(store.getStoreId());
-        Map<UUID, BigDecimal> unresolvedClaimAmountBySupplier = creditNotes.stream()
-                .filter(this::isUnresolvedSupplierClaim)
-                .filter(creditNote -> creditNote.getSupplierId() != null)
-                .collect(Collectors.groupingBy(
-                        CreditNote::getSupplierId,
-                        LinkedHashMap::new,
-                        Collectors.reducing(
-                                BigDecimal.ZERO,
-                                creditNote -> safe(creditNote.getClaimAmount()),
-                                BigDecimal::add
-                        )
-                ));
+        Map<UUID, BigDecimal> unresolvedClaimAmountBySupplier = buildUnresolvedClaimAmountBySupplier(storeId);
 
         Map<UUID, List<PurchaseOrderItem>> receiptLinesByOrder = purchaseOrderIds.isEmpty()
                 ? Map.of()
@@ -124,45 +244,12 @@ public class ProcurementService {
                         .collect(Collectors.groupingBy(line -> line.getPurchaseOrder().getPoId(), LinkedHashMap::new, Collectors.toList()));
 
         return orders.stream()
-                .map(order -> {
-                    List<PurchaseOrderItem> receiptLines = receiptLinesByOrder.getOrDefault(order.getPoId(), List.of());
-                    List<PurchaseOrderPlanLine> plannedLines = plannedLinesByOrder.getOrDefault(order.getPoId(), List.of());
-                    LineSummary summary = buildLineSummary(
-                            order,
-                            receiptLines,
-                            plannedLines
-                    );
-                    ReceiptProgressSummary receiptProgress = summarizeReceiptProgress(order, plannedLines, receiptLines);
-                    BigDecimal unresolvedClaimAmount = order.getSupplier() != null && order.getSupplier().getSupplierId() != null
-                            ? safe(unresolvedClaimAmountBySupplier.get(order.getSupplier().getSupplierId()))
-                            : BigDecimal.ZERO;
-                    return PurchaseOrderSummaryResponse.builder()
-                            .purchaseOrderId(order.getPoId())
-                            .poNumber(order.getPoNumber())
-                            .poDate(order.getPoDate())
-                            .receivedAt(order.getReceivedAt())
-                            .invoiceNumber(order.getInvoiceNumber())
-                            .supplierName(order.getSupplier() != null ? order.getSupplier().getName() : null)
-                            .createdByName(order.getCreatedBy() != null ? order.getCreatedBy().getFullName() : null)
-                            .status(order.getStatus())
-                            .orderType(order.getOrderType())
-                            .supplierReference(order.getSupplierReference())
-                            .expectedDeliveryDate(order.getExpectedDeliveryDate())
-                            .notes(order.getNotes())
-                            .itemCount(summary.itemCount)
-                            .summaryText(summary.summaryText)
-                            .receiptState(receiptProgress.receiptState)
-                            .receivedLineCount(receiptProgress.receivedLineCount)
-                            .pendingLineCount(receiptProgress.pendingLineCount)
-                            .receiptCount(receiptProgress.receiptCount)
-                            .invoiceCount(receiptProgress.invoiceCount)
-                            .invoiceMatchState(receiptProgress.invoiceMatchState)
-                            .supplierSettlementState(resolveSupplierSettlementState(order, unresolvedClaimAmount))
-                            .unresolvedClaimAmount(unresolvedClaimAmount)
-                            .subtotal(order.getSubtotal())
-                            .totalAmount(order.getTotalAmount())
-                            .build();
-                })
+                .map(order -> toPurchaseOrderSummary(
+                        order,
+                        receiptLinesByOrder.getOrDefault(order.getPoId(), List.of()),
+                        plannedLinesByOrder.getOrDefault(order.getPoId(), List.of()),
+                        resolveUnresolvedClaimAmount(order, unresolvedClaimAmountBySupplier)
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -290,6 +377,74 @@ public class ProcurementService {
                 .build();
     }
 
+    private PurchaseOrder requireAccessiblePurchaseOrder(UUID storeId, UUID purchaseOrderId) {
+        PurchaseOrder purchaseOrder = purchaseOrderRepository.findById(purchaseOrderId)
+                .orElseThrow(() -> new IllegalArgumentException("Purchase order not found"));
+        if (purchaseOrder.getStore() == null || !storeId.equals(purchaseOrder.getStore().getStoreId())) {
+            throw new BusinessRuleException("Purchase order does not belong to the selected store");
+        }
+        return purchaseOrder;
+    }
+
+    private Map<UUID, BigDecimal> buildUnresolvedClaimAmountBySupplier(UUID storeId) {
+        return creditNoteRepository.findByStoreStoreIdOrderByCreatedAtDesc(storeId)
+                .stream()
+                .filter(this::isUnresolvedSupplierClaim)
+                .filter(creditNote -> creditNote.getSupplierId() != null)
+                .collect(Collectors.groupingBy(
+                        CreditNote::getSupplierId,
+                        LinkedHashMap::new,
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                creditNote -> safe(creditNote.getClaimAmount()),
+                                BigDecimal::add
+                        )
+                ));
+    }
+
+    private BigDecimal resolveUnresolvedClaimAmount(PurchaseOrder order,
+                                                    Map<UUID, BigDecimal> unresolvedClaimAmountBySupplier) {
+        return order != null && order.getSupplier() != null && order.getSupplier().getSupplierId() != null
+                ? safe(unresolvedClaimAmountBySupplier.get(order.getSupplier().getSupplierId()))
+                : BigDecimal.ZERO;
+    }
+
+    private PurchaseOrderSummaryResponse toPurchaseOrderSummary(PurchaseOrder order,
+                                                                List<PurchaseOrderItem> receiptLines,
+                                                                List<PurchaseOrderPlanLine> plannedLines,
+                                                                BigDecimal unresolvedClaimAmount) {
+        LineSummary summary = buildLineSummary(order, receiptLines, plannedLines);
+        ReceiptProgressSummary receiptProgress = summarizeReceiptProgress(order, plannedLines, receiptLines);
+        return PurchaseOrderSummaryResponse.builder()
+                .purchaseOrderId(order.getPoId())
+                .poNumber(order.getPoNumber())
+                .poDate(order.getPoDate())
+                .receivedAt(order.getReceivedAt())
+                .invoiceNumber(order.getInvoiceNumber())
+                .supplierName(order.getSupplier() != null ? order.getSupplier().getName() : null)
+                .createdByName(order.getCreatedBy() != null ? order.getCreatedBy().getFullName() : null)
+                .status(order.getStatus())
+                .orderType(order.getOrderType())
+                .supplierReference(order.getSupplierReference())
+                .expectedDeliveryDate(order.getExpectedDeliveryDate())
+                .closedAt(order.getClosedAt())
+                .closeReason(order.getCloseReason())
+                .notes(order.getNotes())
+                .itemCount(summary.itemCount)
+                .summaryText(summary.summaryText)
+                .receiptState(receiptProgress.receiptState)
+                .receivedLineCount(receiptProgress.receivedLineCount)
+                .pendingLineCount(receiptProgress.pendingLineCount)
+                .receiptCount(receiptProgress.receiptCount)
+                .invoiceCount(receiptProgress.invoiceCount)
+                .invoiceMatchState(receiptProgress.invoiceMatchState)
+                .supplierSettlementState(resolveSupplierSettlementState(order, unresolvedClaimAmount))
+                .unresolvedClaimAmount(unresolvedClaimAmount)
+                .subtotal(order.getSubtotal())
+                .totalAmount(order.getTotalAmount())
+                .build();
+    }
+
     private Map<UUID, SupplierMetrics> buildSupplierMetrics(List<UUID> storeIds) {
         if (storeIds.isEmpty()) {
             return Map.of();
@@ -318,7 +473,8 @@ public class ProcurementService {
                     metrics.leadTimeSampleCount++;
                     metrics.lastLeadTimeDays = leadTimeDays;
                 }
-            } else if (!"CANCELLED".equalsIgnoreCase(purchaseOrder.getStatus())) {
+            } else if (!"CANCELLED".equalsIgnoreCase(purchaseOrder.getStatus())
+                    && !"SHORT_CLOSED".equalsIgnoreCase(purchaseOrder.getStatus())) {
                 metrics.openPurchaseOrderCount++;
             }
         }
@@ -367,41 +523,42 @@ public class ProcurementService {
         return new LineSummary(0, "No line items");
     }
 
+    private LineSummary buildReceiptLineSummary(List<PurchaseOrderItem> receiptLines) {
+        if (receiptLines.isEmpty()) {
+            return new LineSummary(0, "No inward lines");
+        }
+        PurchaseOrderItem firstLine = receiptLines.get(0);
+        return new LineSummary(
+                receiptLines.size(),
+                buildSummaryText(
+                        firstLine.getMedicine() != null ? firstLine.getMedicine().getBrandName() : "Receipt line",
+                        firstLine.getQuantity(),
+                        firstLine.getQuantityLoose(),
+                        receiptLines.size()
+                )
+        );
+    }
+
     private ReceiptProgressSummary summarizeReceiptProgress(PurchaseOrder order,
                                                             List<PurchaseOrderPlanLine> plannedLines,
                                                             List<PurchaseOrderItem> receiptLines) {
-        int invoiceCount = (int) receiptLines.stream()
-                .map(PurchaseOrderItem::getSupplierInvoiceNumber)
-                .filter(invoiceNumber -> invoiceNumber != null && !invoiceNumber.isBlank())
-                .distinct()
-                .count();
+        int invoiceCount = countDistinctInvoices(receiptLines);
+        int receiptCount = countDistinctReceipts(receiptLines);
 
         if (plannedLines.isEmpty()) {
             String receiptState = "RECEIVED".equalsIgnoreCase(order.getStatus()) ? "RECEIVED" : order.getStatus();
-            String invoiceMatchState = invoiceCount > 0 ? "MATCHED" : "INVOICE_MISSING";
+            String invoiceMatchState = resolveInvoiceMatchState(receiptState, invoiceCount);
             return new ReceiptProgressSummary(
                     receiptState,
                     receiptLines.isEmpty() ? 0 : 1,
                     0,
-                    Math.max(invoiceCount, receiptLines.isEmpty() ? 0 : 1),
+                    Math.max(receiptCount, receiptLines.isEmpty() ? 0 : 1),
                     Math.max(invoiceCount, receiptLines.isEmpty() ? 0 : 1),
                     invoiceMatchState
             );
         }
 
-        Map<UUID, BigDecimal> receivedByMedicine = new LinkedHashMap<>();
-        for (PurchaseOrderItem receiptLine : receiptLines) {
-            if (receiptLine.getMedicine() == null || receiptLine.getMedicine().getMedicineId() == null) {
-                continue;
-            }
-            receivedByMedicine.merge(
-                    receiptLine.getMedicine().getMedicineId(),
-                    toPackEquivalentQuantity(receiptLine.getMedicine(), receiptLine.getQuantity(), receiptLine.getQuantityLoose()),
-                    BigDecimal::add
-            );
-        }
-
-        Map<UUID, BigDecimal> remainingByMedicine = new LinkedHashMap<>(receivedByMedicine);
+        Map<UUID, BigDecimal> remainingByMedicine = buildRemainingReceiptQuantityByMedicine(receiptLines);
         int receivedLineCount = 0;
         int pendingLineCount = 0;
         for (PurchaseOrderPlanLine plannedLine : plannedLines) {
@@ -428,23 +585,16 @@ public class ProcurementService {
             }
         }
 
-        String receiptState = pendingLineCount == 0 ? "RECEIVED" : receivedLineCount > 0 ? "PARTIALLY_RECEIVED" : "PLANNED";
-        String invoiceMatchState;
-        if (invoiceCount == 0) {
-            invoiceMatchState = "INVOICE_MISSING";
-        } else if ("RECEIVED".equals(receiptState)) {
-            invoiceMatchState = "MATCHED";
-        } else if ("PARTIALLY_RECEIVED".equals(receiptState)) {
-            invoiceMatchState = "PARTIALLY_MATCHED";
-        } else {
-            invoiceMatchState = "NOT_RECEIVED";
-        }
+        String receiptState = "SHORT_CLOSED".equalsIgnoreCase(order.getStatus())
+                ? "SHORT_CLOSED"
+                : pendingLineCount == 0 ? "RECEIVED" : receivedLineCount > 0 ? "PARTIALLY_RECEIVED" : "PLANNED";
+        String invoiceMatchState = resolveInvoiceMatchState(receiptState, invoiceCount);
 
         return new ReceiptProgressSummary(
                 receiptState,
                 receivedLineCount,
                 pendingLineCount,
-                invoiceCount,
+                receiptCount,
                 invoiceCount,
                 invoiceMatchState
         );
@@ -456,6 +606,9 @@ public class ProcurementService {
         }
         if (unresolvedClaimAmount != null && unresolvedClaimAmount.compareTo(BigDecimal.ZERO) > 0) {
             return "CLAIM_PENDING";
+        }
+        if ("SHORT_CLOSED".equalsIgnoreCase(order.getStatus())) {
+            return "SHORT_CLOSED";
         }
         if ("RECEIVED".equalsIgnoreCase(order.getStatus())) {
             return "CURRENT";
@@ -510,8 +663,74 @@ public class ProcurementService {
         return packQty + " packs";
     }
 
+    private int countDistinctInvoices(List<PurchaseOrderItem> receiptLines) {
+        return (int) receiptLines.stream()
+                .map(PurchaseOrderItem::getSupplierInvoiceNumber)
+                .filter(invoiceNumber -> invoiceNumber != null && !invoiceNumber.isBlank())
+                .distinct()
+                .count();
+    }
+
+    private int countDistinctReceipts(List<PurchaseOrderItem> receiptLines) {
+        return (int) receiptLines.stream()
+                .map(PurchaseOrderItem::getPurchaseReceipt)
+                .filter(Objects::nonNull)
+                .map(PurchaseReceipt::getReceiptId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+    }
+
+    private Map<UUID, BigDecimal> buildRemainingReceiptQuantityByMedicine(List<PurchaseOrderItem> receiptLines) {
+        Map<UUID, BigDecimal> receivedByMedicine = new LinkedHashMap<>();
+        for (PurchaseOrderItem receiptLine : receiptLines) {
+            if (receiptLine.getMedicine() == null || receiptLine.getMedicine().getMedicineId() == null) {
+                continue;
+            }
+            receivedByMedicine.merge(
+                    receiptLine.getMedicine().getMedicineId(),
+                    toPackEquivalentQuantity(receiptLine.getMedicine(), receiptLine.getQuantity(), receiptLine.getQuantityLoose()),
+                    BigDecimal::add
+            );
+        }
+        return new LinkedHashMap<>(receivedByMedicine);
+    }
+
+    private String resolveInvoiceMatchState(String receiptState, int invoiceCount) {
+        if ("SHORT_CLOSED".equalsIgnoreCase(receiptState)) {
+            return invoiceCount > 0 ? "SHORT_CLOSED" : "NOT_RECEIVED";
+        }
+        if (invoiceCount == 0) {
+            return "INVOICE_MISSING";
+        }
+        if ("RECEIVED".equalsIgnoreCase(receiptState)) {
+            return "MATCHED";
+        }
+        if ("PARTIALLY_RECEIVED".equalsIgnoreCase(receiptState)) {
+            return "PARTIALLY_MATCHED";
+        }
+        return "NOT_RECEIVED";
+    }
+
+    private String resolveReceiptInvoiceMatchState(PurchaseReceipt receipt, List<PurchaseOrderItem> receiptLines) {
+        if (receipt == null) {
+            return "INVOICE_MISSING";
+        }
+        if (receipt.getSupplierInvoiceNumber() != null && !receipt.getSupplierInvoiceNumber().isBlank()) {
+            return "MATCHED";
+        }
+        return countDistinctInvoices(receiptLines) > 0 ? "MATCHED" : "INVOICE_MISSING";
+    }
+
     private String trim(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeCloseReason(String value) {
+        if (value == null || value.isBlank()) {
+            return "SHORT_SUPPLY";
+        }
+        return value.trim().toUpperCase().replace(' ', '_');
     }
 
     private Supplier resolveSupplier(Store store, Medicine medicine, UUID supplierId) {

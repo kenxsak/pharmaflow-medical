@@ -17,6 +17,8 @@ public interface PurchaseOrderItemRepository extends JpaRepository<PurchaseOrder
 
     List<PurchaseOrderItem> findByPurchaseOrderPoIdIn(List<UUID> purchaseOrderIds);
 
+    List<PurchaseOrderItem> findByPurchaseReceiptReceiptIdIn(List<UUID> receiptIds);
+
     @Query("select poi from PurchaseOrderItem poi " +
             "join poi.purchaseOrder po " +
             "left join poi.medicine m " +

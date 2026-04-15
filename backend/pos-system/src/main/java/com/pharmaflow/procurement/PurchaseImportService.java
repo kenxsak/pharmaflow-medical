@@ -41,6 +41,7 @@ public class PurchaseImportService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final PurchaseOrderPlanLineRepository purchaseOrderPlanLineRepository;
+    private final PurchaseReceiptRepository purchaseReceiptRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
     private final MedicineRepository medicineRepository;
     private final PharmaUserRepository pharmaUserRepository;
@@ -75,6 +76,19 @@ public class PurchaseImportService {
         PurchaseOrder purchaseOrder = resolvedPurchaseOrder.purchaseOrder;
         validateDuplicateRows(request.getRows());
         LocalDateTime receiptTime = request.getPurchaseDate() != null ? request.getPurchaseDate() : LocalDateTime.now();
+        PurchaseReceipt purchaseReceipt = purchaseReceiptRepository.save(
+                PurchaseReceipt.builder()
+                        .purchaseOrder(purchaseOrder)
+                        .receiptNumber(generateReceiptNumber(store))
+                        .supplierInvoiceNumber(request.getInvoiceNumber())
+                        .receiptDate(receiptTime)
+                        .status("RECEIVED")
+                        .notes(resolvedPurchaseOrder.linkedToExistingPlan
+                                ? "Logged against planned purchase order"
+                                : "Direct inward receipt")
+                        .createdBy(currentUser)
+                        .build()
+        );
         List<PurchaseOrderPlanLine> plannedLines = resolvedPurchaseOrder.linkedToExistingPlan
                 ? purchaseOrderPlanLineRepository.findByPurchaseOrderPoId(purchaseOrder.getPoId())
                 : List.of();
@@ -147,6 +161,7 @@ public class PurchaseImportService {
             PurchaseOrderItem purchaseOrderItem = purchaseOrderItemRepository.save(
                     PurchaseOrderItem.builder()
                             .purchaseOrder(purchaseOrder)
+                            .purchaseReceipt(purchaseReceipt)
                             .medicine(medicine)
                             .batchNumber(row.getBatchNumber())
                             .expiryDate(row.getExpiryDate())
@@ -197,13 +212,22 @@ public class PurchaseImportService {
         purchaseOrder.setTotalAmount(subtotal.add(totalGst));
         purchaseOrderRepository.save(purchaseOrder);
 
+        purchaseReceipt.setSubtotal(purchaseOrder.getSubtotal());
+        purchaseReceipt.setCgstAmount(purchaseOrder.getCgstAmount());
+        purchaseReceipt.setSgstAmount(purchaseOrder.getSgstAmount());
+        purchaseReceipt.setTotalAmount(purchaseOrder.getTotalAmount());
+
         ReceiptProgress receiptProgress = resolvedPurchaseOrder.linkedToExistingPlan
                 ? updatePlannedOrderProgress(purchaseOrder, plannedLines, receiptLines, receiptTime, request.getInvoiceNumber())
-                : ReceiptProgress.direct(request.getRows().size());
+                : ReceiptProgress.direct(request.getRows().size(), 1, 1);
+        purchaseReceipt.setStatus(receiptProgress.receiptState);
+        purchaseReceiptRepository.save(purchaseReceipt);
 
         return PurchaseImportResponse.builder()
                 .purchaseOrderId(purchaseOrder.getPoId())
+                .receiptId(purchaseReceipt.getReceiptId())
                 .poNumber(purchaseOrder.getPoNumber())
+                .receiptNumber(purchaseReceipt.getReceiptNumber())
                 .invoiceNumber(purchaseOrder.getInvoiceNumber())
                 .status(purchaseOrder.getStatus())
                 .orderType(purchaseOrder.getOrderType())
@@ -262,6 +286,9 @@ public class PurchaseImportService {
             if ("CANCELLED".equalsIgnoreCase(existingOrder.getStatus())) {
                 throw new BusinessRuleException("Cancelled purchase orders cannot receive inward stock");
             }
+            if ("SHORT_CLOSED".equalsIgnoreCase(existingOrder.getStatus())) {
+                throw new BusinessRuleException("This planned purchase order was short-closed and can no longer receive inward stock");
+            }
             if ("RECEIVED".equalsIgnoreCase(existingOrder.getStatus())) {
                 throw new BusinessRuleException("This planned purchase order has already been received");
             }
@@ -301,6 +328,17 @@ public class PurchaseImportService {
             return value;
         }
         return value + " | Received through inward import";
+    }
+
+    private String generateReceiptNumber(Store store) {
+        String storeCode = store.getStoreCode() == null || store.getStoreCode().isBlank()
+                ? "STORE"
+                : store.getStoreCode().replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+        String candidate;
+        do {
+            candidate = "GRN-" + storeCode + "-" + System.currentTimeMillis();
+        } while (purchaseReceiptRepository.existsByReceiptNumber(candidate));
+        return candidate;
     }
 
     private void validateAgainstPlannedOrder(List<PurchaseImportRowRequest> rows,
@@ -377,7 +415,7 @@ public class PurchaseImportService {
             purchaseOrder.setReceivedAt(receiptTime);
             purchaseOrder.setInvoiceNumber(latestInvoiceNumber);
             purchaseOrderRepository.save(purchaseOrder);
-            return ReceiptProgress.direct(receiptLines.size());
+            return ReceiptProgress.direct(receiptLines.size(), countDistinctReceipts(receiptLines), countDistinctInvoices(receiptLines));
         }
 
         Map<UUID, BigDecimal> receivedByMedicine = new HashMap<>();
@@ -433,17 +471,14 @@ public class PurchaseImportService {
         purchaseOrderPlanLineRepository.saveAll(plannedLines);
         purchaseOrderRepository.save(purchaseOrder);
 
-        int invoiceCount = (int) receiptLines.stream()
-                .map(PurchaseOrderItem::getSupplierInvoiceNumber)
-                .filter(invoiceNumber -> invoiceNumber != null && !invoiceNumber.isBlank())
-                .distinct()
-                .count();
+        int receiptCount = countDistinctReceipts(receiptLines);
+        int invoiceCount = countDistinctInvoices(receiptLines);
 
         return new ReceiptProgress(
                 receiptState,
                 receivedLineCount,
                 pendingLineCount,
-                invoiceCount,
+                receiptCount,
                 invoiceCount
         );
     }
@@ -552,6 +587,24 @@ public class PurchaseImportService {
         return value == null ? 0 : value;
     }
 
+    private int countDistinctReceipts(List<PurchaseOrderItem> receiptLines) {
+        return (int) receiptLines.stream()
+                .map(PurchaseOrderItem::getPurchaseReceipt)
+                .filter(java.util.Objects::nonNull)
+                .map(PurchaseReceipt::getReceiptId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .count();
+    }
+
+    private int countDistinctInvoices(List<PurchaseOrderItem> receiptLines) {
+        return (int) receiptLines.stream()
+                .map(PurchaseOrderItem::getSupplierInvoiceNumber)
+                .filter(invoiceNumber -> invoiceNumber != null && !invoiceNumber.isBlank())
+                .distinct()
+                .count();
+    }
+
     private static final class ResolvedPurchaseOrder {
         private final PurchaseOrder purchaseOrder;
         private final boolean linkedToExistingPlan;
@@ -581,8 +634,14 @@ public class PurchaseImportService {
             this.invoiceCount = invoiceCount;
         }
 
-        private static ReceiptProgress direct(int lineCount) {
-            return new ReceiptProgress("RECEIVED", lineCount, 0, 1, 1);
+        private static ReceiptProgress direct(int lineCount, int receiptCount, int invoiceCount) {
+            return new ReceiptProgress(
+                    "RECEIVED",
+                    lineCount,
+                    0,
+                    Math.max(receiptCount, 1),
+                    Math.max(invoiceCount, 1)
+            );
         }
     }
 

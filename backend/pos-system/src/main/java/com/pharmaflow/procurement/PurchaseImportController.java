@@ -3,7 +3,9 @@ package com.pharmaflow.procurement;
 import com.pharmaflow.procurement.dto.PurchaseImportRequest;
 import com.pharmaflow.procurement.dto.PurchaseImportResponse;
 import com.pharmaflow.procurement.dto.PurchaseImportRowRequest;
+import com.pharmaflow.procurement.dto.PurchaseOrderCloseRequest;
 import com.pharmaflow.procurement.dto.PurchaseOrderSummaryResponse;
+import com.pharmaflow.procurement.dto.PurchaseReceiptSummaryResponse;
 import com.pharmaflow.procurement.dto.CreditNoteCreateRequest;
 import com.pharmaflow.procurement.dto.CreditNoteResponse;
 import com.pharmaflow.procurement.dto.CreditNoteSettlementRequest;
@@ -65,9 +67,26 @@ public class PurchaseImportController {
         return procurementService.listPurchaseOrders(storeId, limit);
     }
 
+    @GetMapping("/receipts")
+    public List<PurchaseReceiptSummaryResponse> listPurchaseReceipts(
+            @RequestHeader("X-Store-ID") UUID storeId,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        return procurementService.listPurchaseReceipts(storeId, limit);
+    }
+
     @PostMapping("/orders/draft")
     public ReorderDraftResponse createReorderDraft(@Valid @RequestBody ReorderDraftRequest request) {
         return procurementService.createReorderDraft(request);
+    }
+
+    @PostMapping("/orders/{purchaseOrderId}/close-short")
+    public PurchaseOrderSummaryResponse closePurchaseOrderShort(
+            @RequestHeader("X-Store-ID") UUID storeId,
+            @PathVariable UUID purchaseOrderId,
+            @RequestBody(required = false) PurchaseOrderCloseRequest request
+    ) {
+        return procurementService.closePurchaseOrderShort(storeId, purchaseOrderId, request);
     }
 
     @PostMapping("/import/json")
