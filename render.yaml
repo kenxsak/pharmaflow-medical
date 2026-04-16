@@ -27,8 +27,6 @@ services:
         value: pharmaflow-render
       - key: SPRING_DATASOURCE_APPLICATION_NAME
         value: pharmaflow-render
-      - key: SPRING_DATASOURCE_HIKARI_REGISTER_MBEANS
-        value: "false"
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
         value: "4"
       - key: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
@@ -42,8 +40,6 @@ services:
       - key: SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT
         value: "5000"
       - key: SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT
-        value: "60000"
-      - key: SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT
         value: "60000"
       - key: REDIS_URL
         fromService:
