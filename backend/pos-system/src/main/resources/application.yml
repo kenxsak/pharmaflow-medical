@@ -18,6 +18,13 @@ spring:
       keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:0}
       initialization-fail-timeout: ${SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT:60000}
       leak-detection-threshold: ${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:0}
+      pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:pharmaflow-main}
+      register-mbeans: ${SPRING_DATASOURCE_HIKARI_REGISTER_MBEANS:true}
+      data-source-properties:
+        ApplicationName: ${SPRING_DATASOURCE_APPLICATION_NAME:pharmaflow-backend}
+        connectTimeout: ${SPRING_DATASOURCE_CONNECT_TIMEOUT:10}
+        socketTimeout: ${SPRING_DATASOURCE_SOCKET_TIMEOUT:30}
+        tcpKeepAlive: ${SPRING_DATASOURCE_TCP_KEEP_ALIVE:true}
   jpa:
     hibernate:
       ddl-auto: ${HIBERNATE_DDL_AUTO:validate}
@@ -81,6 +88,8 @@ pharmaflow:
     local-root: ${PHARMAFLOW_STORAGE_LOCAL_ROOT:./data/documents}
     max-file-size-bytes: ${PHARMAFLOW_STORAGE_MAX_FILE_SIZE_BYTES:10485760}
     allowed-content-types: ${PHARMAFLOW_STORAGE_ALLOWED_CONTENT_TYPES:application/pdf,image/jpeg,image/png,image/webp}
+  observability:
+    slow-request-threshold-ms: ${PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS:1500}
 
 # CORS Configuration - All settings loaded from environment variables
 # See CorsFilter.java in filter package for implementation

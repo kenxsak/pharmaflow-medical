@@ -78,6 +78,8 @@ The backend now includes:
 - Use `/actuator/health/readiness` when you want a DB-aware backend readiness check.
 - Keep public actuator exposure narrow by default: `health` and `info` on hosted stacks, `prometheus` only where local monitoring needs it.
 - Root `/actuator/health` should not be the public hosting probe path.
+- Every backend response now returns an `X-Request-ID` header, and slow or failing requests are logged with that same ID.
+- The backend now identifies itself to Postgres with an explicit application name and Hikari pool name for faster incident triage.
 - On first boot, the backend checks whether `JUNIORALIVE_GITHUB` medicines already exist:
   - if not, it imports the medicine catalogue and builds salt-based substitutes automatically
   - if medicines exist but substitutes do not, it builds only the substitutes
@@ -88,3 +90,7 @@ For manual local reloads, run:
 ```powershell
 pwsh -ExecutionPolicy Bypass -File .\scripts\import_indian_medicine_dataset.ps1
 ```
+
+Runtime incident steps:
+
+- see `docs/operations/RENDER_RUNTIME_INCIDENT.md`

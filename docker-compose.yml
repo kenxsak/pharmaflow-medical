@@ -28,6 +28,10 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/pharmaflow
       DATABASE_USERNAME: pharmaflow_user
       DATABASE_PASSWORD: PharmaFlow@2024
+      SPRING_DATASOURCE_HIKARI_POOL_NAME: pharmaflow-local
+      SPRING_DATASOURCE_APPLICATION_NAME: pharmaflow-local
+      SPRING_DATASOURCE_CONNECT_TIMEOUT: "10"
+      SPRING_DATASOURCE_SOCKET_TIMEOUT: "30"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SERVER_PORT: 8080
@@ -35,6 +39,7 @@ services:
       HIBERNATE_DDL_AUTO: validate
       SECURITY_LOG_LEVEL: INFO
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+      PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS: "1000"
       CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
       CORS_ALLOWED_HEADERS: Authorization,Cache-Control,Content-Type,X-Store-ID,X-Tenant-ID,X-Tenant-Slug,X-Brand-Name,X-Brand-Tagline,X-Brand-Support-Email,X-Brand-Support-Phone
       PHARMAFLOW_BRAND_NAME: PharmaFlow

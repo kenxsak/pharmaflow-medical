@@ -110,6 +110,10 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-lifepill}
       DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      SPRING_DATASOURCE_HIKARI_POOL_NAME: lifepill-local
+      SPRING_DATASOURCE_APPLICATION_NAME: lifepill-local
+      SPRING_DATASOURCE_CONNECT_TIMEOUT: "10"
+      SPRING_DATASOURCE_SOCKET_TIMEOUT: "30"
       
       # Hibernate Configuration
       HIBERNATE_DDL_AUTO: update
@@ -152,6 +156,7 @@ services:
       REDIS_HEALTH: "true"
       PROMETHEUS_METRICS_EXPORT: "true"
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS: "1000"
       
       # Logging
       SECURITY_LOG_LEVEL: INFO

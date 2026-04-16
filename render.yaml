@@ -23,12 +23,20 @@ services:
         fromDatabase:
           name: pharmaflow-db
           property: password
+      - key: SPRING_DATASOURCE_HIKARI_POOL_NAME
+        value: pharmaflow-render
+      - key: SPRING_DATASOURCE_APPLICATION_NAME
+        value: pharmaflow-render
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
         value: "4"
       - key: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
         value: "0"
       - key: SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT
         value: "10000"
+      - key: SPRING_DATASOURCE_CONNECT_TIMEOUT
+        value: "10"
+      - key: SPRING_DATASOURCE_SOCKET_TIMEOUT
+        value: "30"
       - key: SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT
         value: "5000"
       - key: SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT
@@ -92,6 +100,8 @@ services:
         value: health,info
       - key: SECURITY_LOG_LEVEL
         value: INFO
+      - key: PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS
+        value: "1500"
       - key: CORS_ALLOWED_ORIGIN_PATTERNS
         value: https://*.onrender.com,http://localhost:3000,http://localhost:3001
       - key: PHARMAFLOW_BRAND_NAME
