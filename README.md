@@ -80,6 +80,7 @@ The backend now includes:
 - Root `/actuator/health` should not be the public hosting probe path.
 - Every backend response now returns an `X-Request-ID` header, and slow or failing requests are logged with that same ID.
 - The backend now identifies itself to Postgres with an explicit application name and Hikari pool name for faster incident triage.
+- Super-admins can now query `/api/v1/platform/runtime/database` for a live pool-pressure snapshot without exposing broader actuator data.
 - On first boot, the backend checks whether `JUNIORALIVE_GITHUB` medicines already exist:
   - if not, it imports the medicine catalogue and builds salt-based substitutes automatically
   - if medicines exist but substitutes do not, it builds only the substitutes

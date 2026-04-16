@@ -40,6 +40,23 @@ Expected:
 - `readiness` = `200`
 - root `health` = `403`
 
+## Secure runtime API
+
+For a super-admin session, the backend now exposes:
+
+```bash
+GET /api/v1/platform/runtime/database
+```
+
+This returns:
+
+- DB reachable or not
+- DB ping time
+- active, idle, pending, max, and min pool connections
+- mean acquire and usage timings when available
+- timeout count
+- plain-language advisory messages
+
 ## Reading request diagnostics
 
 Slow or failing requests now log in this shape:
