@@ -67,7 +67,7 @@ server:
 
 logging:
   level:
-    org.springframework.security: ${SECURITY_DEBUG:DEBUG}
+    org.springframework.security: ${SECURITY_LOG_LEVEL:${SECURITY_DEBUG:INFO}}
 
 aws:
   access.key: ${AWS_ACCESS_KEY}
@@ -100,11 +100,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info}
   endpoint:
     health:
       probes:
         enabled: true
+      show-details: ${MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS:when_authorized}
+      show-components: ${MANAGEMENT_ENDPOINT_HEALTH_SHOW_COMPONENTS:when_authorized}
       group:
         liveness:
           include: livenessState,ping

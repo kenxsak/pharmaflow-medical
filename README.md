@@ -76,6 +76,8 @@ The backend now includes:
 - Render keeps `PHARMAFLOW_MEDICINE_AUTO_IMPORT=false` for runtime stability after the catalog is loaded.
 - Render and container health checks should target `/actuator/health/liveness`.
 - Use `/actuator/health/readiness` when you want a DB-aware backend readiness check.
+- Keep public actuator exposure narrow by default: `health` and `info` on hosted stacks, `prometheus` only where local monitoring needs it.
+- Root `/actuator/health` should not be the public hosting probe path.
 - On first boot, the backend checks whether `JUNIORALIVE_GITHUB` medicines already exist:
   - if not, it imports the medicine catalogue and builds salt-based substitutes automatically
   - if medicines exist but substitutes do not, it builds only the substitutes

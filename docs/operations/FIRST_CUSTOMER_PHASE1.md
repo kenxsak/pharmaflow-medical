@@ -31,6 +31,8 @@ If those S3 values are blank, the app falls back to local disk storage. That is 
 
 - Keep `/actuator/health/liveness` exposed to the hosting platform.
 - Use `/actuator/health/readiness` for DB-aware monitors and alerts.
+- Keep root `/actuator/health` authenticated so anonymous traffic does not trigger the full health tree.
+- Expose only the actuator endpoints you actively use on that environment.
 - Alert on:
   - backend health failures
   - database connectivity failures

@@ -151,9 +151,10 @@ services:
       MAIL_HEALTH: "false"
       REDIS_HEALTH: "true"
       PROMETHEUS_METRICS_EXPORT: "true"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
       
       # Logging
-      SECURITY_DEBUG: INFO
+      SECURITY_LOG_LEVEL: INFO
       
       # OpenSearch Configuration
       OPENSEARCH_ENABLED: "true"
