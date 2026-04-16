@@ -29,7 +29,8 @@ If those S3 values are blank, the app falls back to local disk storage. That is 
 
 ### Monitoring
 
-- Keep `/actuator/health` exposed to the hosting platform.
+- Keep `/actuator/health/liveness` exposed to the hosting platform.
+- Use `/actuator/health/readiness` for DB-aware monitors and alerts.
 - Alert on:
   - backend health failures
   - database connectivity failures

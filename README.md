@@ -72,7 +72,10 @@ The backend now includes:
 
 - The tracked junioralive dataset CSV lives in `backend/pos-system/import-data/updated_indian_medicine_data.csv`.
 - The backend image includes the CSV plus the import SQL in `backend/pos-system/import-sql/`.
-- Local Docker and Render both enable `PHARMAFLOW_MEDICINE_AUTO_IMPORT=true`.
+- Local Docker keeps `PHARMAFLOW_MEDICINE_AUTO_IMPORT=true` for easy bootstrap.
+- Render keeps `PHARMAFLOW_MEDICINE_AUTO_IMPORT=false` for runtime stability after the catalog is loaded.
+- Render and container health checks should target `/actuator/health/liveness`.
+- Use `/actuator/health/readiness` when you want a DB-aware backend readiness check.
 - On first boot, the backend checks whether `JUNIORALIVE_GITHUB` medicines already exist:
   - if not, it imports the medicine catalogue and builds salt-based substitutes automatically
   - if medicines exist but substitutes do not, it builds only the substitutes
