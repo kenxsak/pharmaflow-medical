@@ -1,4 +1,6 @@
 spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   main:
     allow-bean-definition-overriding: true
   application:
@@ -19,7 +21,6 @@ spring:
       initialization-fail-timeout: ${SPRING_DATASOURCE_HIKARI_INITIALIZATION_FAIL_TIMEOUT:60000}
       leak-detection-threshold: ${SPRING_DATASOURCE_HIKARI_LEAK_DETECTION_THRESHOLD:0}
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:pharmaflow-main}
-      register-mbeans: ${SPRING_DATASOURCE_HIKARI_REGISTER_MBEANS:true}
       data-source-properties:
         ApplicationName: ${SPRING_DATASOURCE_APPLICATION_NAME:pharmaflow-backend}
         connectTimeout: ${SPRING_DATASOURCE_CONNECT_TIMEOUT:10}
