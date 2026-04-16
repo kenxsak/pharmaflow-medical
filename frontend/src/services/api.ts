@@ -197,6 +197,26 @@ export interface PlatformOverviewResponse {
   alwaysOnSupportPlanCount: number;
 }
 
+export interface PlatformRuntimeDatabaseDiagnosticsResponse {
+  capturedAt: string;
+  status: string;
+  dbReachable: boolean;
+  dbPingMs?: number | null;
+  poolName: string;
+  applicationName: string;
+  activeConnections: number;
+  idleConnections: number;
+  pendingConnections: number;
+  maxConnections: number;
+  minConnections: number;
+  utilizationPercent: number;
+  acquireMeanMs?: number | null;
+  usageMeanMs?: number | null;
+  timeoutCount: number;
+  errorSummary?: string | null;
+  advisory: string[];
+}
+
 export interface PlatformPlanResponse {
   id: string;
   planCode: string;
@@ -1705,6 +1725,11 @@ export const PurchaseAPI = {
 export const PlatformAPI = {
   getOverview: (): Promise<PlatformOverviewResponse> =>
     fetchJson(`${BASE_URL}/platform/overview`, {
+      headers: getHeaders(),
+    }),
+
+  getRuntimeDatabaseDiagnostics: (): Promise<PlatformRuntimeDatabaseDiagnosticsResponse> =>
+    fetchJson(`${BASE_URL}/platform/runtime/database`, {
       headers: getHeaders(),
     }),
 
