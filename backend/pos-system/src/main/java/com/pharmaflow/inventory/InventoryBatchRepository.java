@@ -62,6 +62,38 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
                                              @Param("medicineId") UUID medicineId,
                                              @Param("today") LocalDate today);
 
+    @Query(value = "select ranked.* from (" +
+            "select ib.*, row_number() over (" +
+            "partition by ib.medicine_id order by ib.expiry_date asc, ib.created_at asc, ib.batch_id asc" +
+            ") as row_rank " +
+            "from inventory_batches ib " +
+            "where ib.store_id = :storeId " +
+            "and ib.medicine_id in (:medicineIds) " +
+            "and ib.is_active = true " +
+            "and upper(coalesce(ib.inventory_state, 'SELLABLE')) = 'SELLABLE' " +
+            "and ib.expiry_date > :today " +
+            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0)" +
+            ") ranked where ranked.row_rank = 1",
+            nativeQuery = true)
+    List<InventoryBatch> findCurrentSellableBatches(@Param("storeId") UUID storeId,
+                                                    @Param("medicineIds") List<UUID> medicineIds,
+                                                    @Param("today") LocalDate today);
+
+    @Query(value = "select ranked.* from (" +
+            "select ib.*, row_number() over (" +
+            "partition by ib.medicine_id order by ib.expiry_date asc, ib.created_at asc, ib.batch_id asc" +
+            ") as row_rank " +
+            "from inventory_batches ib " +
+            "where ib.medicine_id in (:medicineIds) " +
+            "and ib.is_active = true " +
+            "and upper(coalesce(ib.inventory_state, 'SELLABLE')) = 'SELLABLE' " +
+            "and ib.expiry_date > :today " +
+            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0)" +
+            ") ranked where ranked.row_rank = 1",
+            nativeQuery = true)
+    List<InventoryBatch> findCurrentSellableBatches(@Param("medicineIds") List<UUID> medicineIds,
+                                                    @Param("today") LocalDate today);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select ib from InventoryBatch ib " +
             "where ib.store.storeId = :storeId " +

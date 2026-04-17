@@ -1,9 +1,13 @@
 package com.pharmaflow.common;
 
+import org.hibernate.exception.JDBCConnectionException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -64,6 +68,21 @@ public class PharmaFlowExceptionHandler {
                         .status(HttpStatus.BAD_REQUEST.value())
                         .code("VALIDATION_ERROR")
                         .message(message)
+                        .build());
+    }
+
+    @ExceptionHandler({
+            CannotCreateTransactionException.class,
+            CannotGetJdbcConnectionException.class,
+            DataAccessResourceFailureException.class,
+            JDBCConnectionException.class
+    })
+    public ResponseEntity<ApiErrorResponse> handleServiceUnavailable(RuntimeException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiErrorResponse.builder()
+                        .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                        .code("SERVICE_UNAVAILABLE")
+                        .message("The service is temporarily busy. Please retry in a few seconds.")
                         .build());
     }
 }

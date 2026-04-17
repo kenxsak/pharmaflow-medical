@@ -101,6 +101,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
   const [stockRows, setStockRows] = useState<StockBatchResponse[]>([]);
   const [shortageRows, setShortageRows] = useState<ShortageItemResponse[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
+  const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(false);
   const [movements, setMovements] = useState<InventoryMovementResponse[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [isBatchActionOpen, setIsBatchActionOpen] = useState(false);
@@ -122,20 +123,38 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
       setStockRows([]);
       setSelectedMedicine(null);
       setSuppliers([]);
+      setIsLoadingSuppliers(false);
       setError('Choose the active store in Company Setup before opening inventory.');
       return;
     }
 
-    Promise.all([ReportsAPI.getShortageReport(storeId), PurchaseAPI.listSuppliers()])
-      .then(([shortage, supplierRows]) => {
+    ReportsAPI.getShortageReport(storeId)
+      .then((shortage) => {
         setShortageRows(shortage);
-        setSuppliers(supplierRows);
         setError(null);
       })
       .catch((loadError) => {
         setError(loadError instanceof Error ? loadError.message : 'Unable to load inventory context.');
       });
   }, [storeId]);
+
+  const loadSuppliersIfNeeded = async (): Promise<SupplierSummary[]> => {
+    if (!storeId) {
+      return [];
+    }
+    if (suppliers.length > 0) {
+      return suppliers;
+    }
+
+    setIsLoadingSuppliers(true);
+    try {
+      const supplierRows = await PurchaseAPI.listSuppliers();
+      setSuppliers(supplierRows);
+      return supplierRows;
+    } finally {
+      setIsLoadingSuppliers(false);
+    }
+  };
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -249,20 +268,27 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
     }
   };
 
-  const openOpeningStockEditor = () => {
+  const openOpeningStockEditor = async () => {
     if (!selectedMedicine) {
       return;
     }
-    setOpeningStockDraft(
-      createOpeningStockDraft(
-        selectedMedicine,
-        suppliers[0]?.supplierId || '',
-        suppliers.length === 0 ? 'Opening Stock Supplier' : ''
-      )
-    );
-    setIsOpeningStockOpen(true);
-    setError(null);
-    setMessage(null);
+
+    try {
+      const supplierRows = await loadSuppliersIfNeeded();
+      setOpeningStockDraft(
+        createOpeningStockDraft(
+          selectedMedicine,
+          supplierRows[0]?.supplierId || '',
+          supplierRows.length === 0 ? 'Opening Stock Supplier' : ''
+        )
+      );
+      setIsOpeningStockOpen(true);
+      setError(null);
+      setMessage(null);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load suppliers.');
+      setMessage(null);
+    }
   };
 
   const handleOpeningStockChange = <K extends keyof OpeningStockDraft>(
@@ -589,9 +615,10 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                   <button
                     type="button"
                     onClick={openOpeningStockEditor}
-                    className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+                    disabled={isLoadingSuppliers}
+                    className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Add opening stock
+                    {isLoadingSuppliers ? 'Loading suppliers...' : 'Add opening stock'}
                   </button>
                   <Link
                     to="/lifepill/billing"

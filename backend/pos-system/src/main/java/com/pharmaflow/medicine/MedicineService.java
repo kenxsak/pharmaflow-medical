@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,9 +37,13 @@ public class MedicineService {
         }
 
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        return medicineRepository.searchCatalog(query.trim(), PageRequest.of(0, safeLimit))
+        List<Medicine> medicines = medicineRepository.searchCatalog(query.trim(), PageRequest.of(0, safeLimit))
                 .stream()
-                .map(medicine -> toSearchResponse(medicine, resolveCurrentBatch(storeId, medicine.getMedicineId())))
+                .collect(Collectors.toList());
+        Map<UUID, InventoryBatch> currentBatchByMedicine = resolveCurrentBatches(storeId, medicines);
+
+        return medicines.stream()
+                .map(medicine -> toSearchResponse(medicine, currentBatchByMedicine.get(medicine.getMedicineId())))
                 .collect(Collectors.toList());
     }
 
@@ -75,6 +81,30 @@ public class MedicineService {
                 )
                 .filter(this::hasAvailableQuantity)
                 .orElse(null);
+    }
+
+    private Map<UUID, InventoryBatch> resolveCurrentBatches(UUID storeId, List<Medicine> medicines) {
+        if (medicines == null || medicines.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<UUID> medicineIds = medicines.stream()
+                .map(Medicine::getMedicineId)
+                .collect(Collectors.toList());
+        LocalDate today = LocalDate.now();
+
+        List<InventoryBatch> batches = storeId != null
+                ? inventoryBatchRepository.findCurrentSellableBatches(storeId, medicineIds, today)
+                : inventoryBatchRepository.findCurrentSellableBatches(medicineIds, today);
+
+        Map<UUID, InventoryBatch> currentBatchByMedicine = new LinkedHashMap<>();
+        for (InventoryBatch batch : batches) {
+            if (batch.getMedicine() == null || batch.getMedicine().getMedicineId() == null) {
+                continue;
+            }
+            currentBatchByMedicine.putIfAbsent(batch.getMedicine().getMedicineId(), batch);
+        }
+        return currentBatchByMedicine;
     }
 
     private MedicineSearchResponse toSearchResponse(Medicine medicine, InventoryBatch currentBatch) {

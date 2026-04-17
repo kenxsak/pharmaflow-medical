@@ -70,7 +70,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const storeSwitcherEnabled = canSwitchStores(context);
 
   useEffect(() => {
-    if (!context.hasToken) {
+    if (!context.hasToken || !storeSwitcherEnabled) {
       setStores([]);
       setStoreLoadError(null);
       return;
@@ -84,7 +84,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
       .catch((error) => {
         setStoreLoadError(error instanceof Error ? error.message : 'Unable to load stores.');
       });
-  }, [context.hasToken, context.role, context.platformOwner, context.storeCode, context.storeId, context.tenantId]);
+  }, [context.hasToken, context.role, context.platformOwner, context.storeCode, context.storeId, context.tenantId, storeSwitcherEnabled]);
 
   const currentNavItem = useMemo(() => {
     const exact = pharmaFlowNavItems.find((item) => item.path === location.pathname);
