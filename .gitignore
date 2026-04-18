@@ -28,3 +28,6 @@ external/Indian-Medicine-Dataset/
 
 # Local Netlify folder
 .netlify
+
+# Local hosting tools downloaded on-demand
+.tools/

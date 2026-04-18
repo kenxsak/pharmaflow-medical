@@ -12,13 +12,32 @@ GitHub repo:
 
 - `https://github.com/kenxsak/pharmaflow-medical`
 
+## Actual Hosted Stack
+
+The current product that should be hosted is:
+
+- `frontend/` - the main React frontend
+- `backend/pos-system/` - the Spring Boot API the main frontend actually talks to
+- PostgreSQL - the system of record for billing, inventory, compliance, and reporting
+- Redis - optional on the free stack and disabled by default
+
+These folders are not part of the main hosted demo flow right now:
+
+- `api-gateway/`
+- `service-registry/`
+- `backend/pharmaflow-api/`
+- `dashboard/`
+- `pharmaflow-web/`
+
+They are legacy, alternate, or local-only pieces and should not be blindly deployed as if they are part of the live customer path.
+
 ## Free Demo Hosting
 
-The recommended free hosting stack is:
+The recommended low-cost hosted stack is:
 
 - `Netlify` - frontend
 - `Koyeb` - Spring Boot backend
-- `Neon` - Postgres
+- `Koyeb Postgres` - simplest one-provider free database path
 - `Redis` - optional, now disabled by default on the free stack
 
 Why this split:
@@ -37,13 +56,20 @@ Legacy Render blueprint:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kenxsak/pharmaflow-medical)
 
-### Netlify + Koyeb + Neon
+### Netlify + Koyeb
 
-1. Create a Neon Postgres database and copy the pooled credentials.
+1. Create a free Koyeb Postgres database.
 2. Deploy the backend on Koyeb from this repo using the existing backend Dockerfile.
 3. Confirm backend liveness at `/actuator/health/liveness`.
 4. Deploy the frontend on Netlify from this repo using `netlify.toml`.
 5. Point Netlify env vars at the Koyeb backend URL.
+
+CLI helpers now live in `scripts/`:
+
+- `scripts/install_koyeb_cli.ps1`
+- `scripts/deploy_koyeb_database.ps1`
+- `scripts/deploy_koyeb_backend.ps1`
+- `scripts/deploy_netlify_frontend.ps1`
 
 The app can now run without hosted Redis by setting `PHARMAFLOW_REDIS_ENABLED=false`, which removes one hosted dependency from the free stack.
 
