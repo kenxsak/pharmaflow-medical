@@ -25,3 +25,6 @@ data/
 
 backend/pos-system/uploads/
 external/Indian-Medicine-Dataset/
+
+# Local Netlify folder
+.netlify

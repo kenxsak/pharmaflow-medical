@@ -2,6 +2,7 @@ package com.lifepill.possystem.config;
 
 
 import com.lifepill.possystem.dto.responseDTO.EmployerAuthDetailsResponseDTO;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +18,7 @@ import org.springframework.util.StringUtils;
 import java.net.URI;
 
 @Configuration
+@ConditionalOnProperty(prefix = "pharmaflow.redis", name = "enabled", havingValue = "true")
 public class RedisConfig {
 
     @Value("${spring.redis.url:}")

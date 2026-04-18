@@ -4,35 +4,54 @@ This repository contains the PharmaFlow/LifePill pharmacy SaaS demo stack:
 
 - `frontend/` - React legacy-first UI
 - `backend/pos-system/` - Spring Boot API
-- `render.yaml` - free demo hosting blueprint for Render
+- `netlify.toml` - free frontend hosting config for Netlify
+- `render.yaml` - legacy Render blueprint kept as fallback
 - `docs/operations/` - first-customer operational runbooks
 
 GitHub repo:
 
 - `https://github.com/kenxsak/pharmaflow-medical`
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kenxsak/pharmaflow-medical)
-
 ## Free Demo Hosting
 
-The fastest zero-cost demo deployment uses Render managed resources:
+The recommended free hosting stack is:
 
-- `pharmaflow-frontend` - free static site
-- `pharmaflow-backend` - free Docker web service
-- `pharmaflow-db` - free Postgres
-- `pharmaflow-cache` - free Render Key Value
+- `Netlify` - frontend
+- `Koyeb` - Spring Boot backend
+- `Neon` - Postgres
+- `Redis` - optional, now disabled by default on the free stack
 
-### Deploy from GitHub
+Why this split:
 
-1. Push this repo to GitHub.
-2. In Render, click `New` -> `Blueprint`.
-3. Connect the GitHub repo.
-4. Select the default branch and confirm `render.yaml`.
-5. Deploy the Blueprint.
+- Netlify is a strong fit for the React frontend.
+- Koyeb can run Spring Boot as a real web service.
+- Neon provides a better small Postgres experience for free hosting than trying to squeeze app and database concerns into one platform.
 
-Render will provision the frontend, backend, Postgres, and Redis-compatible cache from the single blueprint.
+Deployment guide:
 
-If the repo stays private, Render needs access to it through the Render GitHub App during setup.
+- `docs/operations/FREE_HOSTING_STACK.md`
+
+Legacy Render blueprint:
+
+- `render.yaml`
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kenxsak/pharmaflow-medical)
+
+### Netlify + Koyeb + Neon
+
+1. Create a Neon Postgres database and copy the pooled credentials.
+2. Deploy the backend on Koyeb from this repo using the existing backend Dockerfile.
+3. Confirm backend liveness at `/actuator/health/liveness`.
+4. Deploy the frontend on Netlify from this repo using `netlify.toml`.
+5. Point Netlify env vars at the Koyeb backend URL.
+
+The app can now run without hosted Redis by setting `PHARMAFLOW_REDIS_ENABLED=false`, which removes one hosted dependency from the free stack.
+
+Right now, the checked-in Netlify config also includes a temporary proxy bridge to the current hosted backend so the new Netlify URL can work immediately during the migration.
+
+### Legacy Render fallback
+
+If you need one-click provisioning instead of the split free stack above, the Render blueprint is still available through `render.yaml`.
 
 ## Local Development
 
@@ -59,14 +78,16 @@ The backend now includes:
 
 ## Notes
 
-- The free demo stack is suitable for sales demos and internal testing, not production.
-- Free Render services can sleep after inactivity.
+- The free stack is suitable for demos and internal testing, not production.
+- Netlify handles the frontend only. Do not move the Spring Boot backend to Netlify.
+- Free hosts can still sleep after inactivity, but the new default free stack removes Redis as a required dependency.
 - For a paid customer, configure object storage and keep `HIBERNATE_DDL_AUTO=validate`.
 
 ## First Paid Customer
 
 - Phase 1 deployment checklist: `docs/operations/FIRST_CUSTOMER_PHASE1.md`
 - Backup and restore runbook: `docs/operations/BACKUP_RESTORE.md`
+- Free hosting guide: `docs/operations/FREE_HOSTING_STACK.md`
 
 ## Medicine Catalogue
 

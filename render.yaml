@@ -92,16 +92,20 @@ services:
         value: "false"
       - key: REDIS_HEALTH
         value: "true"
+      - key: PHARMAFLOW_REDIS_ENABLED
+        value: "true"
       - key: PROMETHEUS_METRICS_EXPORT
         value: "true"
       - key: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
         value: health,info
+      - key: MANAGEMENT_HEALTH_READINESS_INCLUDE
+        value: readinessState,db,redis
       - key: SECURITY_LOG_LEVEL
         value: INFO
       - key: PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS
         value: "1500"
       - key: CORS_ALLOWED_ORIGIN_PATTERNS
-        value: https://*.onrender.com,http://localhost:3000,http://localhost:3001
+        value: https://*.onrender.com,https://*.netlify.app,https://*.koyeb.app,http://localhost:3000,http://localhost:3001
       - key: PHARMAFLOW_BRAND_NAME
         value: PharmaFlow
       - key: PHARMAFLOW_BRAND_TAGLINE

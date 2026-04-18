@@ -123,6 +123,7 @@ services:
       # Redis Configuration
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      PHARMAFLOW_REDIS_ENABLED: "true"
       
       # Spring Security
       SPRING_SECURITY_USERNAME: ${SPRING_SECURITY_USERNAME:-admin}
@@ -156,6 +157,7 @@ services:
       REDIS_HEALTH: "true"
       PROMETHEUS_METRICS_EXPORT: "true"
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      MANAGEMENT_HEALTH_READINESS_INCLUDE: readinessState,db,redis
       PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS: "1000"
       
       # Logging

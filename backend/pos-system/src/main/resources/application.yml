@@ -94,6 +94,8 @@ pharmaflow:
     allowed-content-types: ${PHARMAFLOW_STORAGE_ALLOWED_CONTENT_TYPES:application/pdf,image/jpeg,image/png,image/webp}
   observability:
     slow-request-threshold-ms: ${PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS:1500}
+  redis:
+    enabled: ${PHARMAFLOW_REDIS_ENABLED:false}
 
 # CORS Configuration - All settings loaded from environment variables
 # See CorsFilter.java in filter package for implementation
@@ -124,7 +126,7 @@ management:
         liveness:
           include: livenessState,ping
         readiness:
-          include: readinessState,db,redis
+          include: ${MANAGEMENT_HEALTH_READINESS_INCLUDE:readinessState,db}
   health:
     livenessstate:
       enabled: true
@@ -133,7 +135,7 @@ management:
     mail:
       enabled: ${MAIL_HEALTH}
     redis:
-      enabled: ${REDIS_HEALTH}
+      enabled: ${REDIS_HEALTH:${PHARMAFLOW_REDIS_ENABLED:false}}
   metrics:
     export:
       prometheus:

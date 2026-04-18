@@ -1,0 +1,21 @@
+[build]
+  base = "frontend"
+  command = "npm ci --legacy-peer-deps && npm run build"
+  publish = "frontend/build"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://pharmaflow-backend-vr51.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/lifepill/*"
+  to = "https://pharmaflow-backend-vr51.onrender.com/lifepill/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
