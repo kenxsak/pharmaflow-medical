@@ -14,6 +14,7 @@ import {
   Receipt,
   ScanLine,
   ShieldCheck,
+  Truck,
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -150,6 +151,16 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
     shortSummary: 'Credit and history',
     status: 'Live',
     icon: HeartPulse,
+    group: 'Operations',
+    access: ['saas-admin', 'company-admin', 'store-ops'],
+  },
+  {
+    title: 'Online & Delivery',
+    path: '/lifepill/delivery',
+    summary: 'Convert online or phone medicine orders into branch deliveries, assign riders, and track delivery status from one screen.',
+    shortSummary: 'Online orders and riders',
+    status: 'Live',
+    icon: Truck,
     group: 'Operations',
     access: ['saas-admin', 'company-admin', 'store-ops'],
   },

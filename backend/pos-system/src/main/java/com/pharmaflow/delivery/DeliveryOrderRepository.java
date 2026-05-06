@@ -2,22 +2,34 @@ package com.pharmaflow.delivery;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface DeliveryOrderRepository extends JpaRepository<DeliveryOrder, UUID> {
 
+    @EntityGraph(attributePaths = {"invoice", "store", "customer", "deliveryBoy"})
+    Optional<DeliveryOrder> findByDeliveryId(UUID deliveryId);
+
     @Query("select d from DeliveryOrder d where d.store.storeId = :storeId order by d.createdAt desc")
     Page<DeliveryOrder> findByStoreId(@Param("storeId") UUID storeId, Pageable pageable);
 
+    long countByStoreStoreId(UUID storeId);
+
+    long countByStoreStoreIdAndStatusIgnoreCase(UUID storeId, String status);
+
+    @EntityGraph(attributePaths = {"invoice", "store", "customer", "deliveryBoy"})
     @Query("select d from DeliveryOrder d " +
             "left join d.customer c " +
             "left join d.invoice i " +
             "left join d.deliveryBoy db " +
-            "where d.store.storeId = :storeId and (" +
+            "where d.store.storeId = :storeId " +
+            "and (:status is null or :status = '' or upper(coalesce(d.status, '')) = upper(:status)) " +
+            "and (" +
             ":query is null or :query = '' " +
             "or lower(coalesce(c.name, '')) like lower(concat('%', :query, '%')) " +
             "or lower(coalesce(i.invoiceNo, '')) like lower(concat('%', :query, '%')) " +
@@ -26,6 +38,7 @@ public interface DeliveryOrderRepository extends JpaRepository<DeliveryOrder, UU
             "or lower(coalesce(d.deliveryPhone, '')) like lower(concat('%', :query, '%'))) " +
             "order by d.createdAt desc")
     Page<DeliveryOrder> searchByStoreId(@Param("storeId") UUID storeId,
+                                        @Param("status") String status,
                                         @Param("query") String query,
                                         Pageable pageable);
 }

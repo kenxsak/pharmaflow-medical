@@ -78,8 +78,29 @@ public class DeliveryOrder {
     @Column(name = "assigned_at")
     private LocalDateTime assignedAt;
 
+    @Column(name = "pickup_at")
+    private LocalDateTime pickupAt;
+
+    @Column(name = "out_for_delivery_at")
+    private LocalDateTime outForDeliveryAt;
+
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "current_latitude", precision = 10, scale = 7)
+    private BigDecimal currentLatitude;
+
+    @Column(name = "current_longitude", precision = 10, scale = 7)
+    private BigDecimal currentLongitude;
+
+    @Column(name = "last_location_at")
+    private LocalDateTime lastLocationAt;
+
+    @Column(name = "last_location_label")
+    private String lastLocationLabel;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

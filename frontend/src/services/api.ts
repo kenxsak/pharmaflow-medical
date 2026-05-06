@@ -575,6 +575,77 @@ export interface InvoiceHistoryItem {
   cancelled: boolean;
 }
 
+export interface DeliveryDriverResponse {
+  userId: string;
+  fullName: string;
+  phone?: string;
+  email?: string;
+  storeCode?: string;
+}
+
+export interface DeliveryOrderRequest {
+  invoiceId?: string;
+  customerId?: string;
+  deliveryBoyId?: string;
+  deliveryAddress: string;
+  deliveryPhone?: string;
+  amountToCollect?: number;
+  paymentMode?: string;
+  notes?: string;
+}
+
+export interface DeliveryStatusUpdateRequest {
+  status: string;
+  deliveryBoyId?: string;
+  amountCollected?: number;
+  paymentMode?: string;
+  notes?: string;
+}
+
+export interface DeliveryLocationUpdateRequest {
+  latitude: number;
+  longitude: number;
+  locationLabel?: string;
+}
+
+export interface DeliveryOrderResponse {
+  deliveryId: string;
+  invoiceId?: string;
+  invoiceNo?: string;
+  storeId?: string;
+  storeCode?: string;
+  customerId?: string;
+  customerName?: string;
+  deliveryBoyId?: string;
+  deliveryBoyName?: string;
+  deliveryBoyPhone?: string;
+  deliveryAddress: string;
+  deliveryPhone?: string;
+  status: string;
+  amountToCollect: number;
+  amountCollected: number;
+  paymentMode?: string;
+  notes?: string;
+  assignedAt?: string;
+  pickupAt?: string;
+  outForDeliveryAt?: string;
+  deliveredAt?: string;
+  cancelledAt?: string;
+  currentLatitude?: number;
+  currentLongitude?: number;
+  lastLocationAt?: string;
+  lastLocationLabel?: string;
+  createdAt: string;
+}
+
+export interface DeliverySummaryResponse {
+  total: number;
+  pending: number;
+  assigned: number;
+  outForDelivery: number;
+  delivered: number;
+}
+
 export interface AuditLogEntry {
   logId: string;
   createdAt: string;
@@ -1449,6 +1520,55 @@ export const UserAPI = {
   update: (userId: string, payload: PharmaUserRequest): Promise<PharmaUserRecord> =>
     fetchJson(`${BASE_URL}/users/${userId}`, {
       method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+};
+
+export const DeliveryAPI = {
+  list: (query?: string, status?: string, limit = 50): Promise<DeliveryOrderResponse[]> =>
+    fetchJson(
+      `${BASE_URL}/deliveries?limit=${limit}${query ? `&query=${encodeURIComponent(query)}` : ''}${
+        status && status !== 'ALL' ? `&status=${encodeURIComponent(status)}` : ''
+      }`,
+      {
+        headers: getHeaders(),
+      }
+    ),
+
+  getSummary: (): Promise<DeliverySummaryResponse> =>
+    fetchJson(`${BASE_URL}/deliveries/summary`, {
+      headers: getHeaders(),
+    }),
+
+  listDrivers: (): Promise<DeliveryDriverResponse[]> =>
+    fetchJson(`${BASE_URL}/deliveries/drivers`, {
+      headers: getHeaders(),
+    }),
+
+  create: (payload: DeliveryOrderRequest): Promise<DeliveryOrderResponse> =>
+    fetchJson(`${BASE_URL}/deliveries`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  updateStatus: (
+    deliveryId: string,
+    payload: DeliveryStatusUpdateRequest
+  ): Promise<DeliveryOrderResponse> =>
+    fetchJson(`${BASE_URL}/deliveries/${deliveryId}/status`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  updateLocation: (
+    deliveryId: string,
+    payload: DeliveryLocationUpdateRequest
+  ): Promise<DeliveryOrderResponse> =>
+    fetchJson(`${BASE_URL}/deliveries/${deliveryId}/location`, {
+      method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
     }),

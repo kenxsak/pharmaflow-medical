@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +22,14 @@ public interface PharmaUserRepository extends JpaRepository<PharmaUser, UUID> {
 
     @Query("select u from PharmaUser u where u.store.storeId = :storeId order by u.fullName asc")
     Page<PharmaUser> findByStoreId(@Param("storeId") UUID storeId, Pageable pageable);
+
+    @Query("select u from PharmaUser u " +
+            "where u.store.storeId = :storeId " +
+            "and u.role.roleName = :roleName " +
+            "and u.isActive = true " +
+            "order by u.fullName asc")
+    List<PharmaUser> findActiveByStoreIdAndRole(@Param("storeId") UUID storeId,
+                                                @Param("roleName") PharmaRoleName roleName);
 
     @Query("select u from PharmaUser u left join u.store s " +
             "where u.store.storeId = :storeId and (" +

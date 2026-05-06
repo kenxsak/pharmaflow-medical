@@ -7,6 +7,7 @@ import BillingAuditDashboard from './pages/billing/BillingAuditDashboard';
 import POSBilling from './pages/billing/POSBilling';
 import ComplianceDashboard from './pages/compliance/ComplianceDashboard';
 import CustomersDashboard from './pages/customers/CustomersDashboard';
+import DeliveryTrackingDashboard from './pages/delivery/DeliveryTrackingDashboard';
 import InventoryDashboard from './pages/inventory/InventoryDashboard';
 import PharmaFlowCommandCenter from './pages/pharmaflow/PharmaFlowCommandCenter';
 import PharmaFlowEntry from './pages/pharmaflow/PharmaFlowEntry';
@@ -139,6 +140,7 @@ function App() {
           }
         />
         <Route path='/lifepill/customers' element={<CustomersDashboard />} />
+        <Route path='/lifepill/delivery' element={<DeliveryTrackingDashboard />} />
         <Route path='/legacy-login' element={<LogInPage />} />
         <Route
           path='/login-cashier-password'
