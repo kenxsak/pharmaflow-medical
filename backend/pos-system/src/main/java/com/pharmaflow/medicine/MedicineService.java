@@ -6,6 +6,7 @@ import com.pharmaflow.medicine.dto.BatchSnapshotResponse;
 import com.pharmaflow.medicine.dto.MedicineSearchResponse;
 import com.pharmaflow.medicine.dto.SubstituteResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +37,16 @@ public class MedicineService {
         }
 
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        List<Medicine> medicines = medicineRepository.searchCatalogSmart(query.trim(), safeLimit);
+        String normalizedQuery = query.trim();
+        List<Medicine> medicines = medicineRepository.searchCatalog(normalizedQuery, PageRequest.of(0, safeLimit))
+                .stream()
+                .collect(Collectors.toList());
+
+        if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
+            String fuzzyPrefix = normalizedQuery.substring(0, Math.min(4, normalizedQuery.length()));
+            medicines = medicineRepository.searchCatalogFuzzy(normalizedQuery, fuzzyPrefix, safeLimit);
+        }
+
         Map<UUID, InventoryBatch> currentBatchByMedicine = resolveCurrentBatches(storeId, medicines);
 
         return medicines.stream()

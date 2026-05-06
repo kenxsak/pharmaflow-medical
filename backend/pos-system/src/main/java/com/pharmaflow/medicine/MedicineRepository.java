@@ -44,19 +44,13 @@ public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
             "left join salt_compositions s on s.salt_id = m.salt_id " +
             "left join manufacturers mf on mf.manufacturer_id = m.manufacturer_id " +
             "where m.is_active = true and (" +
-            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(s.salt_name, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(m.composition_summary, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(mf.name, '')) like concat('%', lower(:query), '%') " +
-            "or similarity(lower(coalesce(m.brand_name, '')), lower(:query)) >= 0.28 " +
-            "or similarity(lower(coalesce(m.generic_name, '')), lower(:query)) >= 0.28 " +
-            "or similarity(lower(coalesce(s.salt_name, '')), lower(:query)) >= 0.28 " +
-            "or word_similarity(lower(:query), lower(coalesce(m.brand_name, ''))) >= 0.55 " +
-            "or word_similarity(lower(:query), lower(coalesce(m.generic_name, ''))) >= 0.55 " +
-            "or word_similarity(lower(:query), lower(coalesce(m.search_keywords, ''))) >= 0.55" +
+            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(s.salt_name, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(m.composition_summary, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(mf.name, '')) like concat('%', lower(:prefix), '%')" +
             ") " +
             "order by " +
             "case " +
@@ -64,7 +58,8 @@ public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
             "when lower(coalesce(m.brand_name, '')) = lower(:query) then 1 " +
             "when lower(coalesce(m.brand_name, '')) like concat(lower(:query), '%') then 2 " +
             "when lower(coalesce(m.brand_name, '')) like concat('%', lower(:query), '%') then 3 " +
-            "else 4 end, " +
+            "when lower(coalesce(m.brand_name, '')) like concat(lower(:prefix), '%') then 4 " +
+            "else 5 end, " +
             "greatest(" +
             "similarity(lower(coalesce(m.brand_name, '')), lower(:query)), " +
             "similarity(lower(coalesce(m.generic_name, '')), lower(:query)), " +
@@ -76,7 +71,7 @@ public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
             "m.brand_name asc " +
             "limit :limit",
             nativeQuery = true)
-    List<Medicine> searchCatalogSmart(@Param("query") String query, @Param("limit") int limit);
+    List<Medicine> searchCatalogFuzzy(@Param("query") String query, @Param("prefix") String prefix, @Param("limit") int limit);
 
     Optional<Medicine> findFirstByBarcodeIgnoreCase(String barcode);
 

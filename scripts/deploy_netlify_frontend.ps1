@@ -17,6 +17,7 @@ $envCommands = @(
 )
 
 foreach ($pair in $envCommands) {
+  Set-Item -Path "Env:\$($pair[0])" -Value $pair[1]
   Write-Host "Setting Netlify env $($pair[0])..." -ForegroundColor Cyan
   & "C:\Program Files\nodejs\npx.cmd" netlify-cli env:set $pair[0] $pair[1] --context production --scope builds
   if ($LASTEXITCODE -ne 0) {
@@ -24,6 +25,7 @@ foreach ($pair in $envCommands) {
   }
 }
 
+Write-Host "Production build API base: $env:REACT_APP_API_URL" -ForegroundColor Cyan
 Write-Host "Deploying Netlify frontend..." -ForegroundColor Cyan
 & "C:\Program Files\nodejs\npx.cmd" netlify-cli deploy --prod --build
 
