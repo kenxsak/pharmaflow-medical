@@ -1,4 +1,22 @@
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  cache:
+    type: simple
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:pharmaflow_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    hikari:
+      pool-name: pharmaflow-test
+      maximum-pool-size: 2
+      minimum-idle: 0
+      data-source-properties:
+        ApplicationName: pharmaflow-test
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -9,11 +27,25 @@ spring:
           lob:
             non_contextual_creation: true
     show-sql: true
+    open-in-view: false
+
+  flyway:
+    enabled: false
 
   security:
     user:
-      name: ${SPRING_SECURITY_USERNAME}
-      password: ${SPRING_SECURITY_PASSWORD}
+      name: test
+      password: test
+
+  redis:
+    host: localhost
+    port: 6379
+
+  mail:
+    host: localhost
+    port: 1025
+    username:
+    password:
 
   server:
     port: 0 # Random port
@@ -23,10 +55,34 @@ spring:
       org.springframework.security: TRACE
 
 aws:
-  access.key: ${AWS_ACCESS_KEY}
-  secret.key: ${AWS_SECRET_KEY}
-  s3.bucket: ${AWS_S3_BUCKET}
-  region: ${AWS_REGION}
+  access.key:
+  secret.key:
+  s3.bucket:
+  region: ap-south-1
+
+jwt:
+  secret: TestOnlySecretKeyForPharmaFlowBackendSmokeBuilds1234567890
+  expiration: 86400000
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: false
+  health:
+    mail:
+      enabled: false
+    redis:
+      enabled: false
+
+pharmaflow:
+  redis:
+    enabled: false
+  storage:
+    provider: local
+    local-root: ./target/test-documents
+  medicine:
+    auto-import: false
 #
 #twilio:
 #  accountSid: ${TWILIO_ACCOUNT_SID}

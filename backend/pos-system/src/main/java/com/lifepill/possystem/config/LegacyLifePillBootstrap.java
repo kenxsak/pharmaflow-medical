@@ -8,6 +8,7 @@ import com.lifepill.possystem.repo.branchRepository.BranchRepository;
 import com.lifepill.possystem.repo.employerRepository.EmployerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 public class LegacyLifePillBootstrap implements CommandLineRunner {
 

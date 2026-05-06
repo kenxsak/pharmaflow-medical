@@ -30,6 +30,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
+@Profile("!test")
 @RequiredArgsConstructor
 public class PharmaFlowDemoBootstrap implements CommandLineRunner {
 

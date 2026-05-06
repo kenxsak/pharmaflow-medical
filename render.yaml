@@ -2,7 +2,7 @@ services:
   - type: web
     name: pharmaflow-backend
     runtime: docker
-    plan: free
+    plan: starter
     region: singapore
     dockerfilePath: ./backend/pos-system/Dockerfile
     dockerContext: ./backend/pos-system
@@ -28,11 +28,11 @@ services:
       - key: SPRING_DATASOURCE_APPLICATION_NAME
         value: pharmaflow-render
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
-        value: "4"
+        value: "8"
       - key: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
-        value: "0"
+        value: "1"
       - key: SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT
-        value: "10000"
+        value: "15000"
       - key: SPRING_DATASOURCE_CONNECT_TIMEOUT
         value: "10"
       - key: SPRING_DATASOURCE_SOCKET_TIMEOUT
@@ -40,22 +40,11 @@ services:
       - key: SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT
         value: "5000"
       - key: SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT
-        value: "60000"
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: pharmaflow-cache
-          property: connectionString
-      - key: REDIS_HOST
-        fromService:
-          type: keyvalue
-          name: pharmaflow-cache
-          property: host
-      - key: REDIS_PORT
-        fromService:
-          type: keyvalue
-          name: pharmaflow-cache
-          property: port
+        value: "300000"
+      - key: SPRING_DATASOURCE_HIKARI_MAX_LIFETIME
+        value: "1200000"
+      - key: SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME
+        value: "300000"
       - key: JDBC_SHOW_SQL
         value: "false"
       - key: HIBERNATE_DDL_AUTO
@@ -91,15 +80,15 @@ services:
       - key: MAIL_HEALTH
         value: "false"
       - key: REDIS_HEALTH
-        value: "true"
+        value: "false"
       - key: PHARMAFLOW_REDIS_ENABLED
-        value: "true"
+        value: "false"
       - key: PROMETHEUS_METRICS_EXPORT
-        value: "true"
+        value: "false"
       - key: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
         value: health,info
       - key: MANAGEMENT_HEALTH_READINESS_INCLUDE
-        value: readinessState,db,redis
+        value: readinessState,db
       - key: SECURITY_LOG_LEVEL
         value: INFO
       - key: PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS
@@ -146,16 +135,9 @@ services:
         source: /*
         destination: /index.html
 
-  - type: keyvalue
-    name: pharmaflow-cache
-    plan: free
-    region: singapore
-    ipAllowList: []
-    maxmemoryPolicy: allkeys-lru
-
 databases:
   - name: pharmaflow-db
-    plan: free
+    plan: basic-256mb
     region: singapore
     databaseName: pharmaflow
     user: pharmaflow_user

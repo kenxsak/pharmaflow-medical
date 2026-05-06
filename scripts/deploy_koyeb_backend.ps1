@@ -6,7 +6,7 @@ param(
   [string]$Branch = "master",
   [ValidateSet("fra", "was")]
   [string]$Region = "fra",
-  [string]$InstanceType = "free",
+  [string]$InstanceType = "eco-small",
   [Parameter(Mandatory = $true)]
   [string]$DatabaseUrl,
   [Parameter(Mandatory = $true)]

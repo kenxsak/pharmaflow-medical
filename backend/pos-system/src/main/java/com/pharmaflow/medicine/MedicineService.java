@@ -6,7 +6,6 @@ import com.pharmaflow.medicine.dto.BatchSnapshotResponse;
 import com.pharmaflow.medicine.dto.MedicineSearchResponse;
 import com.pharmaflow.medicine.dto.SubstituteResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,9 +36,7 @@ public class MedicineService {
         }
 
         int safeLimit = Math.max(1, Math.min(limit, 100));
-        List<Medicine> medicines = medicineRepository.searchCatalog(query.trim(), PageRequest.of(0, safeLimit))
-                .stream()
-                .collect(Collectors.toList());
+        List<Medicine> medicines = medicineRepository.searchCatalogSmart(query.trim(), safeLimit);
         Map<UUID, InventoryBatch> currentBatchByMedicine = resolveCurrentBatches(storeId, medicines);
 
         return medicines.stream()

@@ -39,6 +39,45 @@ public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
             "order by m.brandName asc")
     Page<Medicine> searchCatalog(@Param("query") String query, Pageable pageable);
 
+    @Query(value = "select m.* " +
+            "from medicines m " +
+            "left join salt_compositions s on s.salt_id = m.salt_id " +
+            "left join manufacturers mf on mf.manufacturer_id = m.manufacturer_id " +
+            "where m.is_active = true and (" +
+            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(s.salt_name, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(m.composition_summary, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(mf.name, '')) like concat('%', lower(:query), '%') " +
+            "or similarity(lower(coalesce(m.brand_name, '')), lower(:query)) >= 0.28 " +
+            "or similarity(lower(coalesce(m.generic_name, '')), lower(:query)) >= 0.28 " +
+            "or similarity(lower(coalesce(s.salt_name, '')), lower(:query)) >= 0.28 " +
+            "or word_similarity(lower(:query), lower(coalesce(m.brand_name, ''))) >= 0.55 " +
+            "or word_similarity(lower(:query), lower(coalesce(m.generic_name, ''))) >= 0.55 " +
+            "or word_similarity(lower(:query), lower(coalesce(m.search_keywords, ''))) >= 0.55" +
+            ") " +
+            "order by " +
+            "case " +
+            "when lower(coalesce(m.barcode, '')) = lower(:query) then 0 " +
+            "when lower(coalesce(m.brand_name, '')) = lower(:query) then 1 " +
+            "when lower(coalesce(m.brand_name, '')) like concat(lower(:query), '%') then 2 " +
+            "when lower(coalesce(m.brand_name, '')) like concat('%', lower(:query), '%') then 3 " +
+            "else 4 end, " +
+            "greatest(" +
+            "similarity(lower(coalesce(m.brand_name, '')), lower(:query)), " +
+            "similarity(lower(coalesce(m.generic_name, '')), lower(:query)), " +
+            "similarity(lower(coalesce(s.salt_name, '')), lower(:query)), " +
+            "word_similarity(lower(:query), lower(coalesce(m.brand_name, ''))), " +
+            "word_similarity(lower(:query), lower(coalesce(m.generic_name, ''))), " +
+            "word_similarity(lower(:query), lower(coalesce(m.search_keywords, '')))" +
+            ") desc, " +
+            "m.brand_name asc " +
+            "limit :limit",
+            nativeQuery = true)
+    List<Medicine> searchCatalogSmart(@Param("query") String query, @Param("limit") int limit);
+
     Optional<Medicine> findFirstByBarcodeIgnoreCase(String barcode);
 
     Optional<Medicine> findFirstByBrandNameIgnoreCase(String brandName);

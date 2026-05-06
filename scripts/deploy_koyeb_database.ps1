@@ -7,7 +7,7 @@ param(
   [ValidateSet("fra", "was", "sin")]
   [string]$Region = "fra",
   [ValidateSet("free", "small", "medium", "large")]
-  [string]$InstanceType = "free"
+  [string]$InstanceType = "small"
 )
 
 $ErrorActionPreference = "Stop"

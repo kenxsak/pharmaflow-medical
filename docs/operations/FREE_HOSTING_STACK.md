@@ -1,13 +1,17 @@
 # Free Hosting Stack
 
-This is the recommended free-ish hosted setup for PharmaFlow:
+This is the free preview setup for PharmaFlow. It is useful for demos and testing, but it is not the stable production answer for a live pharmacy workflow because free app/database services can sleep, cold start, or run out of small resource limits.
+
+For the stable hosted plan, use [STABLE_HOSTING_STACK.md](./STABLE_HOSTING_STACK.md).
+
+The free-ish setup is:
 
 - frontend: Netlify
 - backend: Koyeb web service
 - database: Koyeb Postgres database service
 - Redis: optional, disabled by default with in-memory fallback
 
-The current repo also contains a temporary Netlify proxy bridge to the existing hosted backend so the Netlify frontend can work before the Koyeb backend cutover is complete. Replace those proxy targets when the Koyeb backend is live.
+The Netlify frontend should use explicit build-time API variables instead of hidden proxy redirects. This keeps backend cutovers obvious and prevents the static site from silently calling an old backend host.
 
 ## What actually needs hosting
 
@@ -33,6 +37,7 @@ They are alternate or legacy tracks and will only add confusion, extra spend, an
 - Koyeb supports Spring Boot as a real web service and keeps the backend on an app host instead of forcing it into a serverless frontend platform.
 - Koyeb Postgres keeps the demo backend and demo database on one provider, which reduces setup friction and credential mistakes.
 - Redis is already optional, so the smallest hosted stack is now frontend + backend + Postgres.
+- This is still a preview stack. Use paid always-on backend/database resources when the app needs to feel smooth every time.
 
 ## Frontend on Netlify
 
@@ -100,13 +105,18 @@ Official references:
 
 Use a Koyeb Postgres database service for the easiest all-CLI free path.
 
-Recommended defaults:
+Recommended free-preview defaults:
 
 - database service name: `pharmaflow-db`
 - database name: `pharmaflow`
 - database owner: `pharmaflow_user`
 - region: `fra`
 - instance type: `free`
+
+Stable defaults:
+
+- backend instance type: `eco-small` or larger
+- database instance type: `small` or larger
 
 Important notes:
 
@@ -153,3 +163,4 @@ CLI helpers checked into this repo:
 - `scripts/deploy_koyeb_database.ps1`
 - `scripts/deploy_koyeb_backend.ps1`
 - `scripts/deploy_netlify_frontend.ps1`
+- `scripts/smoke_pharmaflow_host.ps1`
