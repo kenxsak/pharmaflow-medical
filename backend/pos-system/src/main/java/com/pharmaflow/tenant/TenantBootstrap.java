@@ -217,6 +217,18 @@ public class TenantBootstrap implements CommandLineRunner {
                 "TNPHARM12345"
         );
         ensureUser(
+                "driver@pharmaflow.in",
+                "Driver@123",
+                "Anna Nagar Delivery Rider",
+                "driver@pharmaflow.in",
+                "+91 90000 00005",
+                annaNagarStore,
+                pharmaflowTenant,
+                PharmaRoleName.DELIVERY_BOY,
+                false,
+                null
+        );
+        ensureUser(
                 "manager@posible.in",
                 "Company@123",
                 "Posible Rx Company Admin",
