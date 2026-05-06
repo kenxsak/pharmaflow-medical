@@ -38,7 +38,7 @@ public class MedicineService {
 
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String normalizedQuery = query.trim();
-        List<Medicine> medicines = medicineRepository.searchCatalog(normalizedQuery, PageRequest.of(0, safeLimit))
+        List<Medicine> medicines = medicineRepository.searchCatalogFast(normalizedQuery, PageRequest.of(0, safeLimit))
                 .stream()
                 .collect(Collectors.toList());
 
