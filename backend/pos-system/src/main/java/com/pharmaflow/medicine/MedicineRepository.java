@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,6 +48,70 @@ public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
             "or lower(coalesce(m.searchKeywords, '')) like lower(concat('%', :query, '%'))) " +
             "order by m.brandName asc")
     Page<Medicine> searchCatalogFast(@Param("query") String query, Pageable pageable);
+
+    @Query(value = "select m.* " +
+            "from (" +
+            "select distinct ib.medicine_id " +
+            "from inventory_batches ib " +
+            "where ib.store_id = :storeId " +
+            "and ib.is_active = true " +
+            "and upper(coalesce(ib.inventory_state, 'SELLABLE')) = 'SELLABLE' " +
+            "and ib.expiry_date > :today " +
+            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0)" +
+            ") stocked " +
+            "join medicines m on m.medicine_id = stocked.medicine_id " +
+            "where m.is_active = true and (" +
+            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:query), '%') " +
+            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%')" +
+            ") " +
+            "order by " +
+            "case " +
+            "when lower(coalesce(m.barcode, '')) = lower(:query) then 0 " +
+            "when lower(coalesce(m.brand_name, '')) = lower(:query) then 1 " +
+            "when lower(coalesce(m.brand_name, '')) like concat(lower(:query), '%') then 2 " +
+            "else 3 end, " +
+            "m.brand_name asc " +
+            "limit :limit",
+            nativeQuery = true)
+    List<Medicine> searchStockedFast(@Param("storeId") UUID storeId,
+                                     @Param("query") String query,
+                                     @Param("today") LocalDate today,
+                                     @Param("limit") int limit);
+
+    @Query(value = "select m.* " +
+            "from (" +
+            "select distinct ib.medicine_id " +
+            "from inventory_batches ib " +
+            "where ib.store_id = :storeId " +
+            "and ib.is_active = true " +
+            "and upper(coalesce(ib.inventory_state, 'SELLABLE')) = 'SELLABLE' " +
+            "and ib.expiry_date > :today " +
+            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0)" +
+            ") stocked " +
+            "join medicines m on m.medicine_id = stocked.medicine_id " +
+            "where m.is_active = true and (" +
+            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:prefix), '%') " +
+            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:prefix), '%')" +
+            ") " +
+            "order by " +
+            "greatest(" +
+            "similarity(lower(coalesce(m.brand_name, '')), lower(:query)), " +
+            "similarity(lower(coalesce(m.generic_name, '')), lower(:query)), " +
+            "word_similarity(lower(:query), lower(coalesce(m.brand_name, ''))), " +
+            "word_similarity(lower(:query), lower(coalesce(m.search_keywords, '')))" +
+            ") desc, " +
+            "m.brand_name asc " +
+            "limit :limit",
+            nativeQuery = true)
+    List<Medicine> searchStockedFuzzy(@Param("storeId") UUID storeId,
+                                      @Param("query") String query,
+                                      @Param("prefix") String prefix,
+                                      @Param("today") LocalDate today,
+                                      @Param("limit") int limit);
 
     @Query(value = "select m.* " +
             "from medicines m " +

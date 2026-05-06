@@ -93,6 +93,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
   const [uploadingPrescription, setUploadingPrescription] = useState(false);
   const [substitutesByMedicineId, setSubstitutesByMedicineId] = useState<Record<string, SubstituteResult[]>>({});
   const searchRef = useRef<HTMLInputElement>(null);
+  const searchRequestSeq = useRef(0);
   const userRole = localStorage.getItem('pharmaflow_role') || '';
   const canEditPrice = userRole === 'SUPER_ADMIN' || userRole === 'STORE_MANAGER';
 
@@ -194,16 +195,30 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    if (query.trim().length < 2) {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length < 3) {
       setSearchResults([]);
       return;
     }
 
+    const requestSeq = searchRequestSeq.current + 1;
+    searchRequestSeq.current = requestSeq;
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    if (requestSeq !== searchRequestSeq.current) {
+      return;
+    }
+
     try {
-      const results = await MedicineAPI.search(query.trim());
+      const results = await MedicineAPI.search(normalizedQuery);
+      if (requestSeq !== searchRequestSeq.current) {
+        return;
+      }
       setSearchResults(results);
       setErrorMessage(null);
     } catch (error) {
+      if (requestSeq !== searchRequestSeq.current) {
+        return;
+      }
       setErrorMessage(error instanceof Error ? error.message : 'Unable to search medicines.');
     }
   };

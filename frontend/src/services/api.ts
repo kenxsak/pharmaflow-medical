@@ -55,12 +55,26 @@ const extractErrorMessage = async (response: Response) => {
   return response.statusText || 'Request failed';
 };
 
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
 const fetchJson = async <T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> => {
-  const response = await fetch(input, init);
-  if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(input, init);
+    if (response.ok) {
+      return response.json();
+    }
+
+    lastError = new Error(await extractErrorMessage(response));
+    if (response.status !== 503 && response.status !== 429) {
+      throw lastError;
+    }
+
+    await sleep(600 * (attempt + 1));
   }
-  return response.json();
+
+  throw lastError || new Error('Request failed');
 };
 
 const fetchText = async (input: RequestInfo | URL, init?: RequestInit): Promise<string> => {

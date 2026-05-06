@@ -38,13 +38,24 @@ public class MedicineService {
 
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String normalizedQuery = query.trim();
-        List<Medicine> medicines = medicineRepository.searchCatalogFast(normalizedQuery, PageRequest.of(0, safeLimit))
-                .stream()
-                .collect(Collectors.toList());
+        LocalDate today = LocalDate.now();
+        List<Medicine> medicines;
 
-        if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
-            String fuzzyPrefix = normalizedQuery.substring(0, Math.min(4, normalizedQuery.length()));
-            medicines = medicineRepository.searchCatalogFuzzy(normalizedQuery, fuzzyPrefix, safeLimit);
+        if (storeId != null) {
+            medicines = medicineRepository.searchStockedFast(storeId, normalizedQuery, today, safeLimit);
+            if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
+                String fuzzyPrefix = normalizedQuery.substring(0, Math.min(3, normalizedQuery.length()));
+                medicines = medicineRepository.searchStockedFuzzy(storeId, normalizedQuery, fuzzyPrefix, today, safeLimit);
+            }
+        } else {
+            medicines = medicineRepository.searchCatalogFast(normalizedQuery, PageRequest.of(0, safeLimit))
+                    .stream()
+                    .collect(Collectors.toList());
+
+            if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
+                String fuzzyPrefix = normalizedQuery.substring(0, Math.min(4, normalizedQuery.length()));
+                medicines = medicineRepository.searchCatalogFuzzy(normalizedQuery, fuzzyPrefix, safeLimit);
+            }
         }
 
         Map<UUID, InventoryBatch> currentBatchByMedicine = resolveCurrentBatches(storeId, medicines);
