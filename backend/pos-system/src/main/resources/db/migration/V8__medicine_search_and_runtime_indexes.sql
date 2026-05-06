@@ -1,34 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-CREATE INDEX IF NOT EXISTS idx_medicines_brand_trgm
-    ON medicines USING gin (lower(coalesce(brand_name, '')) gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_medicines_generic_trgm
-    ON medicines USING gin (lower(coalesce(generic_name, '')) gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_medicines_barcode_trgm
-    ON medicines USING gin (lower(coalesce(barcode, '')) gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_medicines_composition_trgm
-    ON medicines USING gin (lower(coalesce(composition_summary, '')) gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_medicines_search_keywords_trgm
-    ON medicines USING gin (lower(coalesce(search_keywords, '')) gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_salt_compositions_name_trgm
-    ON salt_compositions USING gin (lower(coalesce(salt_name, '')) gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_manufacturers_name_trgm
-    ON manufacturers USING gin (lower(coalesce(name, '')) gin_trgm_ops);
-
-CREATE INDEX IF NOT EXISTS idx_inventory_batches_current_sellable_store
-    ON inventory_batches (store_id, medicine_id, expiry_date, created_at, batch_id)
-    WHERE is_active = true
-      AND upper(coalesce(inventory_state, 'SELLABLE')) = 'SELLABLE'
-      AND (coalesce(quantity_strips, 0) > 0 OR coalesce(quantity_loose, 0) > 0);
-
-CREATE INDEX IF NOT EXISTS idx_inventory_batches_current_sellable_catalog
-    ON inventory_batches (medicine_id, expiry_date, created_at, batch_id)
-    WHERE is_active = true
-      AND upper(coalesce(inventory_state, 'SELLABLE')) = 'SELLABLE'
-      AND (coalesce(quantity_strips, 0) > 0 OR coalesce(quantity_loose, 0) > 0);
+-- Keep this Flyway migration intentionally lightweight. The hosted Render deploy
+-- can time out while building large GIN indexes during Spring Boot startup.
+-- Run docs/operations/sql/create_medicine_search_indexes_concurrently.sql after
+-- the app is live to add the heavier search indexes without blocking startup.

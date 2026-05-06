@@ -74,6 +74,17 @@ This checks:
 - legacy cashier login: `cashier1@lifepill.com` / `password123`
 - stores, suppliers, cached PIN login, and typo-tolerant medicine search
 
+If the medicine catalog is large, build the optional search indexes only after
+the backend is live:
+
+```sql
+\i docs/operations/sql/create_medicine_search_indexes_concurrently.sql
+```
+
+Do not run those index builds inside the Spring Boot startup migration. They can
+take longer than a hosted deploy socket timeout, which would make Flyway abort
+even though Postgres is still working.
+
 After frontend deploy:
 
 ```powershell
