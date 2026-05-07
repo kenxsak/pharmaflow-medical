@@ -97,7 +97,7 @@ const setupCards: HelpCard[] = [
       'Create store operators and assign each user to the correct store.',
       'Open Stores to confirm the active branches and operating structure.',
       'Use Billing, Inventory, Purchases, Compliance, and Reports as the working modules.',
-      'Keep Help open for FAQs and onboarding during rollout.',
+      'Keep Support open for FAQs and onboarding answers.',
     ],
     audiences: ['saas-admin', 'company-admin'],
   },
@@ -133,19 +133,19 @@ const faqItems: HelpFaqItem[] = [
   {
     question: 'What does SaaS Admin control?',
     answer:
-      'Use SaaS Admin for platform ownership: tenants, plans, pricing, feature entitlements, company onboarding, and cross-company rollout control.',
+      'Use SaaS Admin for platform ownership: tenants, plans, pricing, feature entitlements, company onboarding, and cross-company account control.',
     audiences: ['saas-admin'],
   },
   {
     question: 'Where do I change plans, pricing, or feature access?',
     answer:
-      'Open SaaS Admin. That area controls tenants, plans, pricing, feature entitlements, and platform-level rollout decisions.',
+      'Open SaaS Admin. That area controls tenants, plans, pricing, feature entitlements, and platform-level account decisions.',
     audiences: ['saas-admin'],
   },
   {
     question: 'What does Company Admin control?',
     answer:
-      'Company admins manage their own company only: users, stores, permissions, billing operations, stock, purchases, compliance, reports, and daily branch rollout.',
+      'Company admins manage their own company only: users, stores, permissions, billing operations, stock, purchases, compliance, reports, and daily branch operations.',
     audiences: ['saas-admin', 'company-admin'],
   },
   {
@@ -185,9 +185,9 @@ const faqItems: HelpFaqItem[] = [
     audiences: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
-    question: 'Where are explanations and rollout notes kept now?',
+    question: 'Where are explanations kept now?',
     answer:
-      'They stay in Help and FAQ or in the Enterprise page, so the working screens stay focused on real operations instead of scattered explanatory notes.',
+      'They stay in Support or in the Readiness page, so the working screens stay focused on real operations instead of scattered notes.',
     audiences: ['saas-admin', 'company-admin'],
   },
 ];
@@ -195,7 +195,7 @@ const faqItems: HelpFaqItem[] = [
 const moduleMap = [
   {
     title: 'Admin Control',
-    summary: 'Companies, plans, pricing, feature entitlements, rollout control',
+    summary: 'Companies, plans, pricing, feature entitlements, platform control',
     route: '/medinone/platform',
     audiences: ['saas-admin'] as HelpAudience[],
   },
@@ -249,7 +249,7 @@ const moduleMap = [
   },
   {
     title: 'Stores',
-    summary: 'Branch structure, store directory, HO and rollout view',
+    summary: 'Branch structure, store directory, and HO view',
     route: '/medinone/stores',
     audiences: ['saas-admin', 'company-admin'] as HelpAudience[],
   },

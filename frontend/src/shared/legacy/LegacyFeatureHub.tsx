@@ -297,7 +297,7 @@ const featureGroups: FeatureGroup[] = [
   },
   {
     title: 'Platform and SaaS Control',
-    summary: 'Keep the chain, tenant, and rollout controls available without leaving the simple home.',
+    summary: 'Keep company, tenant, access, and commercial controls available without leaving the simple home.',
     modules: [
       {
         title: 'Stores and HO',
@@ -330,23 +330,16 @@ const featureGroups: FeatureGroup[] = [
       {
         title: 'Offline and Branch Control',
         path: '/medinone/setup',
-        summary: 'Use company setup and branch context when discussing hybrid rollout and branch operations.',
+        summary: 'Use company setup and branch context for hybrid branch operations.',
         accent: 'border-stone-200 bg-stone-50',
         cta: 'Open company setup',
       },
       {
         title: 'Integrations and API',
         path: '/medinone/platform',
-        summary: 'Use the SaaS control center to position integrations, entitlements, and platform rollout.',
+        summary: 'Manage integrations, feature entitlements, and platform-level account controls.',
         accent: 'border-cyan-200 bg-cyan-50',
         cta: 'Open integrations',
-      },
-      {
-        title: 'Enterprise Rollout Guide',
-        path: '/medinone/enterprise',
-        summary: 'Answer rollout, pricing, capability, and coverage questions from one guided screen.',
-        accent: 'border-indigo-200 bg-indigo-50',
-        cta: 'Open guide',
       },
     ],
   },
@@ -390,16 +383,9 @@ const featureGroups: FeatureGroup[] = [
         cta: 'Open SaaS tools',
       },
       {
-        title: 'Rollout Order',
-        path: '/medinone/enterprise',
-        summary: 'Use the rollout guide to answer objections, follow the presentation order, and cover all 43 points clearly.',
-        accent: 'border-violet-200 bg-violet-50',
-        cta: 'Open rollout guide',
-      },
-      {
         title: 'Help and FAQ',
         path: '/medinone/help',
-        summary: 'Role-based setup help, onboarding answers, and module guidance for SaaS admin, company admin, and store login.',
+        summary: 'Role-based support, onboarding answers, and module help for admins and store logins.',
         accent: 'border-slate-200 bg-slate-100',
         cta: 'Open help',
       },
@@ -478,7 +464,7 @@ const requirementGroups: RequirementCoverageGroup[] = [
       {
         code: 'Q10',
         title: 'Home delivery integration',
-        summary: 'Delivery rollout and tenant-level enablement are positioned from the SaaS control center.',
+        summary: 'Delivery operations and tenant-level enablement are positioned from the SaaS control center.',
         path: '/medinone/platform',
         workspace: 'SaaS Admin',
       },
@@ -486,7 +472,7 @@ const requirementGroups: RequirementCoverageGroup[] = [
   },
   {
     title: 'Q11 to Q20',
-    summary: 'Compliance, profitability, hybrid rollout, shortages, and inspector-ready operations.',
+        summary: 'Compliance, profitability, hybrid operations, shortages, and inspector-ready workflows.',
     items: [
       {
         code: 'Q11',
@@ -727,7 +713,7 @@ const requirementGroups: RequirementCoverageGroup[] = [
       {
         code: 'Q43',
         title: 'Integrations and future APIs',
-        summary: 'Platform admin is the right legacy entry point for integrations, APIs, and rollout planning.',
+        summary: 'Platform admin is the right legacy entry point for integrations, APIs, and account planning.',
         path: '/medinone/platform',
         workspace: 'SaaS Admin',
       },
@@ -737,16 +723,9 @@ const requirementGroups: RequirementCoverageGroup[] = [
 
 const starterModuleTitles: Record<LegacyPersona, string[]> = {
   guest: ['Billing Counter', 'Inventory Dashboard', 'Compliance Register', 'Help and FAQ'],
-  'saas-admin': ['Users and Permissions', 'Plans and Pricing', 'Stores and HO', 'Enterprise Rollout Guide'],
+  'saas-admin': ['Users and Permissions', 'Plans and Pricing', 'Stores and HO', 'White Label Branding'],
   'company-admin': ['Billing Counter', 'Inventory Dashboard', 'Purchase Import', 'Compliance Register'],
   'store-ops': ['Billing Counter', 'Customers and Loyalty', 'Inventory Dashboard', 'Compliance Register'],
-};
-
-const personaGuides: Record<LegacyPersona, string> = {
-  guest: 'Sign in from the MedInOne login first, then follow billing, stock, compliance, and reports in that order.',
-  'saas-admin': 'Lead with company setup and access control, then move into one company’s live operating flow.',
-  'company-admin': 'Start with billing, move to stock and purchases, then close with compliance and reports.',
-  'store-ops': 'Keep the story practical: billing, customers, stock, compliance, and reports for the active branch.',
 };
 
 const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
@@ -825,6 +804,9 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
   const totalRequirementItems = filteredRequirementGroups.reduce((sum, group) => sum + group.items.length, 0);
   const filteredRequirementCount = filteredRequirementGroups.reduce((sum, group) => sum + group.items.length, 0);
   const visibleWorkAreas = filteredFeatureGroups.length;
+  const availableModulesLabel = showRequirementCoverage
+    ? `${filteredRequirementCount}/${totalRequirementItems} checks available`
+    : `${totalQuickLaunchCards} modules ready`;
   const starterModules = starterModuleTitles[currentPersona]
     .map((moduleTitle) => allModules.find((module) => module.title === moduleTitle))
     .filter((module): module is FeatureModule => Boolean(module))
@@ -863,7 +845,7 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
 
       <div className='mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4'>
         <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Quick Launch Cards</div>
+          <div className='text-xs uppercase tracking-wide text-slate-400'>Available Modules</div>
           <div className='mt-2 text-3xl font-bold text-slate-900'>{totalQuickLaunchCards}</div>
           <div className='mt-1 text-sm text-slate-500'>Only the modules available to this login are shown here.</div>
         </div>
@@ -875,19 +857,17 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
         </div>
 
         <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Recommended Flow</div>
-          <div className='mt-2 text-lg font-semibold text-slate-900'>Start with what this login actually uses</div>
-          <div className='mt-1 text-sm text-slate-500'>{personaGuides[currentPersona]}</div>
+          <div className='text-xs uppercase tracking-wide text-slate-400'>Daily Work</div>
+          <div className='mt-2 text-lg font-semibold text-slate-900'>Focused for this login</div>
+          <div className='mt-1 text-sm text-slate-500'>The home screen only shows work areas this role can actually open.</div>
         </div>
 
         <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
           <div className='text-xs uppercase tracking-wide text-slate-400'>Search</div>
-          <div className='mt-2 text-lg font-semibold text-slate-900'>
-            {totalQuickLaunchCards} modules ready
-          </div>
+          <div className='mt-2 text-lg font-semibold text-slate-900'>{availableModulesLabel}</div>
           <div className='mt-1 text-sm text-slate-500'>
             {showRequirementCoverage
-              ? `${filteredRequirementCount}/${totalRequirementItems} buyer questions are available when needed.`
+              ? 'Operational checks are searchable when needed.'
               : 'Use search to keep the workspace calm instead of showing too much at once.'}
           </div>
         </div>
@@ -896,19 +876,11 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
       <div className='mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4'>
         <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
           <div>
-            <div className='text-sm font-semibold text-slate-900'>Start here</div>
+            <div className='text-sm font-semibold text-slate-900'>Pinned daily work</div>
             <div className='mt-1 text-sm leading-6 text-slate-600'>
-              These are the cleanest first clicks for the current login, so the walkthrough feels like one real pharmacy product.
+              Fast access to the most-used screens for the current login.
             </div>
           </div>
-          {!showRequirementCoverage ? (
-            <Link
-              to='/medinone/enterprise'
-              className='inline-flex rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700'
-            >
-              Open rollout guide
-            </Link>
-          ) : null}
         </div>
 
         <div className='mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4'>

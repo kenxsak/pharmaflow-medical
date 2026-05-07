@@ -305,10 +305,10 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 Legacy login
               </Link>
               <Link
-                to={persona === 'store-ops' ? '/medinone/help' : '/medinone/enterprise'}
+                to="/medinone/legacy-home"
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
               >
-                {persona === 'store-ops' ? 'Help and FAQ' : 'Rollout and coverage guide'}
+                Daily home
               </Link>
             </div>
           </div>

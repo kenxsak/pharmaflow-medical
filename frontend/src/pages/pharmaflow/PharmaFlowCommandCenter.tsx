@@ -192,7 +192,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
     <PharmaFlowShell
       embedded={embedded}
       title="Company Setup"
-      description="Manage the active store, company branding, access model, and rollout configuration from inside the same legacy workspace instead of maintaining a second login system."
+      description="Manage the active store, company branding, access model, and account configuration from inside the same legacy workspace instead of maintaining a second login system."
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
@@ -251,7 +251,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
 
           <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Ready Accounts</div>
-            <h2 className="mt-3 text-xl font-semibold text-slate-950">Accounts prepared for business rollout</h2>
+              <h2 className="mt-3 text-xl font-semibold text-slate-950">Accounts prepared for business operations</h2>
             <div className="mt-5 grid gap-3">
               {accessPresets.map((preset) => (
                 <div key={preset.title} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
@@ -362,7 +362,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
             <h2 className="mt-3 text-xl font-semibold text-slate-950">MedInOne login is the main entry now</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Account switching happens from the legacy login screen. This setup page now stays inside the same
-              software for store selection, branding, and operational rollout instead of acting like a second login
+                    software for store selection, branding, and operational control instead of acting like a second login
               portal.
             </p>
 

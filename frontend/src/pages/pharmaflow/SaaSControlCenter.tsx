@@ -848,7 +848,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
               <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Tenant Profile</div>
               <h2 className="mt-3 text-xl font-semibold text-slate-950">Commercial and branding overview</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Keep the platform roster clean here, then open the guided editor only when you want to create or adjust a company profile.
+                  Keep the platform roster clean here, then open the editor only when you want to create or adjust a company profile.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -908,7 +908,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
               <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="text-sm font-semibold text-slate-950">Operating note</div>
                 <div className="mt-2 text-sm leading-6 text-slate-600">
-                  {tenantDraft.notes || 'Use notes for rollout commitments, onboarding reminders, support promises, or deployment-specific context.'}
+                  {tenantDraft.notes || 'Use notes for onboarding reminders, support promises, or deployment-specific context.'}
                 </div>
               </div>
             </div>
@@ -934,7 +934,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
               to="/medinone/enterprise"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
             >
-              Open rollout guide
+              Open readiness view
             </Link>
           </div>
         </div>
@@ -1093,7 +1093,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
         open={isTenantEditorOpen}
         onClose={() => setIsTenantEditorOpen(false)}
         title="Tenant Editor"
-        description="Set the commercial profile, rollout status, contact identity, and branding details for a company account."
+      description="Set the commercial profile, account status, contact identity, and branding details for a company account."
         size="xl"
         footer={
           <>
@@ -1280,7 +1280,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
             <div className="mt-3 grid gap-2 text-sm text-slate-600">
               <div>Brand identity used across the workspace, receipts, and support-facing communication.</div>
               <div>Commercial limits such as stores, active users, plan assignment, and renewal expectations.</div>
-              <div>Support and billing contacts used during onboarding, renewal, and rollout follow-up.</div>
+                    <div>Support and billing contacts used during onboarding, renewal, and account follow-up.</div>
             </div>
           </div>
         </div>

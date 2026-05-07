@@ -552,7 +552,7 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
         open={isEditorOpen}
         onClose={() => setIsEditorOpen(false)}
         title={draft.userId ? 'Update account' : 'Create account'}
-        description="Keep user setup calm and consistent: company, role, store, and permissions all in one guided screen."
+      description="Keep user setup calm and consistent: company, role, store, and permissions all in one screen."
         footer={
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-slate-500">

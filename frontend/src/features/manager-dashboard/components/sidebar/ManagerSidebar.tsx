@@ -120,7 +120,7 @@ const ManagerSidebar = ({ onItemClick, selectedItem }: Props) => {
         />
         <ButtonWithIconAndTextVertical
           icon={<LuBookOpen size={24} />}
-          text='Rollout'
+              text='Readiness'
           onClick={() => onItemClick(resolveItemKey('Enterprise'))}
           testid='enterprise'
           isActive={selectedItem === resolveItemKey('Enterprise')}

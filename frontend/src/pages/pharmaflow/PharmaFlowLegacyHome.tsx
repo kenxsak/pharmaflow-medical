@@ -62,7 +62,7 @@ const PharmaFlowLegacyHome: React.FC = () => {
             <div className='mt-2 text-lg font-semibold text-slate-900'>
               {context.storeCode || localStorage.getItem('pharmaflow_store_code') || 'Select branch in Company Setup'}
             </div>
-            <div className='mt-1 text-sm text-slate-500'>Use this as the starting point for daily work and rollout walkthroughs.</div>
+            <div className='mt-1 text-sm text-slate-500'>Use this as the daily starting point for branch work.</div>
           </div>
 
           <div className='rounded-2xl bg-white p-5 shadow-sm'>
@@ -78,7 +78,7 @@ const PharmaFlowLegacyHome: React.FC = () => {
 
         <LegacyFeatureHub
           title='Legacy-style feature launcher'
-          description='One-click access to billing, customers, inventory, purchases, compliance, GST, profit, stores, rollout guide, admin control, and setup.'
+          description='One-click access to billing, customers, inventory, purchases, compliance, GST, profit, stores, admin control, and setup.'
         />
       </div>
     </div>

@@ -30,7 +30,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Multi-location management',
     status: 'Partial',
     answer:
-      'Store, HO, and warehouse context switching are live now. Enterprise transfer sync and real-time inter-branch orchestration are the next rollout layer.',
+    'Store, HO, and warehouse context switching are live now. Enterprise transfer sync and real-time inter-branch orchestration are the next scale layer.',
     routePath: '/medinone/stores',
     routeLabel: 'Stores',
   },
@@ -89,7 +89,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Prescription digitization',
     status: 'Partial',
     answer:
-      'Prescription reference capture is live. Full scan-and-attach rollout depends on storage integration and upload workflow hardening.',
+    'Prescription reference capture is live. Full scan-and-attach coverage depends on storage integration and upload workflow hardening.',
     routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
@@ -98,7 +98,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Centralized loyalty and discounts',
     status: 'Partial',
     answer:
-      'Customer credit and loyalty are live today. Cross-branch earning and redemption policy should be finalized as part of enterprise rollout rules.',
+    'Customer credit and loyalty are live today. Cross-branch earning and redemption policy should be finalized as part of enterprise operating rules.',
     routePath: '/medinone/customers',
     routeLabel: 'Customers',
   },
@@ -107,7 +107,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Home delivery integration',
     status: 'Extension-ready',
     answer:
-      'Delivery entities are present in the backend foundation, but the delivery boy app and dispatch workflow still need their rollout UI.',
+    'Delivery entities are present in the backend foundation, but the rider app and dispatch workflow still need their operations UI.',
     routePath: '/medinone/enterprise',
     routeLabel: 'Enterprise',
   },
@@ -285,7 +285,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     id: 32,
     title: 'Purchase scheme tracking (Buy 10 Get 1)',
     status: 'Partial',
-    answer: 'Free-quantity support exists in purchase imports, while richer scheme management should be expanded during procurement rollout.',
+    answer: 'Free-quantity support exists in purchase imports, while richer scheme management should be expanded inside procurement.',
     routePath: '/medinone/procurement',
     routeLabel: 'Purchases',
   },
@@ -441,7 +441,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
     <PharmaFlowShell
       embedded={embedded}
       title="Enterprise Readiness and White Label"
-      description="Answer buyer questions, show the recommended module walkthrough, and present the product as a tenant-branded pharmacy platform instead of a single-store tool."
+      description="Review capability coverage, white-label settings, and enterprise operating readiness from one professional workspace."
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
@@ -464,15 +464,14 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
         <div className="grid gap-5 lg:grid-cols-[1.2fr,0.8fr]">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">
-              Enterprise Story
+              Enterprise Readiness
             </div>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-              Sell {branding.brandName} as a 300-store pharmacy platform
+              Run {branding.brandName} as a chain-ready pharmacy platform
             </h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-200">
-              This page turns the product into a buyer-facing walkthrough. Start here when the client asks about
-              white-labelling, chain rollout, support model, integrations, or how each operational promise maps to a
-              real screen.
+              Track white-labelling, chain operations, support model, integrations, and how each operational promise
+              maps to a real screen.
             </p>
           </div>
 
@@ -536,8 +535,8 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
         <div className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-6 shadow-sm">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Suggested Rollout Flow</div>
-              <h2 className="mt-3 text-xl font-semibold text-slate-950">Walk the client through the platform in this order</h2>
+              <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Core Workspaces</div>
+              <h2 className="mt-3 text-xl font-semibold text-slate-950">Operational screens that prove platform coverage</h2>
             </div>
             <Link
               to="/medinone/setup"
@@ -570,7 +569,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
           <div key={status} className="rounded-[2rem] border border-slate-200/70 bg-white p-5 shadow-sm">
             <div className="text-xs uppercase tracking-wide text-slate-500">{status}</div>
             <div className="mt-2 text-3xl font-semibold text-slate-950">{statusSummary[status]}</div>
-            <div className="mt-1 text-sm text-slate-500">Rollout questions in this state</div>
+            <div className="mt-1 text-sm text-slate-500">Coverage items in this state</div>
           </div>
         ))}
       </section>
@@ -581,7 +580,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
             <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Question Matrix</div>
             <h2 className="mt-3 text-xl font-semibold text-slate-950">Question-by-question coverage</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Use this table when the client asks how a requirement maps to the live product, the rollout plan, or a support package.
+              Use this table when a requirement needs to map to the live product, account setup, or a support package.
             </p>
           </div>
         </div>
