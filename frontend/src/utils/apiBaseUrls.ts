@@ -1,7 +1,7 @@
 const stripTrailingSlash = (value: string) =>
   value.endsWith('/') ? value.slice(0, -1) : value;
 
-const DEFAULT_HOSTED_BACKEND_URL = 'https://pharmaflow-backend-vr51.onrender.com';
+const DEFAULT_HOSTED_BACKEND_URL = 'https://pharmaflow-backend-fou9.onrender.com';
 
 const getHostedFallbackBaseUrl = () => {
   if (typeof window === 'undefined') {
