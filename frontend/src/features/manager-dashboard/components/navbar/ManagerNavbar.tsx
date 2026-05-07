@@ -1,7 +1,7 @@
 import ProfileNameCard from '../../../../shared/cashier_profile/ProfileNameCard';
 import DateAndTimeNavBar from '../../../../shared/clock/DateAndTimeNavBar';
 import Divider from '../../../../shared/divider/Divider';
-import Logo from '../../../../assets/logo/logo.png';
+import BrandLogo from '../../../../shared/brand/BrandLogo';
 
 interface ManagerNavbarProps {
   title?: string;
@@ -14,10 +14,7 @@ const ManagerNavbar = ({ title = 'Dashboard' }: ManagerNavbarProps) => {
       data-testid='cypress-manager-navbar'
     >
       <div className='flex flex-row items-center justify-center gap-4'>
-        {/* Logo */}
-        <div>
-          <img src={Logo} alt='Logo' width={60} height={60} />
-        </div>
+        <BrandLogo variant='mark' imageClassName='h-14 w-14' />
 
         <div>
           <h2 className='font-medium text-lg'>{title}</h2>

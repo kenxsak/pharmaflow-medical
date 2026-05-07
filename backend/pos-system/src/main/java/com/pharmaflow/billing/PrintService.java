@@ -37,13 +37,13 @@ public class PrintService {
     private final InvoiceItemRepository invoiceItemRepository;
     private final AuditLogService auditLogService;
 
-    @Value("${pharmaflow.brand.name:PharmaFlow}")
+    @Value("${pharmaflow.brand.name:MedInOne}")
     private String configuredBrandName;
 
     @Value("${pharmaflow.brand.tagline:Retail pharmacy operations, billing, and compliance workspace}")
     private String configuredTagline;
 
-    @Value("${pharmaflow.brand.support-email:support@pharmaflow.in}")
+    @Value("${pharmaflow.brand.support-email:support@medinone.in}")
     private String configuredSupportEmail;
 
     @Value("${pharmaflow.brand.support-phone:+91 44 4000 9000}")

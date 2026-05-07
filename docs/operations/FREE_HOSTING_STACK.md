@@ -1,6 +1,6 @@
 # Free Hosting Stack
 
-This is the free preview setup for PharmaFlow. It is useful for demos and testing, but it is not the stable production answer for a live pharmacy workflow because free app/database services can sleep, cold start, or run out of small resource limits.
+This is the free preview setup for MedInOne. It is useful for demos and testing, but it is not the stable production answer for a live pharmacy workflow because free app/database services can sleep, cold start, or run out of small resource limits.
 
 For the stable hosted plan, use [STABLE_HOSTING_STACK.md](./STABLE_HOSTING_STACK.md).
 
@@ -134,7 +134,7 @@ If you want a separate database provider later, Neon is still a good option, but
 
 ## Redis fallback
 
-PharmaFlow now supports running without hosted Redis. When `PHARMAFLOW_REDIS_ENABLED=false`, the app falls back to an in-memory cache for the employer-details flow used by the legacy PIN path.
+MedInOne now supports running without hosted Redis. When `PHARMAFLOW_REDIS_ENABLED=false`, the app falls back to an in-memory cache for the employer-details flow used by the legacy PIN path.
 
 Tradeoff:
 

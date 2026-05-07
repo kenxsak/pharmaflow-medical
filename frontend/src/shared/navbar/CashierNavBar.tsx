@@ -7,7 +7,7 @@ import OrderCardComponent from '../../features/cashier-dashboard/components/orde
 import { useWebSocket } from '../../features/cashier-dashboard/context/WebSocketContext';
 import { useUserContext } from '../../context/UserContext';
 import { supportsLegacyRealtime } from '../../utils/legacySession';
-const Logo = require('../../assets/logo/logo.png');
+import BrandLogo from '../brand/BrandLogo';
 
 interface CashierNavBarProps {
   title?: string;
@@ -26,7 +26,7 @@ const CashierNavBar = ({ title = 'Easy Pharmacy Home' }: CashierNavBarProps) => 
     <div className='flex items-center justify-between w-full p-2 font-poppins shadow-md'>
       {/* Logo */}
       <div className='flex items-center gap-3'>
-        <img src={Logo} alt='Logo' width={60} height={60} className='ml-4' />
+        <BrandLogo variant='mark' className='ml-4' imageClassName='h-14 w-14' />
         <div>
           <h2 className='text-lg font-semibold text-slate-900'>{title}</h2>
           <p className='text-xs text-slate-500'>Simple legacy workspace</p>

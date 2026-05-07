@@ -71,9 +71,9 @@ $envValues = [ordered]@{
   PHARMAFLOW_STORAGE_LOCAL_ROOT = "/tmp/pharmaflow-documents"
   PHARMAFLOW_MEDICINE_AUTO_IMPORT = "false"
   JWT_SECRET = $JwtSecret
-  PHARMAFLOW_BRAND_NAME = "PharmaFlow"
-  PHARMAFLOW_BRAND_TAGLINE = "Retail pharmacy operations, billing, and compliance workspace"
-  PHARMAFLOW_BRAND_SUPPORT_EMAIL = "support@pharmaflow.in"
+  PHARMAFLOW_BRAND_NAME = "MedInOne"
+  PHARMAFLOW_BRAND_TAGLINE = "One connected workspace for pharmacy billing, inventory, compliance, and delivery"
+  PHARMAFLOW_BRAND_SUPPORT_EMAIL = "support@medinone.in"
   PHARMAFLOW_BRAND_SUPPORT_PHONE = "+91 44 4000 9000"
 }
 

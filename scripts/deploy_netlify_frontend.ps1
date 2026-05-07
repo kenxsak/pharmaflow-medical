@@ -13,6 +13,11 @@ $envCommands = @(
   @("REACT_APP_API_URL", "$backend/api/v1"),
   @("REACT_APP_LEGACY_API_URL", "$backend/lifepill/v1"),
   @("REACT_APP_WS_URL", "$backend/ws"),
+  @("REACT_APP_BRAND_NAME", "MedInOne"),
+  @("REACT_APP_STORE_NAME", "MedInOne"),
+  @("REACT_APP_BRAND_TAGLINE", "One connected workspace for pharmacy billing, inventory, compliance, and delivery"),
+  @("REACT_APP_BRAND_SUPPORT_EMAIL", "support@medinone.in"),
+  @("REACT_APP_BRAND_SUPPORT_PHONE", "+91 44 4000 9000"),
   @("REACT_APP_BRAND_DEPLOYMENT_MODE", $DeploymentMode)
 )
 

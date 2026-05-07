@@ -28,14 +28,18 @@ interface TenantOption {
 
 const getCompanyLabel = (tenantName?: string, tenantSlug?: string) => {
   if (tenantName?.trim()) {
-    return tenantName.trim() === 'PharmaFlow' ? 'LifePill' : tenantName.trim();
+    return ['pharmaflow', 'lifepill'].includes(tenantName.trim().toLowerCase())
+      ? 'MedInOne'
+      : tenantName.trim();
   }
 
   if (!tenantSlug?.trim()) {
     return '';
   }
 
-  return tenantSlug.trim() === 'pharmaflow' ? 'LifePill' : tenantSlug.trim();
+  return ['pharmaflow', 'lifepill'].includes(tenantSlug.trim())
+    ? 'MedInOne'
+    : tenantSlug.trim();
 };
 
 const createDraft = (
@@ -312,13 +316,13 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
-              to="/lifepill/help"
+              to="/medinone/help"
               className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
             >
               Open help center
             </Link>
             <Link
-              to="/lifepill/billing"
+              to="/medinone/billing"
               className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700"
             >
               Open billing
@@ -490,7 +494,7 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                 Create a user
               </button>
               <Link
-                to="/lifepill/help"
+                to="/medinone/help"
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
               >
                 Open help and FAQ

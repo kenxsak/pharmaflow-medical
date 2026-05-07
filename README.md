@@ -1,6 +1,6 @@
-# PharmaFlow Demo Deployment
+# MedInOne Demo Deployment
 
-This repository contains the PharmaFlow/LifePill pharmacy SaaS demo stack:
+This repository contains the MedInOne pharmacy SaaS demo stack:
 
 - `frontend/` - React legacy-first UI
 - `backend/pos-system/` - Spring Boot API

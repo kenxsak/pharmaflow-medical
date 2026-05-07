@@ -25,19 +25,19 @@ const PharmaFlowLegacyHome: React.FC = () => {
 
             <div className='flex flex-wrap gap-3'>
               <Link
-                to='/lifepill/billing'
+                to='/medinone/billing'
                 className='rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm'
               >
                 Open Billing
               </Link>
               <Link
-                to='/lifepill/setup'
+                to='/medinone/setup'
                 className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
               >
                 Company Setup
               </Link>
               <Link
-                to='/lifepill/help'
+                to='/medinone/help'
                 className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
               >
                 Help
@@ -68,7 +68,7 @@ const PharmaFlowLegacyHome: React.FC = () => {
           <div className='rounded-2xl bg-white p-5 shadow-sm'>
             <div className='text-xs uppercase tracking-wide text-slate-400'>Company</div>
             <div className='mt-2 text-lg font-semibold text-slate-900'>
-              {branding.brandName || 'LifePill'}
+              {branding.brandName || 'MedInOne'}
             </div>
             <div className='mt-1 text-sm text-slate-500'>
               Branding, plans, and chain setup remain available when you need them.

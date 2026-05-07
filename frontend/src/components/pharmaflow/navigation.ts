@@ -20,7 +20,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 
 export type PharmaFlowNavStatus = 'Live' | 'Partial';
-export type PharmaFlowNavAccess = 'saas-admin' | 'company-admin' | 'store-ops';
+export type PharmaFlowNavAccess = 'saas-admin' | 'company-admin' | 'store-ops' | 'delivery-staff';
 
 export interface PharmaFlowNavItem {
   title: string;
@@ -36,18 +36,18 @@ export interface PharmaFlowNavItem {
 export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   {
     title: 'Home',
-    path: '/lifepill/legacy-home',
+    path: '/medinone/legacy-home',
     summary: 'Simple legacy-style home that opens the main pharmacy workflows in a calmer, buyer-friendly order.',
     shortSummary: 'Legacy pharmacy home',
     status: 'Live',
     icon: Home,
     group: 'Workspace',
-    access: ['saas-admin', 'company-admin', 'store-ops'],
+    access: ['saas-admin', 'company-admin', 'store-ops', 'delivery-staff'],
   },
   {
     title: 'Company Setup',
-    path: '/lifepill/setup',
-    summary: 'Manage active store selection, branding, rollout configuration, and company setup after signing in through the legacy LifePill login.',
+    path: '/medinone/setup',
+    summary: 'Manage active store selection, branding, rollout configuration, and company setup after signing in.',
     shortSummary: 'Store, brand, rollout setup',
     status: 'Live',
     icon: LayoutDashboard,
@@ -56,7 +56,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Enterprise',
-    path: '/lifepill/enterprise',
+    path: '/medinone/enterprise',
     summary: 'White-label profile, rollout model, buyer answers, and the recommended business demo path.',
     shortSummary: 'Buyer guide and rollout',
     status: 'Live',
@@ -66,7 +66,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'SaaS Admin',
-    path: '/lifepill/platform',
+    path: '/medinone/platform',
     summary: 'Tenant roster, plans, pricing, and platform controls for SaaS ownership and rollout management.',
     shortSummary: 'Tenants and pricing',
     status: 'Live',
@@ -76,7 +76,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Users & Access',
-    path: '/lifepill/users',
+    path: '/medinone/users',
     summary: 'Create company admins, store operators, assign stores, and control who can do what from one legacy-friendly screen.',
     shortSummary: 'Users, roles, permissions',
     status: 'Live',
@@ -86,17 +86,17 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Help',
-    path: '/lifepill/help',
+    path: '/medinone/help',
     summary: 'Role-based setup guides, FAQs, onboarding instructions, and where each login should go first.',
     shortSummary: 'Guides and FAQs',
     status: 'Live',
     icon: LifeBuoy,
     group: 'Workspace',
-    access: ['saas-admin', 'company-admin', 'store-ops'],
+    access: ['saas-admin', 'company-admin', 'store-ops', 'delivery-staff'],
   },
   {
     title: 'Counter',
-    path: '/lifepill/billing',
+    path: '/medinone/billing',
     summary: 'Counter billing with barcode-ready medicine search, GST, substitutes, and compliance capture.',
     shortSummary: 'Billing and barcode scan',
     status: 'Live',
@@ -106,7 +106,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Stock',
-    path: '/lifepill/inventory',
+    path: '/medinone/inventory',
     summary: 'Batch stock visibility, medicine lookup, shortage detection, and FIFO-oriented stock inspection.',
     shortSummary: 'Inventory and batches',
     status: 'Live',
@@ -116,7 +116,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Purchases',
-    path: '/lifepill/procurement',
+    path: '/medinone/procurement',
     summary: 'Supplier setup, manual inward entry, and CSV purchase invoice import for the active store.',
     shortSummary: 'Inward and purchase import',
     status: 'Live',
@@ -126,7 +126,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Bills',
-    path: '/lifepill/billing-history',
+    path: '/medinone/billing-history',
     summary: 'Invoice search, detailed bill review, and audit trail visibility for changes and events.',
     shortSummary: 'History and edits',
     status: 'Live',
@@ -136,7 +136,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Compliance',
-    path: '/lifepill/compliance',
+    path: '/medinone/compliance',
     summary: 'Schedule H, H1, X, and narcotic reporting with Drug Inspector-ready register views.',
     shortSummary: 'Controlled drugs',
     status: 'Live',
@@ -146,7 +146,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Customers',
-    path: '/lifepill/customers',
+    path: '/medinone/customers',
     summary: 'Customer search, credit visibility, loyalty actions, and patient history in one branch-friendly workspace.',
     shortSummary: 'Credit and history',
     status: 'Live',
@@ -156,17 +156,17 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Online & Delivery',
-    path: '/lifepill/delivery',
+    path: '/medinone/delivery',
     summary: 'Convert online or phone medicine orders into branch deliveries, assign riders, and track delivery status from one screen.',
     shortSummary: 'Online orders and riders',
     status: 'Live',
     icon: Truck,
     group: 'Operations',
-    access: ['saas-admin', 'company-admin', 'store-ops'],
+    access: ['saas-admin', 'company-admin', 'store-ops', 'delivery-staff'],
   },
   {
     title: 'GST Reports',
-    path: '/lifepill/reports/gst',
+    path: '/medinone/reports/gst',
     summary: 'GSTR-1, GSTR-3B, shortage, expiry loss, and monthly operational reporting from store invoices.',
     shortSummary: 'GST, shortage, expiry loss',
     status: 'Live',
@@ -176,7 +176,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Profit',
-    path: '/lifepill/reports/profit',
+    path: '/medinone/reports/profit',
     summary: 'Daily sales, top sellers, slow movers, and estimated profit by manufacturer and category for the active store.',
     shortSummary: 'Sales, movement, margin',
     status: 'Live',
@@ -186,7 +186,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Expiry',
-    path: '/lifepill/reports/expiry-alerts',
+    path: '/medinone/reports/expiry-alerts',
     summary: '30, 60, and 90-day expiry buckets, at-risk stock value, and exportable alerts.',
     shortSummary: 'Expiry and shortage',
     status: 'Live',
@@ -196,7 +196,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   },
   {
     title: 'Stores',
-    path: '/lifepill/stores',
+    path: '/medinone/stores',
     summary: 'Store directory, branch selection, and current multi-store readiness across HO and warehouse.',
     shortSummary: 'Store switching',
     status: 'Partial',

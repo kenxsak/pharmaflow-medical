@@ -32,11 +32,11 @@ const useSignIn = () => {
 
       savePharmaFlowSession(response);
       saveBranding({
-        brandName: response.brandName || 'LifePill',
+        brandName: response.brandName || 'MedInOne',
         tagline:
           response.brandTagline ||
-          'Simple pharmacy operations, billing, and compliance workspace',
-        supportEmail: response.supportEmail || 'support@lifepill.com',
+          'One connected workspace for pharmacy billing, inventory, compliance, and delivery',
+        supportEmail: response.supportEmail || 'support@medinone.in',
         supportPhone: response.supportPhone || '+91 44 4000 9000',
         deploymentMode:
           response.deploymentMode || 'Hybrid cloud + branch-local operations',

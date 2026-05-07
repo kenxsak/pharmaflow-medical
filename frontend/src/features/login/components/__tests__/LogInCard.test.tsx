@@ -4,7 +4,8 @@ import { UserProvider } from '../../../../context/UserContext'; // Assuming you 
 import LogInCard from '../LogInCard'; // Assuming LogInCard.tsx is in the same directory as LogInCard.test.tsx
 import '@testing-library/jest-dom'; // Import the Jest DOM matchers
 
-jest.mock('../../../../assets/logo/logo.png', () => 'logo-path');
+jest.mock('../../../../assets/logo/mark.png', () => 'mark-logo-path');
+jest.mock('../../../../assets/logo/wordmark.png', () => 'wordmark-logo-path');
 
 describe('LogInCard Component', () => {
   it('renders correctly', () => {
@@ -17,7 +18,7 @@ describe('LogInCard Component', () => {
 
     // Your test assertions go here
     // For example, checking if certain elements are rendered
-    const logoElement = screen.getByAltText('Logo');
+    const logoElement = screen.getByAltText('MedInOne logo');
     const usernameInput = screen.getByLabelText('Username');
     const passwordInput = screen.getByLabelText('Password');
     const signInButton = screen.getByText('Sign In');

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { AuthResponse } from '../services/api';
 
 export const PHARMAFLOW_CONTEXT_EVENT = 'pharmaflow-context-changed';
-export type PharmaFlowPersona = 'saas-admin' | 'company-admin' | 'store-ops' | 'guest';
+export type PharmaFlowPersona = 'saas-admin' | 'company-admin' | 'store-ops' | 'delivery-staff' | 'guest';
 
 export interface PharmaFlowContextSnapshot {
   username: string;
@@ -66,6 +66,9 @@ export const getPharmaFlowPersona = (
   if (context.platformOwner) {
     return 'saas-admin';
   }
+  if (context.role === 'DELIVERY_BOY') {
+    return 'delivery-staff';
+  }
   if (isPharmaFlowCompanyAdmin(context.role, context.platformOwner)) {
     return 'company-admin';
   }
@@ -112,6 +115,8 @@ export const getPharmaFlowHomePath = (
       return '/manager-dashboard/Dashboard';
     case 'store-ops':
       return '/cashier-dashboard';
+    case 'delivery-staff':
+      return '/medinone/delivery';
     default:
       return '/legacy-login';
   }

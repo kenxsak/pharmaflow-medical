@@ -19,7 +19,7 @@ import java.util.List;
 @Component
 @Profile("!test")
 @RequiredArgsConstructor
-public class LegacyLifePillBootstrap implements CommandLineRunner {
+public class LegacyMedInOneBootstrap implements CommandLineRunner {
 
     private final BranchRepository branchRepository;
     private final EmployerRepository employerRepository;
@@ -32,10 +32,10 @@ public class LegacyLifePillBootstrap implements CommandLineRunner {
                 ? branchRepository.save(
                         Branch.builder()
                                 .branchName("Head Office")
-                                .branchAddress("LifePill Building, 123 Main Street, Colombo 03")
+                                .branchAddress("MedInOne Building, 123 Main Street, Colombo 03")
                                 .branchContact("0112345678")
-                                .branchEmail("headoffice@lifepill.com")
-                                .branchDescription("Legacy LifePill head office demo branch")
+                                .branchEmail("headoffice@medinone.in")
+                                .branchDescription("Legacy MedInOne head office demo branch")
                                 .branchStatus(true)
                                 .branchLocation("6.9271,79.8612")
                                 .branchCreatedOn(LocalDate.now().toString())
@@ -53,8 +53,8 @@ public class LegacyLifePillBootstrap implements CommandLineRunner {
                             .branchName("Maradana Branch")
                             .branchAddress("456 Maradana Road, Colombo 10")
                             .branchContact("0119876543")
-                            .branchEmail("maradana@lifepill.com")
-                            .branchDescription("Legacy LifePill cashier demo branch")
+                            .branchEmail("maradana@medinone.in")
+                            .branchDescription("Legacy MedInOne cashier demo branch")
                             .branchStatus(true)
                             .branchLocation("6.9147,79.8646")
                             .branchCreatedOn(LocalDate.now().toString())
@@ -64,7 +64,7 @@ public class LegacyLifePillBootstrap implements CommandLineRunner {
         }
 
         seedEmployer(
-                "admin@lifepill.com",
+                "owner@medinone.in",
                 "admin123",
                 1234,
                 Role.OWNER,
@@ -73,13 +73,13 @@ public class LegacyLifePillBootstrap implements CommandLineRunner {
                 "Jayasooriya",
                 "pramitha",
                 "0771234567",
-                "LifePill Head Office, 123 Main Street, Colombo 03",
+                "MedInOne Head Office, 123 Main Street, Colombo 03",
                 "200012345678",
                 150000
         );
 
         seedEmployer(
-                "cashier1@lifepill.com",
+                "cashier@medinone.in",
                 "password123",
                 4321,
                 Role.CASHIER,

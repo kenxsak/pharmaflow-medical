@@ -94,7 +94,7 @@ public class TenantAccessService {
 
     public Tenant resolveTenantForUser(PharmaUser user) {
         if (user == null) {
-            throw new ForbiddenActionException("Authenticated PharmaFlow user is required");
+            throw new ForbiddenActionException("Authenticated MedInOne user is required");
         }
         if (user.getTenant() != null) {
             return user.getTenant();

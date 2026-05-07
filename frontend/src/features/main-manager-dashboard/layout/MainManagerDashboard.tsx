@@ -20,10 +20,10 @@ function MainManagerDashboard({
   const branding = readBranding();
   const displayBranchData = branchData || {
     branchId: 0,
-    branchName: localStorage.getItem('pharmaflow_store_code') || 'LifePill Main Branch',
+    branchName: localStorage.getItem('pharmaflow_store_code') || 'MedInOne Main Branch',
     branchAddress:
       localStorage.getItem('pharmaflow_brand_tagline') ||
-      'Use this simple legacy workspace to open the full LifePill business suite.',
+      'Use this simple legacy workspace to open the full MedInOne business suite.',
     branchContact: localStorage.getItem('pharmaflow_brand_support_phone') || '-',
     branchEmail: localStorage.getItem('pharmaflow_brand_support_email') || '-',
     branchLocation: 'Tamil Nadu branch workspace',
@@ -102,7 +102,7 @@ function MainManagerDashboard({
               </button>
             ) : (
               <Link
-                to='/lifepill/billing'
+                to='/medinone/billing'
                 className='inline-flex items-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white'
               >
                 Open Billing Counter
@@ -124,7 +124,7 @@ function MainManagerDashboard({
                 <div>
                   <h3 className='text-base font-semibold text-slate-900'>Original legacy back-office tools</h3>
                   <p className='mt-1 text-sm leading-6 text-slate-500'>
-                    These modules come from the original LifePill manager workspace and remain part of the same
+                    These modules come from the original manager workspace and remain part of the same
                     software for staffing, item master, supplier records, orders, and older sales review flows.
                   </p>
                 </div>

@@ -621,7 +621,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
                     {isLoadingSuppliers ? 'Loading suppliers...' : 'Add opening stock'}
                   </button>
                   <Link
-                    to="/lifepill/billing"
+                    to="/medinone/billing"
                     className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700"
                   >
                     Open billing

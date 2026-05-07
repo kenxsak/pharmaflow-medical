@@ -1,6 +1,6 @@
 # Stable Hosting Stack
 
-This is the clean production-style hosting shape for the current PharmaFlow/LifePill app.
+This is the clean production-style hosting shape for the current MedInOne app.
 
 ## Decision
 
@@ -25,6 +25,17 @@ Keep the current provider split, but stop using free sleeping infrastructure:
 - Redis off: `PHARMAFLOW_REDIS_ENABLED=false`
 
 This is the least risky path because it keeps the existing backend URL and database provider model, while removing the free-tier sleep/resource problems that caused the Hikari connection timeouts.
+
+### Current no-cost demo setup
+
+For short client demos where we are avoiding paid hosting, use:
+
+- Frontend: Netlify production site `https://pharmaflow-medical.netlify.app`
+- Backend API: Render Free web service `https://pharmaflow-backend-fou9.onrender.com`
+- Database: Render Free PostgreSQL in the same Render workspace
+- Keepalive: Netlify Scheduled Function at `frontend/netlify/functions/keep-demo-backend-warm.mjs`
+
+This is good enough for a buyer trial link, but it is not a production SLA. See `docs/CLIENT_DEMO_HANDOFF.md` for the exact logins, cron URL, and smoke test.
 
 ### Best clean migration path
 
@@ -67,12 +78,13 @@ This checks:
 
 - backend liveness/readiness
 - SaaS admin login: `admin` / `Admin@123`
-- PharmaFlow company admin login: `manager@pharmaflow.in` / `Company@123`
-- PharmaFlow store operator login: `store@pharmaflow.in` / `Store@123`
+- MedInOne company admin login: `manager@medinone.in` / `Company@123`
+- MedInOne store operator login: `store@medinone.in` / `Store@123`
+- MedInOne delivery rider login: `driver@medinone.in` / `Driver@123`
 - second tenant login: `manager@posible.in` / `Company@123`
-- legacy owner login: `admin@lifepill.com` / `admin123`
-- legacy cashier login: `cashier1@lifepill.com` / `password123`
-- stores, suppliers, cached PIN login, and typo-tolerant medicine search
+- legacy owner login: `owner@medinone.in` / `admin123`
+- legacy cashier login: `cashier@medinone.in` / `password123`
+- stores, suppliers, cached PIN login, delivery queue, and typo-tolerant medicine search
 
 If the medicine catalog is large, build the optional search indexes only after
 the backend is live:

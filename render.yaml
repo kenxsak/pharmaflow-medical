@@ -116,11 +116,11 @@ services:
       - key: CORS_ALLOWED_ORIGIN_PATTERNS
         value: https://*.onrender.com,https://*.netlify.app,https://*.koyeb.app,http://localhost:3000,http://localhost:3001
       - key: PHARMAFLOW_BRAND_NAME
-        value: PharmaFlow
+        value: MedInOne
       - key: PHARMAFLOW_BRAND_TAGLINE
-        value: Retail pharmacy operations, billing, and compliance workspace
+        value: One connected workspace for pharmacy billing, inventory, compliance, and delivery
       - key: PHARMAFLOW_BRAND_SUPPORT_EMAIL
-        value: support@pharmaflow.in
+        value: support@medinone.in
       - key: PHARMAFLOW_BRAND_SUPPORT_PHONE
         value: +91 44 4000 9000
       - key: PHARMAFLOW_MEDICINE_AUTO_IMPORT

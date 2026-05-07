@@ -1,6 +1,6 @@
 \set ON_ERROR_STOP on
 
-\echo 'Preparing PharmaFlow medicine catalogue for dataset import...'
+\echo 'Preparing MedInOne medicine catalogue for dataset import...'
 
 ALTER TABLE medicines ADD COLUMN IF NOT EXISTS pack_size_label VARCHAR(200);
 ALTER TABLE medicines ADD COLUMN IF NOT EXISTS composition_summary TEXT;

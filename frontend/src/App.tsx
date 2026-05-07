@@ -44,10 +44,11 @@ import {
 
 function RedirectLegacyPharmaFlowRoute() {
   const location = useLocation();
+  const legacyPrefix = location.pathname.startsWith('/lifepill') ? /^\/lifepill/ : /^\/pharmaflow/;
   const nextPath =
-    location.pathname === '/pharmaflow'
-      ? '/lifepill'
-      : location.pathname.replace(/^\/pharmaflow/, '/lifepill');
+    location.pathname === '/pharmaflow' || location.pathname === '/lifepill'
+      ? '/medinone'
+      : location.pathname.replace(legacyPrefix, '/medinone');
 
   return <Navigate to={`${nextPath}${location.search}`} replace />;
 }
@@ -64,22 +65,24 @@ function App() {
   const canOpenCompanyControls = user?.role === 'OWNER' || canAccessCompanyControls(pharmaFlowContext);
   const canOpenPlatformControls = canAccessPlatformControls(pharmaFlowContext);
   const companyControlsFallback =
-    pharmaFlowPersona === 'store-ops' ? '/lifepill/help' : '/legacy-login';
+    pharmaFlowPersona === 'store-ops' || pharmaFlowPersona === 'delivery-staff'
+      ? '/medinone/help'
+      : '/legacy-login';
   const platformControlsFallback =
     pharmaFlowPersona === 'company-admin'
-      ? '/lifepill/users'
-      : pharmaFlowPersona === 'store-ops'
-        ? '/lifepill/help'
+      ? '/medinone/users'
+      : pharmaFlowPersona === 'store-ops' || pharmaFlowPersona === 'delivery-staff'
+        ? '/medinone/help'
         : '/legacy-login';
 
   return (
     <Router>
       <Routes>
         <Route path='/' element={<Navigate to='/legacy-login' replace />} />
-        <Route path='/lifepill' element={<PharmaFlowEntry />} />
-        <Route path='/lifepill/legacy-home' element={<PharmaFlowLegacyHome />} />
+        <Route path='/medinone' element={<PharmaFlowEntry />} />
+        <Route path='/medinone/legacy-home' element={<PharmaFlowLegacyHome />} />
         <Route
-          path='/lifepill/setup'
+          path='/medinone/setup'
           element={
             canOpenCompanyControls ? (
               <PharmaFlowCommandCenter />
@@ -88,9 +91,9 @@ function App() {
             )
           }
         />
-        <Route path='/lifepill/help' element={<PharmaFlowHelpCenter />} />
+        <Route path='/medinone/help' element={<PharmaFlowHelpCenter />} />
         <Route
-          path='/lifepill/enterprise'
+          path='/medinone/enterprise'
           element={
             canOpenCompanyControls ? (
               <EnterpriseReadinessDashboard />
@@ -100,7 +103,7 @@ function App() {
           }
         />
         <Route
-          path='/lifepill/platform'
+          path='/medinone/platform'
           element={
             canOpenPlatformControls ? (
               <SaaSControlCenter />
@@ -110,7 +113,7 @@ function App() {
           }
         />
         <Route
-          path='/lifepill/users'
+          path='/medinone/users'
           element={
             canOpenCompanyControls ? (
               <UsersAccessDashboard />
@@ -119,18 +122,18 @@ function App() {
             )
           }
         />
-        <Route path='/lifepill/dashboard' element={<Navigate to='/lifepill' replace />} />
-        <Route path='/lifepill/home' element={<Navigate to='/lifepill/legacy-home' replace />} />
-        <Route path='/lifepill/launchpad' element={<Navigate to='/legacy-login' replace />} />
-        <Route path='/lifepill/operations' element={<Navigate to='/lifepill/billing' replace />} />
-        <Route path='/lifepill/stock' element={<Navigate to='/lifepill/inventory' replace />} />
-        <Route path='/lifepill/reports' element={<Navigate to='/lifepill/reports/gst' replace />} />
-        <Route path='/lifepill/expiry' element={<Navigate to='/lifepill/reports/expiry-alerts' replace />} />
-        <Route path='/lifepill/procurement' element={<ProcurementDashboard />} />
-        <Route path='/lifepill/billing-history' element={<BillingAuditDashboard />} />
-        <Route path='/lifepill/inventory' element={<InventoryDashboard />} />
+        <Route path='/medinone/dashboard' element={<Navigate to='/medinone' replace />} />
+        <Route path='/medinone/home' element={<Navigate to='/medinone/legacy-home' replace />} />
+        <Route path='/medinone/launchpad' element={<Navigate to='/legacy-login' replace />} />
+        <Route path='/medinone/operations' element={<Navigate to='/medinone/billing' replace />} />
+        <Route path='/medinone/stock' element={<Navigate to='/medinone/inventory' replace />} />
+        <Route path='/medinone/reports' element={<Navigate to='/medinone/reports/gst' replace />} />
+        <Route path='/medinone/expiry' element={<Navigate to='/medinone/reports/expiry-alerts' replace />} />
+        <Route path='/medinone/procurement' element={<ProcurementDashboard />} />
+        <Route path='/medinone/billing-history' element={<BillingAuditDashboard />} />
+        <Route path='/medinone/inventory' element={<InventoryDashboard />} />
         <Route
-          path='/lifepill/stores'
+          path='/medinone/stores'
           element={
             canOpenCompanyControls ? (
               <StoreOperationsDashboard />
@@ -139,8 +142,8 @@ function App() {
             )
           }
         />
-        <Route path='/lifepill/customers' element={<CustomersDashboard />} />
-        <Route path='/lifepill/delivery' element={<DeliveryTrackingDashboard />} />
+        <Route path='/medinone/customers' element={<CustomersDashboard />} />
+        <Route path='/medinone/delivery' element={<DeliveryTrackingDashboard />} />
         <Route path='/legacy-login' element={<LogInPage />} />
         <Route
           path='/login-cashier-password'
@@ -150,14 +153,15 @@ function App() {
           path='/temporary-logout'
           element={<CashierTemporaryLogOutPage />}
         />
-        <Route path='/lifepill/billing' element={<POSBilling />} />
-        <Route path='/lifepill/compliance' element={<ComplianceDashboard />} />
-        <Route path='/lifepill/reports/gst' element={<GSTReportsDashboard />} />
-        <Route path='/lifepill/reports/profit' element={<ProfitAnalyticsDashboard />} />
+        <Route path='/medinone/billing' element={<POSBilling />} />
+        <Route path='/medinone/compliance' element={<ComplianceDashboard />} />
+        <Route path='/medinone/reports/gst' element={<GSTReportsDashboard />} />
+        <Route path='/medinone/reports/profit' element={<ProfitAnalyticsDashboard />} />
         <Route
-          path='/lifepill/reports/expiry-alerts'
+          path='/medinone/reports/expiry-alerts'
           element={<ExpiryAlertsDashboard />}
         />
+        <Route path='/lifepill/*' element={<RedirectLegacyPharmaFlowRoute />} />
         <Route path='/pharmaflow/*' element={<RedirectLegacyPharmaFlowRoute />} />
 
         {isAdmin ? (

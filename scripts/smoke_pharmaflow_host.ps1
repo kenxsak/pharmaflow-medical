@@ -118,9 +118,9 @@ function New-PharmaHeaders {
 
   $headers = @{
     Authorization = "Bearer $Token"
-    "X-Brand-Name" = "PharmaFlow"
-    "X-Brand-Tagline" = "Retail pharmacy operations, billing, and compliance workspace"
-    "X-Brand-Support-Email" = "support@pharmaflow.in"
+    "X-Brand-Name" = "MedInOne"
+    "X-Brand-Tagline" = "One connected workspace for pharmacy billing, inventory, compliance, and delivery"
+    "X-Brand-Support-Email" = "support@medinone.in"
     "X-Brand-Support-Phone" = "+91 44 4000 9000"
   }
 
@@ -137,7 +137,7 @@ function New-PharmaHeaders {
   return $headers
 }
 
-Write-Host "Smoke testing PharmaFlow backend: $backend" -ForegroundColor Cyan
+Write-Host "Smoke testing MedInOne backend: $backend" -ForegroundColor Cyan
 Write-Host ""
 
 $liveness = Invoke-ApiRequest -Method GET -Path "/actuator/health/liveness"
@@ -154,22 +154,25 @@ $modernLogins = @(
     TenantSlug = "pharmaflow"
     ExpectedRole = "SUPER_ADMIN"
     ExpectedPlatformOwner = $true
+    ExpectMedicineResults = $true
   },
   @{
     Name = "Company admin"
-    Username = "manager@pharmaflow.in"
+    Username = "manager@medinone.in"
     Password = "Company@123"
     TenantSlug = "pharmaflow"
     ExpectedRole = "STORE_MANAGER"
     ExpectedPlatformOwner = $false
+    ExpectMedicineResults = $true
   },
   @{
     Name = "Store operator"
-    Username = "store@pharmaflow.in"
+    Username = "store@medinone.in"
     Password = "Store@123"
     TenantSlug = "pharmaflow"
     ExpectedRole = "PHARMACIST"
     ExpectedPlatformOwner = $false
+    ExpectMedicineResults = $true
   },
   @{
     Name = "Second tenant company admin"
@@ -178,6 +181,7 @@ $modernLogins = @(
     TenantSlug = "posible-rx"
     ExpectedRole = "STORE_MANAGER"
     ExpectedPlatformOwner = $false
+    ExpectMedicineResults = $false
   }
 )
 
@@ -217,24 +221,73 @@ foreach ($login in $modernLogins) {
   $search = Invoke-ApiRequest -Method GET -Path $searchPath -Headers $headers
   $searchCount = if ($search.Body -is [array]) { $search.Body.Count } elseif ($search.Body) { 1 } else { 0 }
   $firstMedicine = if ($searchCount -gt 0 -and $search.Body[0]) { $search.Body[0].brandName } else { "" }
-  Assert-Step "$($login.Name) typo-tolerant medicine search" ($search.Ok -and $search.StatusCode -eq 200 -and $searchCount -gt 0) "status=$($search.StatusCode) count=$searchCount first=$firstMedicine"
+  $expectMedicineResults = if ($login.ContainsKey("ExpectMedicineResults")) { [bool]$login.ExpectMedicineResults } else { $true }
+  Assert-Step "$($login.Name) typo-tolerant medicine search" (
+    $search.Ok -and
+    $search.StatusCode -eq 200 -and
+    (-not $expectMedicineResults -or $searchCount -gt 0)
+  ) "status=$($search.StatusCode) count=$searchCount first=$firstMedicine"
 
   $suppliers = Invoke-ApiRequest -Method GET -Path "/api/v1/purchases/suppliers" -Headers $headers
   $supplierCount = if ($suppliers.Body -is [array]) { $suppliers.Body.Count } elseif ($suppliers.Body) { 1 } else { 0 }
   Assert-Step "$($login.Name) can load suppliers" ($suppliers.Ok -and $suppliers.StatusCode -eq 200) "status=$($suppliers.StatusCode) count=$supplierCount"
 }
 
+$driverBody = @{
+  username = "driver@medinone.in"
+  password = "Driver@123"
+  tenantSlug = "pharmaflow"
+}
+$driver = Invoke-ApiRequest -Method POST -Path "/api/v1/auth/login" -Body $driverBody
+$driverToken = if ($driver.Body) { $driver.Body.token } else { "" }
+$driverRole = if ($driver.Body) { $driver.Body.role } else { "" }
+Assert-Step "Delivery rider login" (
+  $driver.Ok -and
+  $driver.StatusCode -eq 200 -and
+  -not [string]::IsNullOrWhiteSpace($driverToken) -and
+  $driverRole -eq "DELIVERY_BOY"
+) "status=$($driver.StatusCode) role=$driverRole"
+
+if ($driver.Ok -and -not [string]::IsNullOrWhiteSpace($driverToken)) {
+  $driverHeaders = New-PharmaHeaders `
+    -Token $driverToken `
+    -StoreId $driver.Body.storeId `
+    -TenantId $driver.Body.tenantId `
+    -TenantSlug $driver.Body.tenantSlug
+
+  $deliverySummary = Invoke-ApiRequest -Method GET -Path "/api/v1/deliveries/summary" -Headers $driverHeaders
+  Assert-Step "Delivery rider can load delivery summary" (
+    $deliverySummary.Ok -and
+    $deliverySummary.StatusCode -eq 200
+  ) "status=$($deliverySummary.StatusCode)"
+
+  $deliveryQueue = Invoke-ApiRequest -Method GET -Path "/api/v1/deliveries?limit=25" -Headers $driverHeaders
+  $deliveryCount = if ($deliveryQueue.Body -is [array]) { $deliveryQueue.Body.Count } elseif ($deliveryQueue.Body) { 1 } else { 0 }
+  Assert-Step "Delivery rider can load delivery queue" (
+    $deliveryQueue.Ok -and
+    $deliveryQueue.StatusCode -eq 200
+  ) "status=$($deliveryQueue.StatusCode) count=$deliveryCount"
+
+  $deliveryDrivers = Invoke-ApiRequest -Method GET -Path "/api/v1/deliveries/drivers" -Headers $driverHeaders
+  $deliveryDriverCount = if ($deliveryDrivers.Body -is [array]) { $deliveryDrivers.Body.Count } elseif ($deliveryDrivers.Body) { 1 } else { 0 }
+  Assert-Step "Delivery rider can load rider roster" (
+    $deliveryDrivers.Ok -and
+    $deliveryDrivers.StatusCode -eq 200 -and
+    $deliveryDriverCount -gt 0
+  ) "status=$($deliveryDrivers.StatusCode) count=$deliveryDriverCount"
+}
+
 if (-not $SkipLegacyLoginChecks) {
   $legacyLogins = @(
     @{
       Name = "Legacy owner"
-      Email = "admin@lifepill.com"
+      Email = "owner@medinone.in"
       Password = "admin123"
       Pin = 1234
     },
     @{
       Name = "Legacy cashier"
-      Email = "cashier1@lifepill.com"
+      Email = "cashier@medinone.in"
       Password = "password123"
       Pin = 4321
     }

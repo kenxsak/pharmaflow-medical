@@ -7,6 +7,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.CannotGetJdbcConnectionException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -33,6 +34,16 @@ public class PharmaFlowExceptionHandler {
                         .status(HttpStatus.FORBIDDEN.value())
                         .code("FORBIDDEN_ACTION")
                         .message(exception.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadCredentialsException(BadCredentialsException exception) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.builder()
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .code("AUTHENTICATION_FAILED")
+                        .message("Invalid username, password, or tenant.")
                         .build());
     }
 

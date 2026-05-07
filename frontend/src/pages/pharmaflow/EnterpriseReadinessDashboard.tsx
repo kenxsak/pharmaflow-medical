@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import PharmaFlowShell from '../../components/pharmaflow/PharmaFlowShell';
 import { pharmaFlowNavItems } from '../../components/pharmaflow/navigation';
 import { downloadCsv } from '../../utils/exportCsv';
-import { getBrandInitials, useBranding } from '../../utils/branding';
+import { useBranding } from '../../utils/branding';
+import BrandLogo from '../../shared/brand/BrandLogo';
 
 type BuyerQuestionStatus = 'Live' | 'Partial' | 'Extension-ready' | 'Service pack';
 
@@ -30,7 +31,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Store, HO, and warehouse context switching are live now. Enterprise transfer sync and real-time inter-branch orchestration are the next rollout layer.',
-    routePath: '/lifepill/stores',
+    routePath: '/medinone/stores',
     routeLabel: 'Stores',
   },
   {
@@ -39,7 +40,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       '30/60/90-day expiry visibility is live today. Dump, return-to-vendor, and closure workflow need deeper RTV orchestration on top of the credit-note flow.',
-    routePath: '/lifepill/reports/expiry-alerts',
+    routePath: '/medinone/reports/expiry-alerts',
     routeLabel: 'Expiry',
   },
   {
@@ -47,7 +48,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Bulk purchase import',
     status: 'Live',
     answer: 'CSV purchase import, supplier setup, and manual inward entry are live for high-SKU distributor invoices.',
-    routePath: '/lifepill/procurement',
+    routePath: '/medinone/procurement',
     routeLabel: 'Purchases',
   },
   {
@@ -55,7 +56,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Salt-to-brand substitute suggestions',
     status: 'Live',
     answer: 'Triple medicine lookup and substitute suggestions are already exposed during billing.',
-    routePath: '/lifepill/billing',
+    routePath: '/medinone/billing',
     routeLabel: 'Counter',
   },
   {
@@ -63,7 +64,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Schedule H1 and narcotic tracking',
     status: 'Live',
     answer: 'Schedule H / H1 / X capture, narcotic reporting, patient-doctor traceability, and inspector views are live.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -71,7 +72,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Batch and strip tracking with FIFO',
     status: 'Live',
     answer: 'Batch-aware stock, oldest-batch-first visibility, and strip/tablet handling are already supported in stock and billing flows.',
-    routePath: '/lifepill/inventory',
+    routePath: '/medinone/inventory',
     routeLabel: 'Stock',
   },
   {
@@ -80,7 +81,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Credit-note creation is live in Purchases, while outlet collection, supplier dispatch, and reconciliation milestones should be added as the next enterprise workflow.',
-    routePath: '/lifepill/procurement',
+    routePath: '/medinone/procurement',
     routeLabel: 'Purchases',
   },
   {
@@ -89,7 +90,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Prescription reference capture is live. Full scan-and-attach rollout depends on storage integration and upload workflow hardening.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -98,7 +99,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Customer credit and loyalty are live today. Cross-branch earning and redemption policy should be finalized as part of enterprise rollout rules.',
-    routePath: '/lifepill/customers',
+    routePath: '/medinone/customers',
     routeLabel: 'Customers',
   },
   {
@@ -107,7 +108,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Extension-ready',
     answer:
       'Delivery entities are present in the backend foundation, but the delivery boy app and dispatch workflow still need their rollout UI.',
-    routePath: '/lifepill/enterprise',
+    routePath: '/medinone/enterprise',
     routeLabel: 'Enterprise',
   },
   {
@@ -115,7 +116,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'GSTR-1 and GSTR-3B generation',
     status: 'Live',
     answer: 'GSTR-1, GSTR-3B, tax summary, and exportable reporting are live.',
-    routePath: '/lifepill/reports/gst',
+    routePath: '/medinone/reports/gst',
     routeLabel: 'GST Reports',
   },
   {
@@ -123,7 +124,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Profit by manufacturer or category',
     status: 'Live',
     answer: 'Estimated profit by manufacturer and category is available with monthly sales context.',
-    routePath: '/lifepill/reports/profit',
+    routePath: '/medinone/reports/profit',
     routeLabel: 'Profit',
   },
   {
@@ -131,7 +132,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Credit limits and billing block',
     status: 'Live',
     answer: 'Customer credit visibility and credit-limit validation are built into billing and customer views.',
-    routePath: '/lifepill/customers',
+    routePath: '/medinone/customers',
     routeLabel: 'Customers',
   },
   {
@@ -140,7 +141,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'The positioning is hybrid cloud plus branch-local operations. Advanced offline sync and conflict handling still need the next reliability pass.',
-    routePath: '/lifepill/stores',
+    routePath: '/medinone/stores',
     routeLabel: 'Stores',
   },
   {
@@ -149,7 +150,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Service pack',
     answer:
       'This is delivered as an operating SLA, not a screen. The product now exposes a tenant support identity so a branded support package can be attached to each deployment.',
-    routePath: '/lifepill/setup',
+    routePath: '/medinone/setup',
     routeLabel: 'Company Setup',
   },
   {
@@ -157,7 +158,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Shortage report and reorder support',
     status: 'Live',
     answer: 'Shortage visibility and reorder-oriented reporting are already available and exportable.',
-    routePath: '/lifepill/reports/expiry-alerts',
+    routePath: '/medinone/reports/expiry-alerts',
     routeLabel: 'Expiry',
   },
   {
@@ -165,7 +166,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Schedule H, H1, and X tracking',
     status: 'Live',
     answer: 'Tracked and reportable through the controlled-drug register.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -173,7 +174,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Mandatory sale registers for controlled drugs',
     status: 'Live',
     answer: 'Inspector-facing controlled-drug register export is live.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -181,7 +182,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Pharmacist login and audit trail for drug sales',
     status: 'Live',
     answer: 'Audit trail and controlled-sale capture are present in billing and compliance flows.',
-    routePath: '/lifepill/billing-history',
+    routePath: '/medinone/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -189,7 +190,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Instant Drug Inspector reports',
     status: 'Live',
     answer: 'Drug Inspector register and monthly export flow are live.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -197,7 +198,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Doctor prescription tracking for restricted medicines',
     status: 'Live',
     answer: 'Patient, doctor, schedule, and prescription reference are all captured in compliance-linked billing.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -205,7 +206,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Patient history for prescription medicines',
     status: 'Live',
     answer: 'Customer and patient history are available from the customer workspace.',
-    routePath: '/lifepill/customers',
+    routePath: '/medinone/customers',
     routeLabel: 'Customers',
   },
   {
@@ -213,7 +214,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'GST-compliant invoicing',
     status: 'Live',
     answer: 'GST-inclusive billing, invoice numbering, print, PDF, and WhatsApp share are live.',
-    routePath: '/lifepill/billing-history',
+    routePath: '/medinone/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -221,7 +222,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Mandatory sale registers for controlled drugs (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q18 through the compliance register.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -229,7 +230,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Pharmacist audit trail for drug sales (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q19 through billing audit and compliance history.',
-    routePath: '/lifepill/billing-history',
+    routePath: '/medinone/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -237,7 +238,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Instant Drug Inspector reports (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q20 through the compliance dashboard.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -245,7 +246,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Doctor prescription tracking (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q21 through schedule-linked billing and reporting.',
-    routePath: '/lifepill/compliance',
+    routePath: '/medinone/compliance',
     routeLabel: 'Compliance',
   },
   {
@@ -253,7 +254,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Patient history (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q22 through the customer workspace.',
-    routePath: '/lifepill/customers',
+    routePath: '/medinone/customers',
     routeLabel: 'Customers',
   },
   {
@@ -261,7 +262,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'GST-compliant invoicing (repeat)',
     status: 'Live',
     answer: 'Same live capability as Q23 through billing and receipt exports.',
-    routePath: '/lifepill/billing-history',
+    routePath: '/medinone/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -269,7 +270,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Automatic batch tracking',
     status: 'Live',
     answer: 'Batch-aware billing and inventory detail are active.',
-    routePath: '/lifepill/inventory',
+    routePath: '/medinone/inventory',
     routeLabel: 'Stock',
   },
   {
@@ -277,7 +278,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Prevent sale of expired medicines',
     status: 'Live',
     answer: 'Expired-batch validation and expiry filtering are active.',
-    routePath: '/lifepill/inventory',
+    routePath: '/medinone/inventory',
     routeLabel: 'Stock',
   },
   {
@@ -285,7 +286,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Purchase scheme tracking (Buy 10 Get 1)',
     status: 'Partial',
     answer: 'Free-quantity support exists in purchase imports, while richer scheme management should be expanded during procurement rollout.',
-    routePath: '/lifepill/procurement',
+    routePath: '/medinone/procurement',
     routeLabel: 'Purchases',
   },
   {
@@ -294,7 +295,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'Margin fields and estimated profitability are present. Broader pricing analytics by PTR and PTS can be deepened in the reporting layer.',
-    routePath: '/lifepill/reports/profit',
+    routePath: '/medinone/reports/profit',
     routeLabel: 'Profit',
   },
   {
@@ -302,7 +303,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Barcode scanning',
     status: 'Live',
     answer: 'Billing supports barcode-aware medicine lookup.',
-    routePath: '/lifepill/billing',
+    routePath: '/medinone/billing',
     routeLabel: 'Counter',
   },
   {
@@ -310,7 +311,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Partial strip sales',
     status: 'Live',
     answer: 'Strip and tablet-oriented quantity handling is already visible in billing.',
-    routePath: '/lifepill/billing',
+    routePath: '/medinone/billing',
     routeLabel: 'Counter',
   },
   {
@@ -318,7 +319,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Search by brand, generic, and salt',
     status: 'Live',
     answer: 'Triple medicine search is live.',
-    routePath: '/lifepill/billing',
+    routePath: '/medinone/billing',
     routeLabel: 'Counter',
   },
   {
@@ -327,7 +328,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Live',
     answer:
       'Daily sales, top sellers, slow movers, profit analytics, expiry loss visibility, and CSV export are now live in the reporting suite.',
-    routePath: '/lifepill/reports/gst',
+    routePath: '/medinone/reports/gst',
     routeLabel: 'GST Reports',
   },
   {
@@ -335,7 +336,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Different user roles',
     status: 'Live',
     answer: 'Role-based access and pharmacy-specific role structure are in place.',
-    routePath: '/lifepill/setup',
+    routePath: '/medinone/setup',
     routeLabel: 'Company Setup',
   },
   {
@@ -343,7 +344,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Restrict price editing',
     status: 'Live',
     answer: 'Role-aware price-control behavior is already part of the billing model.',
-    routePath: '/lifepill/billing',
+    routePath: '/medinone/billing',
     routeLabel: 'Counter',
   },
   {
@@ -351,7 +352,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Track who edited bills',
     status: 'Live',
     answer: 'Invoice-level audit visibility is live.',
-    routePath: '/lifepill/billing-history',
+    routePath: '/medinone/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -359,7 +360,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Activity audit log',
     status: 'Live',
     answer: 'Store-level audit trail is live.',
-    routePath: '/lifepill/billing-history',
+    routePath: '/medinone/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -367,7 +368,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     title: 'Unlimited invoices and documents',
     status: 'Live',
     answer: 'No hard product limit is imposed in the current implementation.',
-    routePath: '/lifepill/billing-history',
+    routePath: '/medinone/billing-history',
     routeLabel: 'Bills',
   },
   {
@@ -376,23 +377,23 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
     status: 'Partial',
     answer:
       'WhatsApp invoice sharing is live. Tally, GST filing connectors, e-commerce, online pharmacy, SMS, and custom APIs remain extension-ready integration tracks.',
-    routePath: '/lifepill/enterprise',
+    routePath: '/medinone/enterprise',
     routeLabel: 'Enterprise',
   },
 ];
 
 const demoRouteOrder = [
-  '/lifepill/setup',
-  '/lifepill/enterprise',
-  '/lifepill/stores',
-  '/lifepill/billing',
-  '/lifepill/inventory',
-  '/lifepill/procurement',
-  '/lifepill/compliance',
-  '/lifepill/reports/gst',
-  '/lifepill/reports/profit',
-  '/lifepill/customers',
-  '/lifepill/billing-history',
+  '/medinone/setup',
+  '/medinone/enterprise',
+  '/medinone/stores',
+  '/medinone/billing',
+  '/medinone/inventory',
+  '/medinone/procurement',
+  '/medinone/compliance',
+  '/medinone/reports/gst',
+  '/medinone/reports/profit',
+  '/medinone/customers',
+  '/medinone/billing-history',
 ];
 
 interface EnterpriseReadinessDashboardProps {
@@ -401,7 +402,6 @@ interface EnterpriseReadinessDashboardProps {
 
 const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> = ({ embedded = false }) => {
   const branding = useBranding();
-  const brandInitials = getBrandInitials(branding.brandName);
   const demoPath = demoRouteOrder
     .map((path) => pharmaFlowNavItems.find((item) => item.path === path))
     .filter(Boolean);
@@ -445,7 +445,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/lifepill/platform"
+            to="/medinone/platform"
             className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
           >
             Open SaaS Admin
@@ -498,8 +498,8 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
 
           <div className="mt-5 rounded-[1.75rem] border border-slate-200 bg-slate-950 p-5 text-white">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white/10 text-base font-semibold">
-                {brandInitials}
+              <div className="rounded-3xl bg-white p-1">
+                <BrandLogo variant="mark" imageClassName="h-14 w-14" />
               </div>
               <div>
                 <div className="text-2xl font-semibold">{branding.brandName}</div>
@@ -540,7 +540,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
               <h2 className="mt-3 text-xl font-semibold text-slate-950">Walk the client through the platform in this order</h2>
             </div>
             <Link
-              to="/lifepill/setup"
+              to="/medinone/setup"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
             >
               Open company setup

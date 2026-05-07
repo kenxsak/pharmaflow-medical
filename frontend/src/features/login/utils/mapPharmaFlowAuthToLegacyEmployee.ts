@@ -38,7 +38,7 @@ export const inferTenantSlugForLegacyLogin = (username: string) => {
     return undefined;
   }
 
-  if (normalized.endsWith('@pharmaflow.in')) {
+  if (normalized.endsWith('@medinone.in') || normalized.endsWith('@pharmaflow.in')) {
     return 'pharmaflow';
   }
 

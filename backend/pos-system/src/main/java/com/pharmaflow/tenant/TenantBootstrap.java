@@ -54,9 +54,9 @@ public class TenantBootstrap implements CommandLineRunner {
                 "300+ stores or premium deployments with custom integration scope.", 199999, 1999990, 500000, 1250, 800,
                 9999, 5000, SupportTier.ALWAYS_ON, codes(rangeIncludingAll()));
 
-        Tenant pharmaflowTenant = ensureTenant("PHARMAFLOW", "pharmaflow", "PharmaFlow", "PharmaFlow Private Limited",
-                "Retail pharmacy operations, billing, and compliance workspace", "support@pharmaflow.in",
-                "+91 44 4000 9000", "finance@pharmaflow.in", "33AABCP1234A1Z5",
+        Tenant pharmaflowTenant = ensureTenant("MEDINONE", "pharmaflow", "MedInOne", "MedInOne Technologies Private Limited",
+                "One connected workspace for pharmacy billing, inventory, compliance, and delivery", "support@medinone.in",
+                "+91 44 4000 9000", "finance@medinone.in", "33AABCP1234A1Z5",
                 "Hybrid cloud + branch-local operations", TenantStatus.LIVE, 5, 65,
                 "Reference tenant for enterprise demo, receipts, and buyer walkthrough.");
         ensureSubscription(pharmaflowTenant, enterprisePlan, BillingCycle.ANNUAL, SubscriptionStatus.ACTIVE, LocalDate.now().plusYears(1), 199999);
@@ -67,8 +67,8 @@ public class TenantBootstrap implements CommandLineRunner {
                 TenantStatus.EXPANSION, 300, 1180, "Tamil Nadu enterprise chain rollout with HO, warehouse, and branch expansion plan.");
         ensureSubscription(posibleTenant, chainPlan, BillingCycle.ANNUAL, SubscriptionStatus.ACTIVE, LocalDate.of(2027, 4, 1), 99999);
 
-        Tenant lifePillTenant = ensureTenant("LIFEPILL", "lifepill-legacy", "LifePill Legacy", "LifePill Legacy",
-                "Legacy branch-first rollout", "support@lifepill.com", "+94 11 700 5000", "ops@lifepill.com", "N/A",
+        Tenant lifePillTenant = ensureTenant("MEDINONE-LEGACY", "lifepill-legacy", "MedInOne Legacy", "MedInOne Legacy",
+                "Legacy branch-first rollout", "support@medinone.in", "+94 11 700 5000", "ops@medinone.in", "N/A",
                 "Legacy branch-first rollout", TenantStatus.PILOT, 10, 96,
                 "Legacy login and cashier flow used for compatibility demonstrations.");
         ensureSubscription(lifePillTenant, growthPlan, BillingCycle.MONTHLY, SubscriptionStatus.ACTIVE, LocalDate.now().plusMonths(1), 39999);
@@ -76,28 +76,28 @@ public class TenantBootstrap implements CommandLineRunner {
         Store pharmaflowHeadOffice = ensureStore(
                 pharmaflowTenant,
                 "TN-HO-000",
-                "PharmaFlow Head Office",
+                "MedInOne Head Office",
                 "HO",
                 "Anna Nagar, Chennai",
                 "Chennai",
                 "Tamil Nadu",
                 "600040",
                 "+91 44 4000 9000",
-                "ho@pharmaflow.in",
+                "ho@medinone.in",
                 "33AABCP1234A1Z5",
                 "TN/PH/HO/001"
         );
         ensureStore(
                 pharmaflowTenant,
                 "TN-WH-001",
-                "PharmaFlow Central Warehouse",
+                "MedInOne Central Warehouse",
                 "WAREHOUSE",
                 "Madhavaram, Chennai",
                 "Chennai",
                 "Tamil Nadu",
                 "600060",
                 "+91 44 4000 9010",
-                "warehouse@pharmaflow.in",
+                "warehouse@medinone.in",
                 "33AABCP1234A1Z5",
                 "TN/PH/WH/001"
         );
@@ -111,7 +111,7 @@ public class TenantBootstrap implements CommandLineRunner {
                 "Tamil Nadu",
                 "600040",
                 "+91 44 4000 9020",
-                "annanagar@pharmaflow.in",
+                "annanagar@medinone.in",
                 "33AABCP1234A1Z5",
                 "TN/PH/ST/001"
         );
@@ -125,7 +125,7 @@ public class TenantBootstrap implements CommandLineRunner {
                 "Tamil Nadu",
                 "600042",
                 "+91 44 4000 9030",
-                "velachery@pharmaflow.in",
+                "velachery@medinone.in",
                 "33AABCP1234A1Z5",
                 "TN/PH/ST/002"
         );
@@ -183,8 +183,8 @@ public class TenantBootstrap implements CommandLineRunner {
         ensureUser(
                 "admin",
                 "Admin@123",
-                "PharmaFlow Platform Owner",
-                "admin@pharmaflow.in",
+                "MedInOne Platform Owner",
+                "admin@medinone.in",
                 "+91 90000 00001",
                 pharmaflowHeadOffice,
                 pharmaflowTenant,
@@ -193,10 +193,10 @@ public class TenantBootstrap implements CommandLineRunner {
                 null
         );
         ensureUser(
-                "manager@pharmaflow.in",
+                "manager@medinone.in",
                 "Company@123",
-                "PharmaFlow Company Admin",
-                "manager@pharmaflow.in",
+                "MedInOne Company Admin",
+                "manager@medinone.in",
                 "+91 90000 00002",
                 pharmaflowHeadOffice,
                 pharmaflowTenant,
@@ -205,10 +205,10 @@ public class TenantBootstrap implements CommandLineRunner {
                 null
         );
         ensureUser(
-                "store@pharmaflow.in",
+                "store@medinone.in",
                 "Store@123",
                 "Anna Nagar Store Operator",
-                "store@pharmaflow.in",
+                "store@medinone.in",
                 "+91 90000 00003",
                 annaNagarStore,
                 pharmaflowTenant,
@@ -217,10 +217,10 @@ public class TenantBootstrap implements CommandLineRunner {
                 "TNPHARM12345"
         );
         ensureUser(
-                "driver@pharmaflow.in",
+                "driver@medinone.in",
                 "Driver@123",
                 "Anna Nagar Delivery Rider",
-                "driver@pharmaflow.in",
+                "driver@medinone.in",
                 "+91 90000 00005",
                 annaNagarStore,
                 pharmaflowTenant,

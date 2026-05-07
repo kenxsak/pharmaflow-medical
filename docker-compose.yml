@@ -44,9 +44,9 @@ services:
       PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS: "1000"
       CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
       CORS_ALLOWED_HEADERS: Authorization,Cache-Control,Content-Type,X-Store-ID,X-Tenant-ID,X-Tenant-Slug,X-Brand-Name,X-Brand-Tagline,X-Brand-Support-Email,X-Brand-Support-Phone
-      PHARMAFLOW_BRAND_NAME: PharmaFlow
-      PHARMAFLOW_BRAND_TAGLINE: Retail pharmacy operations, billing, and compliance workspace
-      PHARMAFLOW_BRAND_SUPPORT_EMAIL: support@pharmaflow.in
+      PHARMAFLOW_BRAND_NAME: MedInOne
+      PHARMAFLOW_BRAND_TAGLINE: One connected workspace for pharmacy billing, inventory, compliance, and delivery
+      PHARMAFLOW_BRAND_SUPPORT_EMAIL: support@medinone.in
       PHARMAFLOW_BRAND_SUPPORT_PHONE: +91 44 4000 9000
       PHARMAFLOW_STORAGE_PROVIDER: local
       PHARMAFLOW_STORAGE_LOCAL_ROOT: /app/data/documents
@@ -64,10 +64,10 @@ services:
     environment:
       REACT_APP_API_URL: http://localhost:8080/api/v1
       REACT_APP_LEGACY_API_URL: http://localhost:8080/lifepill/v1
-      REACT_APP_STORE_NAME: PharmaFlow
-      REACT_APP_BRAND_NAME: PharmaFlow
-      REACT_APP_BRAND_TAGLINE: Retail pharmacy operations, billing, and compliance workspace
-      REACT_APP_BRAND_SUPPORT_EMAIL: support@pharmaflow.in
+      REACT_APP_STORE_NAME: MedInOne
+      REACT_APP_BRAND_NAME: MedInOne
+      REACT_APP_BRAND_TAGLINE: One connected workspace for pharmacy billing, inventory, compliance, and delivery
+      REACT_APP_BRAND_SUPPORT_EMAIL: support@medinone.in
       REACT_APP_BRAND_SUPPORT_PHONE: +91 44 4000 9000
       REACT_APP_BRAND_DEPLOYMENT_MODE: Hybrid cloud + branch-local operations
     ports:

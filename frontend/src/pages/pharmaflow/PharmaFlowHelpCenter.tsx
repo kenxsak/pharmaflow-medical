@@ -8,6 +8,9 @@ import {
   getPharmaFlowRoleLabel,
   usePharmaFlowContext,
 } from '../../utils/pharmaflowContext';
+import type { PharmaFlowPersona } from '../../utils/pharmaflowContext';
+
+type HelpAudience = Exclude<PharmaFlowPersona, 'guest'>;
 
 interface HelpCard {
   title: string;
@@ -15,13 +18,13 @@ interface HelpCard {
   route: string;
   routeLabel: string;
   checklist: string[];
-  audiences: Array<'saas-admin' | 'company-admin' | 'store-ops'>;
+  audiences: HelpAudience[];
 }
 
 interface HelpFaqItem {
   question: string;
   answer: string;
-  audiences: Array<'saas-admin' | 'company-admin' | 'store-ops'>;
+  audiences: HelpAudience[];
 }
 
 const resolveHelpWorkspaceKey = (route: string) => {
@@ -75,7 +78,7 @@ const setupCards: HelpCard[] = [
   {
     title: 'SaaS Admin Setup',
     who: 'Use this when you own the platform and need to manage companies, plans, pricing, and feature entitlements.',
-    route: '/lifepill/platform',
+    route: '/medinone/platform',
     routeLabel: 'Open SaaS Admin',
     checklist: [
       'Create or review the company tenant and select the right pricing plan.',
@@ -88,7 +91,7 @@ const setupCards: HelpCard[] = [
   {
     title: 'Company Admin Setup',
     who: 'Use this when you run one company or chain and need to manage stores, users, permissions, and daily operations.',
-    route: '/lifepill/users',
+    route: '/medinone/users',
     routeLabel: 'Open Users and Access',
     checklist: [
       'Create store operators and assign each user to the correct store.',
@@ -110,6 +113,19 @@ const setupCards: HelpCard[] = [
       'Use Stock, Purchases, Compliance, and Reports for daily branch operations.',
     ],
     audiences: ['saas-admin', 'company-admin', 'store-ops'],
+  },
+  {
+    title: 'Delivery Rider Setup',
+    who: 'Use this for home delivery staff who only need assigned orders, status updates, and live location capture.',
+    route: '/medinone/delivery',
+    routeLabel: 'Open Online & Delivery',
+    checklist: [
+      'Open Online & Delivery immediately after signing in.',
+      'Use the delivery queue to see assigned orders and customer address details.',
+      'Move orders through pickup, out for delivery, and delivered states.',
+      'Use browser GPS or manual latitude and longitude to update the live tracking point.',
+    ],
+    audiences: ['delivery-staff'],
   },
 ];
 
@@ -151,6 +167,12 @@ const faqItems: HelpFaqItem[] = [
     audiences: ['saas-admin', 'company-admin', 'store-ops'],
   },
   {
+    question: 'Where does the delivery rider login go?',
+    answer:
+      'Delivery riders land directly on Online & Delivery. They can view the delivery queue, update order status, and submit GPS tracking points without opening billing or admin screens.',
+    audiences: ['saas-admin', 'company-admin', 'delivery-staff'],
+  },
+  {
     question: 'Can a store login manage other stores, users, or pricing?',
     answer:
       'No. Store logins do not manage company setup, plan pricing, or cross-store controls. Those actions stay with company admins or SaaS admins.',
@@ -174,56 +196,62 @@ const moduleMap = [
   {
     title: 'Admin Control',
     summary: 'Companies, plans, pricing, feature entitlements, rollout control',
-    route: '/lifepill/platform',
-    audiences: ['saas-admin'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/platform',
+    audiences: ['saas-admin'] as HelpAudience[],
   },
   {
     title: 'Users and Permissions',
     summary: 'Create company admins and store operators, assign stores, manage access',
-    route: '/lifepill/users',
-    audiences: ['saas-admin', 'company-admin'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/users',
+    audiences: ['saas-admin', 'company-admin'] as HelpAudience[],
   },
   {
     title: 'Billing',
     summary: 'Invoices, GST, barcode, loose tablets, substitutes, WhatsApp/PDF/print',
-    route: '/lifepill/billing',
-    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/billing',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as HelpAudience[],
   },
   {
     title: 'Customers',
     summary: 'Credit, loyalty, patient history, repeat customer lookup',
-    route: '/lifepill/customers',
-    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/customers',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as HelpAudience[],
   },
   {
     title: 'Inventory',
     summary: 'Batches, stock visibility, shortage, expiry-safe stock review',
-    route: '/lifepill/inventory',
-    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/inventory',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as HelpAudience[],
   },
   {
     title: 'Purchases',
     summary: 'Suppliers, inward entry, purchase import, credit notes',
-    route: '/lifepill/procurement',
-    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/procurement',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as HelpAudience[],
   },
   {
     title: 'Compliance',
     summary: 'Schedule H/H1/X, doctor and patient capture, inspector-ready reporting',
-    route: '/lifepill/compliance',
-    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/compliance',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as HelpAudience[],
   },
   {
     title: 'Reports',
     summary: 'GST, profit, daily sales, top sellers, slow movers, expiry loss',
-    route: '/lifepill/reports/gst',
-    audiences: ['saas-admin', 'company-admin', 'store-ops'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/reports/gst',
+    audiences: ['saas-admin', 'company-admin', 'store-ops'] as HelpAudience[],
+  },
+  {
+    title: 'Online and Delivery',
+    summary: 'Home delivery queue, rider assignment, status updates, and GPS tracking',
+    route: '/medinone/delivery',
+    audiences: ['saas-admin', 'company-admin', 'store-ops', 'delivery-staff'] as HelpAudience[],
   },
   {
     title: 'Stores',
     summary: 'Branch structure, store directory, HO and rollout view',
-    route: '/lifepill/stores',
-    audiences: ['saas-admin', 'company-admin'] as Array<'saas-admin' | 'company-admin' | 'store-ops'>,
+    route: '/medinone/stores',
+    audiences: ['saas-admin', 'company-admin'] as HelpAudience[],
   },
 ];
 
@@ -247,10 +275,12 @@ const PharmaFlowHelpCenter: React.FC<{
       ? moduleMap
       : moduleMap.filter((item) => item.audiences.includes(persona));
   const primaryAction = canAccessPlatformControls(context)
-    ? { route: '/lifepill/platform', label: 'Open SaaS Admin' }
+    ? { route: '/medinone/platform', label: 'Open SaaS Admin' }
     : canAccessCompanyControls(context)
-      ? { route: '/lifepill/users', label: 'Open users and access' }
-      : { route: '/lifepill/billing', label: 'Open store workspace' };
+      ? { route: '/medinone/users', label: 'Open users and access' }
+      : persona === 'delivery-staff'
+        ? { route: '/medinone/delivery', label: 'Open delivery workspace' }
+        : { route: '/medinone/billing', label: 'Open store workspace' };
   const renderWorkspaceAction = (
     route: string,
     label: string,
@@ -296,6 +326,7 @@ const PharmaFlowHelpCenter: React.FC<{
           {persona === 'saas-admin' && ' You can control platform, company, and store layers from here.'}
           {persona === 'company-admin' && ' You can control your company and its stores, but not the SaaS platform layer.'}
           {persona === 'store-ops' && ' Your workspace stays focused on your own store, daily billing, stock, customers, compliance, and reports.'}
+          {persona === 'delivery-staff' && ' Your workspace stays focused on delivery orders, rider status updates, and location tracking.'}
         </p>
       </section>
 

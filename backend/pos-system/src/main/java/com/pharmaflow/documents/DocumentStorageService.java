@@ -146,7 +146,7 @@ public class DocumentStorageService {
         return Optional.ofNullable(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication())
                 .map(org.springframework.security.core.Authentication::getName)
                 .flatMap(pharmaUserRepository::findByUsername)
-                .orElseThrow(() -> new ForbiddenActionException("Authenticated PharmaFlow user is required"));
+                .orElseThrow(() -> new ForbiddenActionException("Authenticated MedInOne user is required"));
     }
 
     private void validateFile(MultipartFile file) {

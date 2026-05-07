@@ -1,7 +1,7 @@
-# PharmaFlow Research-Grade Feature Matrix
+# MedInOne Research-Grade Feature Matrix
 
 ## Dominant Thesis
-PharmaFlow should win first on pharmacy operations trust, then on chain-scale intelligence.
+MedInOne should win first on pharmacy operations trust, then on chain-scale intelligence.
 
 This strategy pack turns the current repo and current competitor messaging into one decision-ready artifact for:
 
@@ -11,7 +11,7 @@ This strategy pack turns the current repo and current competitor messaging into 
 - 10-50 store rollout sequencing
 - 100-300+ store scale planning
 
-The authoritative scoring source of truth lives in [PHARMAFLOW_FEATURE_MATRIX.csv](./PHARMAFLOW_FEATURE_MATRIX.csv).
+The authoritative scoring source of truth lives in [MEDINONE_FEATURE_MATRIX.csv](./MEDINONE_FEATURE_MATRIX.csv).
 
 ## Evidence Base
 ### Repo evidence used
@@ -145,23 +145,23 @@ Use this section directly in demos, proposals, and founder calls.
 | Feature | Buyer pain it solves | Competitor gap angle | Demo story or commercial proof point |
 |---|---|---|---|
 | Billing core and GST invoicing | Counter staff need a fast bill flow that does not create GST confusion. | Competitors treat this as table stakes, so weak execution here is an immediate loss. | Show medicine search, loose or strip sale, GST bill creation, PDF, and WhatsApp handoff in one sequence. |
-| Batch / FEFO stock truth | Owners hate expiry leakage and wrong-stock sales more than they care about extra modules. | Competitors market batch and expiry heavily, so PharmaFlow cannot afford a weak story here. | Open stock by medicine, show oldest sellable batch visibility, then connect it back to billing and expiry alerts. |
+| Batch / FEFO stock truth | Owners hate expiry leakage and wrong-stock sales more than they care about extra modules. | Competitors market batch and expiry heavily, so MedInOne cannot afford a weak story here. | Open stock by medicine, show oldest sellable batch visibility, then connect it back to billing and expiry alerts. |
 | Purchase import, inward, and receipt matching | Staff cannot spend hours keying distributor invoices by hand. | Marg explicitly markets online purchase import, so this must be credible in both sales and delivery. | Upload a distributor CSV, review inward totals, and show receipts plus PO progress on the procurement desk. |
 | Dump / RTV / supplier credit-note recovery | Pharmacies lose money when expired and damaged stock never turns into supplier recovery. | Many systems mention returns, but the owner pain is usually in claim closure, not note creation. | Show a credit note moving from creation to dispatch, acknowledgment, settlement, and unresolved-claim visibility. |
 | Stock-aware actionable substitute engine | The sale is lost if an unavailable brand cannot be replaced in seconds. | Marg promotes substitute search, but stock-aware replace or add at the counter is still a stronger demo story. | Add a medicine to the bill, reveal stocked substitutes, and replace it instantly without breaking the bill flow. |
 | Stock movement ledger, adjustments, and reconciliation | Stores need to explain every discrepancy before it becomes a blame cycle. | Competitors market stock accuracy broadly, but fewer systems make movement evidence easy to show. | Open a batch, show adjustments, quarantine, dump, transfer, and return movements in one audit trail. |
 | Expiry action intelligence | Simple alert lists do not tell staff what to do next with at-risk stock. | This is an opportunity gap because many products stop at alerts and reports. | Show expiring stock, then explain the next action paths: quarantine, transfer, dump, or RTV. |
-| Sales returns linked to original invoices | Return handling becomes messy when stock and invoice history drift apart. | Sales return exists in competitor messaging, so PharmaFlow must show an equally clean reversal loop. | Open a historical bill, create a return, and show inventory restoration plus audit linkage. |
+| Sales returns linked to original invoices | Return handling becomes messy when stock and invoice history drift apart. | Sales return exists in competitor messaging, so MedInOne must show an equally clean reversal loop. | Open a historical bill, create a return, and show inventory restoration plus audit linkage. |
 | Controlled-drug compliance registers | Pharmacies need inspector-ready traceability without switching systems. | Competitors market Schedule H, H1, and narcotic readiness as expected pharmacy ERP capability. | Filter by schedule and month, open the inspector report, and export the register live. |
 | Prescription capture, archive, and retrieval | Restricted-medicine sales are slower and riskier when prescription proof is buried. | Marg explicitly markets prescription reminders and narcotic reporting, so archive retrieval matters in the comparison. | Upload a prescription in billing, then reopen it from compliance and customer history. |
 | Audit trail, price-control, and override visibility | Owners worry about silent price edits, stock manipulation, and undocumented overrides. | Competitor messaging often implies control, but a visible audit story is still a trust multiplier. | Show billing audit and stock movement history, then explain how the same evidence supports disputes and compliance. |
-| Shortage, reorder, and replenishment suggestions | Stockouts directly cost revenue and frustrate repeat buyers. | Competitors market reorder and centralized purchasing, so PharmaFlow needs a practical shortage story. | Open shortage recommendations, show transfer-first logic, then create a draft purchase order. |
+| Shortage, reorder, and replenishment suggestions | Stockouts directly cost revenue and frustrate repeat buyers. | Competitors market reorder and centralized purchasing, so MedInOne needs a practical shortage story. | Open shortage recommendations, show transfer-first logic, then create a draft purchase order. |
 | Multi-store roles, tenant scoping, and branch context | Wrong user visibility scares owners even in a one-store rollout. | Chain-ready competitors assume role separation and branch scoping as table stakes. | Sign in as SaaS admin, company admin, and store operator to prove the visibility model changes correctly. |
 | Production trust layer: durable storage, monitoring, and rollback discipline | Buyers fear downtime and document loss more than they fear missing nice-to-have features. | Competitors usually imply managed reliability even when they do not demo it. | Explain the hosted hardening path: durable prescription storage, health checks, alerts, and rollback discipline. |
-| Inter-store transfer and warehouse replenishment orchestration | Multi-store operators hate buying urgently while another branch sits on excess stock. | Gofrugal leans into multi-location and warehouse control, so PharmaFlow needs a stronger transfer story as rollout grows. | Show transfer suggestions from the operations dashboard, then approve, dispatch, and receive the stock. |
+| Inter-store transfer and warehouse replenishment orchestration | Multi-store operators hate buying urgently while another branch sits on excess stock. | Gofrugal leans into multi-location and warehouse control, so MedInOne needs a stronger transfer story as rollout grows. | Show transfer suggestions from the operations dashboard, then approve, dispatch, and receive the stock. |
 | Supplier claim cockpit | Owners want one place to see claim value, supplier exposure, and unresolved recovery. | This is a stronger owner-facing angle than generic return lists and can feel more modern than competitor tables. | Show open RTV claims, pending value, and unresolved credit-note actions by supplier. |
 | Controlled-drug patient and compliance memory | Repeat prescription-heavy customers should not force a fresh manual compliance hunt every time. | This is a meaningful differentiation angle because it improves both speed and safety. | Search a returning patient and show prior restricted-medicine history with prescription context. |
-| HO / warehouse dashboard and operational visibility | Growth stalls when head office cannot see which stores are at risk. | Competitors market centralized control, so PharmaFlow needs a clean cross-store command view. | Open the operations dashboard and show shortages, near-expiry capital, pending receipts, claims, and transfer opportunities. |
+| HO / warehouse dashboard and operational visibility | Growth stalls when head office cannot see which stores are at risk. | Competitors market centralized control, so MedInOne needs a clean cross-store command view. | Open the operations dashboard and show shortages, near-expiry capital, pending receipts, claims, and transfer opportunities. |
 | Profit, slow-mover, and expiry-loss analytics | Owners need to know where margin is being made or lost, not just what sold. | This is common in competitor marketing, so the win comes from connecting analytics back to action workflows. | Show slow movers, expiry loss, and profit by manufacturer or category, then tie those reports back to reorder and RTV decisions. |
 
 ## Top 10 Recommendation List
@@ -179,7 +179,7 @@ Use this section directly in demos, proposals, and founder calls.
 | 10 | HO / warehouse dashboard and operational visibility | Multi-store rollout needs a control tower, not more founder supervision. | Safer 10-50 store rollout and stronger chain-sales positioning. | Phase 2 |
 
 ## Current Positioning Conclusion
-The strongest honest message for PharmaFlow is:
+The strongest honest message for MedInOne is:
 
 `best-in-class pharmacy operations trust before feature sprawl`
 
@@ -209,5 +209,5 @@ Those may matter later, but they are not the highest-probability path to winning
 - Marg publicly emphasizes fast billing, online purchase import, substitute search, narcotic and schedule reporting, expiry-loss reduction, sales return handling, and chain management breadth.
 
 ### Repo takeaways encoded into the matrix
-- PharmaFlow already has strong visible coverage in billing, stock, procurement, compliance, reporting, and role-scoped access.
+- MedInOne already has strong visible coverage in billing, stock, procurement, compliance, reporting, and role-scoped access.
 - The biggest near-term gaps are not missing pages; they are closure quality, actionability, hosted durability, and rollout-safe operations depth.

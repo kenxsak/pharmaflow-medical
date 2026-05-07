@@ -41,7 +41,7 @@ public class CurrentPharmaUserService {
     public PharmaUser requireCurrentUser() {
         PharmaUser user = getCurrentUser();
         if (user == null) {
-            throw new ForbiddenActionException("Authenticated PharmaFlow user is required");
+            throw new ForbiddenActionException("Authenticated MedInOne user is required");
         }
         return user;
     }

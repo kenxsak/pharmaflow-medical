@@ -14,8 +14,8 @@ const EulaComponent: React.FC<Props> = ({ OnClose }: Props) => {
           </h1>
           <p className='text-gray-700 mb-4'>
             This End User License Agreement ("Agreement") governs your use of
-            the LifePill software application ("Application") provided by
-            LifePill ("Company"). By using the Application, you agree to be
+            the MedInOne software application ("Application") provided by
+            MedInOne ("Company"). By using the Application, you agree to be
             bound by the terms of this Agreement.
           </p>
           <h2 className='text-xl font-semibold mb-2'>License Grant</h2>
@@ -104,10 +104,10 @@ const EulaComponent: React.FC<Props> = ({ OnClose }: Props) => {
           <p className='text-gray-700'>
             If you have any questions about this Agreement, please contact us at{' '}
             <a
-              href='mailto:LifePillinfo@gmail.com'
+              href='mailto:support@medinone.in'
               className='text-blue-500 underline'
             >
-              LifePillinfo@gmail.com
+              support@medinone.in
             </a>
             .
           </p>

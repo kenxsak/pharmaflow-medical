@@ -17,7 +17,7 @@ const UseBranchService = () => {
     branchId: user.user?.branchId || 0,
     branchName:
       localStorage.getItem('pharmaflow_store_code') ||
-      'LifePill Main Branch',
+      'MedInOne Main Branch',
     branchAddress:
       user.user?.employerAddress ||
       localStorage.getItem('pharmaflow_brand_tagline') ||

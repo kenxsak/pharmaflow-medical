@@ -16,12 +16,12 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @OpenAPIDefinition(
 		info = @Info(
-				title = "LifePill POS -System API Documentation",
-				description = "LIFEPILL",
+				title = "MedInOne API Documentation",
+				description = "MEDINONE",
 				version = "v1",
 				contact = @Contact(
-						name = "LifePIll",
-						email = "lifepillinfo@gmail.com",
+						name = "MedInOne",
+						email = "support@medinone.in",
 						url = "https://github.com/Life-Pill"
 				),
 				license = @License(
@@ -30,7 +30,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 				)
 		),
 		externalDocs = @ExternalDocumentation(
-				description = "LifePill POS System REST API Documentation",
+				description = "MedInOne REST API Documentation",
 				url = "http://localhost:8081/swagger-ui/index.html#/"
 		)
 )

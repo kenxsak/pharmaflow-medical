@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * <p>This bean is automatically picked up by Spring Security when
  * {@code .cors(Customizer.withDefaults())} is configured in the security filter chain.</p>
  *
- * @author LifePill Development Team
+ * @author MedInOne Development Team
  * @version 1.0
  * @see CorsConfigurationSource
  * @see SecurityConfiguration

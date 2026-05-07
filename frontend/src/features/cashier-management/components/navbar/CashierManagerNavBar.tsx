@@ -1,5 +1,5 @@
 import { IoArrowBackCircleOutline } from 'react-icons/io5';
-import Logo from '../../../../assets/logo/logo.png';
+import BrandLogo from '../../../../shared/brand/BrandLogo';
 import ProfileNameCard from '../../../../shared/cashier_profile/ProfileNameCard';
 import DateAndTimeNavBar from '../../../../shared/clock/DateAndTimeNavBar';
 import Divider from '../../../../shared/divider/Divider';
@@ -20,10 +20,7 @@ function CashierManagerNavBar({ topic }: Props) {
 
         <Divider />
 
-        {/* Logo */}
-        <div>
-          <img src={Logo} alt='Logo' width={60} height={60} />
-        </div>
+        <BrandLogo variant='mark' imageClassName='h-14 w-14' />
 
         <h2 className='font-medium text-lg'>{topic}</h2>
       </div>

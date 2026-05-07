@@ -351,7 +351,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
         description="Platform controls are only available to the SaaS owner account."
       >
         <section className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
-          This login does not have SaaS platform access. Use the SaaS Admin account from the same LifePill login screen to manage tenants, plans, pricing, and entitlements.
+          This login does not have SaaS platform access. Use the SaaS Admin account from the same MedInOne login screen to manage tenants, plans, pricing, and entitlements.
         </section>
       </PharmaFlowShell>
     );
@@ -931,7 +931,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
               New plan
             </button>
             <Link
-              to="/lifepill/enterprise"
+              to="/medinone/enterprise"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
             >
               Open rollout guide
@@ -1437,9 +1437,9 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
         <div className="grid gap-4 lg:grid-cols-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Legacy Compatibility</div>
-            <h2 className="mt-3 text-xl font-semibold">LifePill login now uses its own API base again</h2>
+            <h2 className="mt-3 text-xl font-semibold">MedInOne login now uses its own API base again</h2>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              The legacy LifePill route now resolves against the old `/lifepill/v1` backend instead of accidentally borrowing the retail `/api/v1` base.
+              The legacy compatibility route now resolves against its dedicated backend base instead of accidentally borrowing the retail `/api/v1` base.
             </p>
           </div>
           <div>

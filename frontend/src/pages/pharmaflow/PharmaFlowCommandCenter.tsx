@@ -41,7 +41,7 @@ const accessPresets: AccessPreset[] = [
     mode: 'company-admin',
     title: 'Company Admin',
     summary: 'Manages stores, users, permissions, stock, billing, purchases, compliance, and reports for one company.',
-    username: 'manager@pharmaflow.in',
+    username: 'manager@medinone.in',
     password: 'Company@123',
     tenantSlug: 'pharmaflow',
     routeHint: 'Opens the legacy company workspace',
@@ -50,7 +50,7 @@ const accessPresets: AccessPreset[] = [
     mode: 'store-ops',
     title: 'Store Login',
     summary: 'Runs daily branch operations including billing, customers, inventory, purchases, compliance, and reports.',
-    username: 'store@pharmaflow.in',
+    username: 'store@medinone.in',
     password: 'Store@123',
     tenantSlug: 'pharmaflow',
     routeHint: 'Opens the store workspace',
@@ -196,7 +196,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/lifepill/help"
+            to="/medinone/help"
             className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
           >
             Open help
@@ -359,7 +359,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
         ) : (
           <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
             <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Legacy Access</div>
-            <h2 className="mt-3 text-xl font-semibold text-slate-950">The LifePill login is the main entry now</h2>
+            <h2 className="mt-3 text-xl font-semibold text-slate-950">MedInOne login is the main entry now</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Account switching happens from the legacy login screen. This setup page now stays inside the same
               software for store selection, branding, and operational rollout instead of acting like a second login
@@ -422,7 +422,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
               <div className="text-xs uppercase tracking-wide text-slate-400">Company</div>
-              <div className="mt-2 font-semibold text-slate-950">{branding.brandName || 'LifePill'}</div>
+              <div className="mt-2 font-semibold text-slate-950">{branding.brandName || 'MedInOne'}</div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
               <div className="text-xs uppercase tracking-wide text-slate-400">Active store</div>
@@ -457,7 +457,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
                   Open my workspace
                 </Link>
                 <Link
-                  to="/lifepill/help"
+                  to="/medinone/help"
                   className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
                 >
                   Help and FAQ

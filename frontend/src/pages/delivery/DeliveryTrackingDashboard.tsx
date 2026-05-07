@@ -146,6 +146,7 @@ const DeliveryTrackingDashboard: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
 
   const storeId = context.storeId;
+  const isDeliveryStaff = context.role === 'DELIVERY_BOY';
   const selectedDelivery = deliveries.find((delivery) => delivery.deliveryId === locationDraft.deliveryId) || deliveries[0];
 
   const localSummary = useMemo(() => {
@@ -178,13 +179,21 @@ const DeliveryTrackingDashboard: React.FC = () => {
 
     try {
       setBusyKey('load');
-      const [deliveryItems, driverItems, summaryResponse, invoiceItems, customerItems] = await Promise.all([
+      const [deliveryItems, driverItems, summaryResponse] = await Promise.all([
         DeliveryAPI.list(query, statusFilter, 60),
         DeliveryAPI.listDrivers(),
         DeliveryAPI.getSummary(),
-        BillingAPI.listInvoices(undefined, undefined, undefined, 50),
-        CustomerAPI.search(storeId, undefined, 50),
       ]);
+      let invoiceItems: InvoiceHistoryItem[] = [];
+      let customerItems: CustomerLookupResponse[] = [];
+
+      if (!isDeliveryStaff) {
+        [invoiceItems, customerItems] = await Promise.all([
+          BillingAPI.listInvoices(undefined, undefined, undefined, 50),
+          CustomerAPI.search(storeId, undefined, 50),
+        ]);
+      }
+
       setDeliveries(deliveryItems);
       setDrivers(driverItems);
       setSummary(summaryResponse);
@@ -203,7 +212,7 @@ const DeliveryTrackingDashboard: React.FC = () => {
 
   useEffect(() => {
     void loadDeliveryDesk();
-  }, [storeId, statusFilter]);
+  }, [storeId, statusFilter, isDeliveryStaff]);
 
   const handleCustomerChange = (customerId: string) => {
     const customer = customers.find((item) => item.customerId === customerId);
@@ -226,6 +235,10 @@ const DeliveryTrackingDashboard: React.FC = () => {
 
   const handleCreateDelivery = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isDeliveryStaff) {
+      setError('Delivery riders can update assigned orders and live location. Counter or admin users create new delivery orders.');
+      return;
+    }
     if (!draft.deliveryAddress.trim()) {
       setError('Delivery address is required.');
       return;
@@ -381,6 +394,12 @@ const DeliveryTrackingDashboard: React.FC = () => {
             </div>
           </div>
 
+          {isDeliveryStaff && (
+            <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              Rider mode is focused on assigned deliveries, status movement, and live location updates. Counter or admin users create new delivery orders.
+            </div>
+          )}
+
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <label className="text-sm">
               <span className="mb-1 block font-medium text-slate-700">Recent bill</span>
@@ -490,26 +509,30 @@ const DeliveryTrackingDashboard: React.FC = () => {
           <div className="mt-5 flex flex-wrap gap-3">
             <button
               type="submit"
-              disabled={!storeId || busyKey === 'create'}
+              disabled={!storeId || busyKey === 'create' || isDeliveryStaff}
               className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               <Truck size={16} />
-              Create delivery
+              {isDeliveryStaff ? 'Rider mode only' : 'Create delivery'}
             </button>
-            <Link
-              to="/lifepill/billing"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
-            >
-              <Route size={16} />
-              Open counter
-            </Link>
-            <Link
-              to="/lifepill/users"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
-            >
-              <UserRound size={16} />
-              Drivers
-            </Link>
+            {!isDeliveryStaff && (
+              <>
+                <Link
+                  to="/medinone/billing"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+                >
+                  <Route size={16} />
+                  Open counter
+                </Link>
+                <Link
+                  to="/medinone/users"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+                >
+                  <UserRound size={16} />
+                  Drivers
+                </Link>
+              </>
+            )}
           </div>
         </form>
 
@@ -634,7 +657,9 @@ const DeliveryTrackingDashboard: React.FC = () => {
             </div>
           ) : (
             deliveries.map((delivery) => {
-              const nextStatuses = getNextStatuses(delivery.status);
+              const nextStatuses = isDeliveryStaff
+                ? getNextStatuses(delivery.status).filter((status) => status !== 'ASSIGNED')
+                : getNextStatuses(delivery.status);
               const mapUrl = buildMapUrl(delivery);
               const activeStepIndex = Math.max(0, progressSteps.indexOf(delivery.status));
 
@@ -705,23 +730,25 @@ const DeliveryTrackingDashboard: React.FC = () => {
                     </div>
 
                     <div className="w-full space-y-3 xl:w-72">
-                      <select
-                        value={driverSelections[delivery.deliveryId] || delivery.deliveryBoyId || ''}
-                        onChange={(event) =>
-                          setDriverSelections((current) => ({
-                            ...current,
-                            [delivery.deliveryId]: event.target.value,
-                          }))
-                        }
-                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
-                      >
-                        <option value="">Choose driver</option>
-                        {drivers.map((driver) => (
-                          <option key={driver.userId} value={driver.userId}>
-                            {driver.fullName}
-                          </option>
-                        ))}
-                      </select>
+                      {!isDeliveryStaff && (
+                        <select
+                          value={driverSelections[delivery.deliveryId] || delivery.deliveryBoyId || ''}
+                          onChange={(event) =>
+                            setDriverSelections((current) => ({
+                              ...current,
+                              [delivery.deliveryId]: event.target.value,
+                            }))
+                          }
+                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"
+                        >
+                          <option value="">Choose driver</option>
+                          {drivers.map((driver) => (
+                            <option key={driver.userId} value={driver.userId}>
+                              {driver.fullName}
+                            </option>
+                          ))}
+                        </select>
+                      )}
 
                       <div className="flex flex-wrap gap-2">
                         {nextStatuses.map((status) => (
@@ -735,7 +762,7 @@ const DeliveryTrackingDashboard: React.FC = () => {
                             {humanizeStatus(status)}
                           </button>
                         ))}
-                        {!['DELIVERED', 'CANCELLED'].includes(delivery.status) && (
+                        {!isDeliveryStaff && !['DELIVERED', 'CANCELLED'].includes(delivery.status) && (
                           <button
                             type="button"
                             onClick={() => handleCancel(delivery)}

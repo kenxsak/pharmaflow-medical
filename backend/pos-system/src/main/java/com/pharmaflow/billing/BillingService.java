@@ -148,7 +148,7 @@ public class BillingService {
                 : null;
         PharmaUser currentUser = getCurrentPharmaUser();
         if (currentUser == null) {
-            throw new ForbiddenActionException("Authenticated PharmaFlow user is required for billing");
+            throw new ForbiddenActionException("Authenticated MedInOne user is required for billing");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -335,7 +335,7 @@ public class BillingService {
 
         PharmaUser currentUser = getCurrentPharmaUser();
         if (currentUser == null) {
-            throw new ForbiddenActionException("Authenticated PharmaFlow user is required for sales returns");
+            throw new ForbiddenActionException("Authenticated MedInOne user is required for sales returns");
         }
 
         List<InvoiceItem> invoiceItems = invoiceItemRepository.findByInvoiceInvoiceId(invoiceId);

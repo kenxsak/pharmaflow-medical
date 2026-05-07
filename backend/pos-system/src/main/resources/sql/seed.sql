@@ -1,4 +1,4 @@
--- LifePill POS System - Complete Database Seed Script
+-- MedInOne POS System - Complete Database Seed Script
 
 BEGIN;
 
@@ -36,11 +36,11 @@ INSERT INTO supplier (supplier_id, supplier_name, supplier_address, supplier_pho
 
 -- 3. BRANCH TABLE
 INSERT INTO branch (branch_id, branch_name, branch_address, branch_contact, branch_fax, branch_email, branch_description, branch_image, branch_status, branch_location, branch_created_on, branch_created_by, branch_profile_image_url) VALUES
-(1, 'Head Office', 'LifePill Building, 123 Main Street, Colombo 03', '0112345678', '0112345679', 'headoffice@lifepill.com', 'Main headquarters and flagship pharmacy branch', null, true, '6.9271,79.8612', '2024-01-01', 'system', null),
-(2, 'Maradana Branch', '456 Maradana Road, Colombo 10', '0119876543', '0119876544', 'maradana@lifepill.com', 'High traffic urban branch near Maradana station', null, true, '6.9147,79.8646', '2024-06-01', 'system', null),
-(3, 'Kandy City Branch', '789 Dalada Veediya, Kandy', '0812233445', '0812233446', 'kandy@lifepill.com', 'Central province main branch', null, true, '7.2906,80.6337', '2024-07-01', 'system', null),
-(4, 'Galle Fort Branch', '321 Church Street, Galle Fort', '0914455667', '0914455668', 'galle@lifepill.com', 'Southern province flagship branch', null, true, '6.0328,80.2168', '2024-08-01', 'system', null),
-(5, 'Negombo Beach Branch', '555 Lewis Place, Negombo', '0316677889', null, 'negombo@lifepill.com', 'Coastal area pharmacy serving tourists and locals', null, true, '7.2008,79.8358', '2024-09-01', 'system', null);
+(1, 'Head Office', 'MedInOne Building, 123 Main Street, Colombo 03', '0112345678', '0112345679', 'headoffice@medinone.in', 'Main headquarters and flagship pharmacy branch', null, true, '6.9271,79.8612', '2024-01-01', 'system', null),
+(2, 'Maradana Branch', '456 Maradana Road, Colombo 10', '0119876543', '0119876544', 'maradana@medinone.in', 'High traffic urban branch near Maradana station', null, true, '6.9147,79.8646', '2024-06-01', 'system', null),
+(3, 'Kandy City Branch', '789 Dalada Veediya, Kandy', '0812233445', '0812233446', 'kandy@medinone.in', 'Central province main branch', null, true, '7.2906,80.6337', '2024-07-01', 'system', null),
+(4, 'Galle Fort Branch', '321 Church Street, Galle Fort', '0914455667', '0914455668', 'galle@medinone.in', 'Southern province flagship branch', null, true, '6.0328,80.2168', '2024-08-01', 'system', null),
+(5, 'Negombo Beach Branch', '555 Lewis Place, Negombo', '0316677889', null, 'negombo@medinone.in', 'Coastal area pharmacy serving tourists and locals', null, true, '7.2008,79.8358', '2024-09-01', 'system', null);
 
 -- 4. ITEM CATEGORY TABLE
 INSERT INTO item_category (category_id, category_name, category_description, category_image) VALUES
@@ -68,17 +68,17 @@ INSERT INTO employer_bankdetails (employer_bank_details_id, bank_name, bank_bran
 
 -- 6. EMPLOYER TABLE
 -- Passwords are BCrypt encoded. Default passwords:
--- admin@lifepill.com: admin123
+-- owner@medinone.in: admin123
 -- All others: password123
 INSERT INTO employer (employer_id, employer_nic_name, employer_first_name, employer_last_name, profile_image, profile_image_url, employer_password, employer_email, employer_phone, employer_address, employer_sallary, employer_nic, is_active, pin, gender, employer_date_of_birth, role, brach_id, employer_bank_details_id) VALUES
-(1, 'pramitha', 'Pramitha', 'Jayasooriya', null, null, '$2a$10$PODkaZ3NMuBQJnslHP9hou.j8Q4BxaXamd63.c5/743uQz1.H4Bqi', 'admin@lifepill.com', '0771234567', 'LifePill Head Office, 123 Main Street, Colombo 03', 150000.00, '200012345678', true, 1234, 'MALE', '1990-01-15', 'OWNER', 1, 1),
-(2, 'jane', 'Jane', 'Doe', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier1@lifepill.com', '0774445555', 'Maradana Branch, Colombo 10', 45000.00, '199544556677', true, 4321, 'FEMALE', '1995-07-20', 'CASHIER', 2, 2),
-(3, 'kumar', 'Kumar', 'Sangakkara', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'manager.kandy@lifepill.com', '0772223333', '45 Temple Road, Kandy', 85000.00, '198833445566', true, 1111, 'MALE', '1988-03-10', 'MANAGER', 3, 3),
-(4, 'malini', 'Malini', 'Fernando', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier.galle@lifepill.com', '0775556666', '78 Beach Road, Galle', 42000.00, '199722334455', true, 2222, 'FEMALE', '1997-11-25', 'CASHIER', 4, 4),
-(5, 'nimal', 'Nimal', 'Perera', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier.negombo@lifepill.com', '0776667777', '90 Lewis Place, Negombo', 40000.00, '199611223344', true, 3333, 'MALE', '1996-05-18', 'CASHIER', 5, 5),
-(6, 'samantha', 'Samantha', 'Silva', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'manager.colombo@lifepill.com', '0777778888', '25 Galle Road, Colombo 04', 75000.00, '199055667788', true, 4444, 'MALE', '1990-09-05', 'MANAGER', 1, 6),
-(7, 'chamari', 'Chamari', 'Wijesinghe', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'assistant.kandy@lifepill.com', '0778889999', '67 Peradeniya Road, Kandy', 65000.00, '199244556677', true, 5555, 'FEMALE', '1992-02-14', 'MANAGER', 3, 7),
-(8, 'ruwan', 'Ruwan', 'Jayawardena', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier2@lifepill.com', '0779990000', '34 High Level Road, Nugegoda', 38000.00, '199888990011', true, 6666, 'MALE', '1998-08-30', 'CASHIER', 1, 8);
+(1, 'pramitha', 'Pramitha', 'Jayasooriya', null, null, '$2a$10$PODkaZ3NMuBQJnslHP9hou.j8Q4BxaXamd63.c5/743uQz1.H4Bqi', 'owner@medinone.in', '0771234567', 'MedInOne Head Office, 123 Main Street, Colombo 03', 150000.00, '200012345678', true, 1234, 'MALE', '1990-01-15', 'OWNER', 1, 1),
+(2, 'jane', 'Jane', 'Doe', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier1@medinone.in', '0774445555', 'Maradana Branch, Colombo 10', 45000.00, '199544556677', true, 4321, 'FEMALE', '1995-07-20', 'CASHIER', 2, 2),
+(3, 'kumar', 'Kumar', 'Sangakkara', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'manager.kandy@medinone.in', '0772223333', '45 Temple Road, Kandy', 85000.00, '198833445566', true, 1111, 'MALE', '1988-03-10', 'MANAGER', 3, 3),
+(4, 'malini', 'Malini', 'Fernando', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier.galle@medinone.in', '0775556666', '78 Beach Road, Galle', 42000.00, '199722334455', true, 2222, 'FEMALE', '1997-11-25', 'CASHIER', 4, 4),
+(5, 'nimal', 'Nimal', 'Perera', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier.negombo@medinone.in', '0776667777', '90 Lewis Place, Negombo', 40000.00, '199611223344', true, 3333, 'MALE', '1996-05-18', 'CASHIER', 5, 5),
+(6, 'samantha', 'Samantha', 'Silva', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'manager.colombo@medinone.in', '0777778888', '25 Galle Road, Colombo 04', 75000.00, '199055667788', true, 4444, 'MALE', '1990-09-05', 'MANAGER', 1, 6),
+(7, 'chamari', 'Chamari', 'Wijesinghe', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'assistant.kandy@medinone.in', '0778889999', '67 Peradeniya Road, Kandy', 65000.00, '199244556677', true, 5555, 'FEMALE', '1992-02-14', 'MANAGER', 3, 7),
+(8, 'ruwan', 'Ruwan', 'Jayawardena', null, null, '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'cashier2@medinone.in', '0779990000', '34 High Level Road, Nugegoda', 38000.00, '199888990011', true, 6666, 'MALE', '1998-08-30', 'CASHIER', 1, 8);
 
 -- 7. ITEM TABLE
 INSERT INTO item (item_id, item_name, selling_price, item_barcode, supply_date, supplier_price, is_free_issued, is_discounted, item_manufacture, item_quantity, is_stock, measuring_unit_type, manufacture_date, expire_date, purchase_date, warranty_period, rack_number, discounted_price, discounted_percentage, warehouse_name, is_special_condition, item_image, item_description, date_created, last_updated_date, category_id, supplier_id, branch_id) VALUES

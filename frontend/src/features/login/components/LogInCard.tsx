@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { CiUser } from 'react-icons/ci';
 import { RiLockPasswordLine } from 'react-icons/ri';
-import Logo from '../../../assets/logo/logo.png';
 
 import { useNavigate } from 'react-router-dom';
 import useSignIn from '../services/AuthService';
 import { useUserContext } from '../../../context/UserContext';
 import EulaComponent from './EulaComponent';
 import { Loader } from 'lucide-react';
+import { getPharmaFlowHomePath, readPharmaFlowContext } from '../../../utils/pharmaflowContext';
+import BrandLogo from '../../../shared/brand/BrandLogo';
 
 const LogInCard = () => {
   const [username, setUsername] = useState<string>('');
@@ -26,25 +27,31 @@ const LogInCard = () => {
     const user = await signIn(username, password);
     if (user) {
       setUser(user);
-      if (user.role === 'OWNER') {
-        navigate('/manager-dashboard/Dashboard');
-      } else {
-        navigate('/cashier-dashboard');
-      }
+      const pharmaFlowHomePath = getPharmaFlowHomePath(
+        readPharmaFlowContext()
+      );
+      navigate(
+        pharmaFlowHomePath !== '/legacy-login'
+          ? pharmaFlowHomePath
+          : user.role === 'OWNER'
+            ? '/manager-dashboard/Dashboard'
+            : '/cashier-dashboard'
+      );
     }
   };
 
   return (
     <div className='font-poppins p-8 flex flex-col items-center justify-center space-y-8 shadow-lg rounded-lg w-96 md:w-[60vw] lg:w-[40vw] xl:w-[30vw] h-[80vh]'>
-      {/* logo */}
-      <div>
-        <img src={Logo} alt='Logo' />
-      </div>
+      <BrandLogo
+        variant='wordmark'
+        className='w-full justify-center'
+        imageClassName='h-24 max-w-[320px]'
+      />
 
       {/* title text of the page */}
       <div className='text-center'>
-        <h1 className='text-2xl font-bold'>Log In</h1>
-        <p>Log In To Locate Your Hope ...</p>
+        <h1 className='text-2xl font-bold'>Log in to MedInOne</h1>
+        <p className='text-sm text-slate-500'>One workspace for billing, stock, compliance, and delivery.</p>
       </div>
 
       {/* input fields for username password */}

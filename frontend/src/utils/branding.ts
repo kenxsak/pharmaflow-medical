@@ -12,11 +12,11 @@ export interface BrandingSnapshot {
 
 const DEFAULT_BRANDING: BrandingSnapshot = {
   brandName:
-    process.env.REACT_APP_BRAND_NAME || process.env.REACT_APP_STORE_NAME || 'LifePill',
+    process.env.REACT_APP_BRAND_NAME || process.env.REACT_APP_STORE_NAME || 'MedInOne',
   tagline:
     process.env.REACT_APP_BRAND_TAGLINE ||
-    'Simple pharmacy operations, billing, and compliance workspace',
-  supportEmail: process.env.REACT_APP_BRAND_SUPPORT_EMAIL || 'support@lifepill.com',
+    'One connected workspace for pharmacy billing, inventory, compliance, and delivery',
+  supportEmail: process.env.REACT_APP_BRAND_SUPPORT_EMAIL || 'support@medinone.in',
   supportPhone: process.env.REACT_APP_BRAND_SUPPORT_PHONE || '+91 44 4000 9000',
   deploymentMode:
     process.env.REACT_APP_BRAND_DEPLOYMENT_MODE || 'Hybrid cloud + branch-local operations',
@@ -37,15 +37,17 @@ const normalizeBrandingText = (key: keyof BrandingSnapshot, value: string) => {
     return DEFAULT_BRANDING[key];
   }
 
-  if (key === 'brandName' && /^pharmaflow$/i.test(trimmed)) {
-    return 'LifePill';
+  if (key === 'brandName' && /^(pharmaflow|lifepill)$/i.test(trimmed)) {
+    return 'MedInOne';
   }
 
-  if (key === 'supportEmail' && /^support@pharmaflow\.in$/i.test(trimmed)) {
-    return 'support@lifepill.com';
+  if (key === 'supportEmail' && /^support@(pharmaflow\.in|lifepill\.com)$/i.test(trimmed)) {
+    return 'support@medinone.in';
   }
 
-  return trimmed.replace(/PharmaFlow/g, 'LifePill');
+  return trimmed
+    .replace(/PharmaFlow/g, 'MedInOne')
+    .replace(/LifePill/g, 'MedInOne');
 };
 
 const readValue = (key: keyof BrandingSnapshot) => {
@@ -101,7 +103,7 @@ export const getBrandInitials = (brandName: string) =>
     .filter(Boolean)
     .slice(0, 2)
     .map((token) => token[0]?.toUpperCase() || '')
-    .join('') || 'LP';
+    .join('') || 'MO';
 
 export const useBranding = () => {
   const [branding, setBranding] = useState<BrandingSnapshot>(() => readBranding());

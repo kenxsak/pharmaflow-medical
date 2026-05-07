@@ -26,7 +26,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
  * {@link org.springframework.web.cors.CorsConfigurationSource} bean
  * from {@link CorsConfig}.</p>
  *
- * @author LifePill Development Team
+ * @author MedInOne Development Team
  * @version 1.0
  * @see CorsConfig
  */

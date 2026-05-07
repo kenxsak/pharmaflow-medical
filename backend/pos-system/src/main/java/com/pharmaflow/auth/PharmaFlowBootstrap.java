@@ -51,7 +51,7 @@ public class PharmaFlowBootstrap implements CommandLineRunner {
                 .orElseGet(() -> storeRepository.save(
                         Store.builder()
                                 .storeCode(defaultStoreCode)
-                                .storeName("PharmaFlow Head Office")
+                                .storeName("MedInOne Head Office")
                                 .storeType("HO")
                                 .city("Chennai")
                                 .state("Tamil Nadu")

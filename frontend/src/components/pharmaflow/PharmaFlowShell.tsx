@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Building2, ChevronsLeftRight, CircleDot, LayoutDashboard, Sparkles } from 'lucide-react';
 import { StoreAPI, StoreSummary } from '../../services/api';
-import { getBrandInitials, useBranding } from '../../utils/branding';
+import { useBranding } from '../../utils/branding';
+import BrandLogo from '../../shared/brand/BrandLogo';
 import {
   announcePharmaFlowContextChange,
   canAccessCompanyControls,
@@ -45,10 +46,10 @@ const sideLinkClasses = (isActive: boolean) =>
   ].join(' ');
 
 const demoRoutePaths = [
-  '/lifepill/billing',
-  '/lifepill/inventory',
-  '/lifepill/procurement',
-  '/lifepill/compliance',
+  '/medinone/billing',
+  '/medinone/inventory',
+  '/medinone/procurement',
+  '/medinone/compliance',
 ];
 
 const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
@@ -112,18 +113,17 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const visibleNavItems =
     persona === 'guest'
       ? pharmaFlowNavItems.filter((item) =>
-          ['/lifepill/legacy-home', '/lifepill/help'].includes(item.path)
+          ['/medinone/legacy-home', '/medinone/help'].includes(item.path)
         )
       : pharmaFlowNavItems.filter((item) => item.access.includes(persona));
   const demoRouteItems = visibleNavItems.filter((item) => demoRoutePaths.includes(item.path));
-  const brandInitials = getBrandInitials(branding.brandName);
   const groupedNavItems = pharmaFlowNavGroups.map((group) => ({
     group,
     items: visibleNavItems.filter((item) => item.group === group),
   })).filter(({ items }) => items.length > 0);
 
   const contextWarnings = [
-    !context.hasToken ? 'Sign in from the LifePill legacy login before opening billing, inventory, and reports.' : null,
+    !context.hasToken ? 'Sign in before opening billing, inventory, and reports.' : null,
     !context.storeId ? 'Choose an active branch so every screen opens the right store data.' : null,
     storeLoadError,
   ].filter(Boolean) as string[];
@@ -195,9 +195,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
         <aside className="w-full shrink-0 space-y-4 xl:w-[310px]">
           <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white">
-                {brandInitials}
-              </div>
+              <BrandLogo variant="mark" imageClassName="h-12 w-12" />
               <div className="min-w-0">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
                   <Sparkles size={14} />
@@ -230,14 +228,14 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 Home
               </Link>
               <Link
-                to="/lifepill/billing"
+                to="/medinone/billing"
                 className="inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900"
               >
                 Billing
               </Link>
               {companyControlsVisible && (
                 <Link
-                  to="/lifepill/setup"
+                  to="/medinone/setup"
                   className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700"
                 >
                   Company Setup
@@ -307,7 +305,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                 Legacy login
               </Link>
               <Link
-                to={persona === 'store-ops' ? '/lifepill/help' : '/lifepill/enterprise'}
+                to={persona === 'store-ops' ? '/medinone/help' : '/medinone/enterprise'}
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
               >
                 {persona === 'store-ops' ? 'Help and FAQ' : 'Rollout and coverage guide'}
