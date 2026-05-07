@@ -15,6 +15,23 @@ account so the workspace can be reused safely without touching unrelated apps.
 | pharmaflow-db | Postgres 18 | dpg-d7euakn7f7vs73ddr580-a | Singapore | database: pharmaflow_mrh8 |
 | pharmaflow-cache | Key Value / Valkey 8 | red-d7euakf7f7vs73ddr52g | Singapore | dashboard: /r/red-d7euakf7f7vs73ddr52g |
 
+## Blueprint Cleanup
+
+The old Render Blueprint was also disconnected so this account does not
+auto-recreate PharmaFlow resources on future pushes.
+
+| Blueprint | ID | Repo | Action |
+| --- | --- | --- | --- |
+| farma | exs-d7eu9jvlk1mc73c1u1kg | https://github.com/kenxsak/pharmaflow-medical | Disconnected |
+
+During the final Blueprint sync, Render briefly recreated these resources. They
+were deleted after disconnecting the Blueprint:
+
+| Resource | Render type | ID |
+| --- | --- | --- |
+| pharmaflow-backend | Web service, Docker | srv-d7u5ip0sfn5c73cn4kfg |
+| pharmaflow-db | Postgres 18 | dpg-d7u5iegsfn5c73cn49k0-a |
+
 ## Do Not Touch
 
 | Resource | Render type | ID | URL |
