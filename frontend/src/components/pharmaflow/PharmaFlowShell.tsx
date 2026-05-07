@@ -18,7 +18,7 @@ import { PharmaFlowNavItem, pharmaFlowNavGroups, pharmaFlowNavItems } from './na
 
 interface PharmaFlowShellProps {
   title: string;
-  description: string;
+  description?: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
   embedded?: boolean;
@@ -47,7 +47,6 @@ const sideLinkClasses = (isActive: boolean) =>
 
 const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   title,
-  description,
   children,
   actions,
   embedded = false,
@@ -106,7 +105,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const visibleNavItems =
     persona === 'guest'
       ? pharmaFlowNavItems.filter((item) =>
-          ['/medinone/home', '/medinone/help'].includes(item.path)
+          ['/medinone/home'].includes(item.path)
         )
       : pharmaFlowNavItems.filter((item) => item.access.includes(persona));
   const groupedNavItems = pharmaFlowNavGroups.map((group) => ({
@@ -142,11 +141,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                {branding.brandName} module
-              </div>
-              <h1 className="mt-3 text-2xl font-semibold text-slate-950">{title}</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{description}</p>
+              <h1 className="text-2xl font-semibold text-slate-950">{title}</h1>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -394,7 +389,6 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
                   <span className="truncate text-slate-500">{currentNavItem?.title || 'Workspace'}</span>
                 </div>
                 <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{title}</h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{description}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">

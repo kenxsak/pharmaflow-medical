@@ -19,24 +19,6 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 2,
   });
 
-const analyticsSteps = [
-  {
-    title: 'Pick month and year',
-    summary: 'Keep the reporting window explicit so margin and sales numbers are easy to explain.',
-    tone: 'border-sky-200 bg-sky-50 text-sky-900',
-  },
-  {
-    title: 'Read the top summary',
-    summary: 'Invoice count, sales, average bill, and estimated profit tell the story quickly.',
-    tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  },
-  {
-    title: 'Drill into manufacturer and category',
-    summary: 'Show which brands or therapeutic groups are contributing the most margin.',
-    tone: 'border-violet-200 bg-violet-50 text-violet-900',
-  },
-];
-
 const DailySalesTable: React.FC<{
   rows: DailySalesRow[];
   onExport: () => void;
@@ -45,7 +27,6 @@ const DailySalesTable: React.FC<{
     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
         <h2 className="text-lg font-semibold">Daily Sales by Date</h2>
-        <p className="text-sm text-slate-500">Use this when HO asks how the month built up day by day.</p>
       </div>
       <button
         type="button"
@@ -422,16 +403,6 @@ const ProfitAnalyticsDashboard: React.FC<ProfitAnalyticsDashboardProps> = ({ emb
             {error}
           </div>
         )}
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {analyticsSteps.map((step, index) => (
-            <div key={step.title} className={`rounded-3xl border p-5 ${step.tone}`}>
-              <div className="text-sm font-semibold">Step {index + 1}</div>
-              <div className="mt-2 text-lg font-semibold text-slate-950">{step.title}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{step.summary}</div>
-            </div>
-          ))}
-        </section>
 
         {salesSummary && profitReport && (
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

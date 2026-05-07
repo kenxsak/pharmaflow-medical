@@ -24,24 +24,6 @@ const tryFormatJson = (value?: string) => {
   }
 };
 
-const billingHistorySteps = [
-  {
-    title: 'Search bill history',
-    summary: 'Find invoices by invoice number, customer, or payment mode from one clean history desk.',
-    tone: 'border-sky-200 bg-sky-50 text-sky-900',
-  },
-  {
-    title: 'Open one invoice',
-    summary: 'Show tax breakup, line items, and total from the right-side invoice detail panel.',
-    tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  },
-  {
-    title: 'Check the audit trail',
-    summary: 'Prove who created or edited important records across invoices and inventory.',
-    tone: 'border-violet-200 bg-violet-50 text-violet-900',
-  },
-];
-
 interface BillingAuditDashboardProps {
   embedded?: boolean;
 }
@@ -289,16 +271,6 @@ const BillingAuditDashboard: React.FC<BillingAuditDashboardProps> = ({ embedded 
             {error}
           </div>
         )}
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {billingHistorySteps.map((step, index) => (
-            <div key={step.title} className={`rounded-3xl border p-5 ${step.tone}`}>
-              <div className="text-sm font-semibold">Step {index + 1}</div>
-              <div className="mt-2 text-lg font-semibold text-slate-950">{step.title}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{step.summary}</div>
-            </div>
-          ))}
-        </section>
 
         <section className="grid gap-4 md:grid-cols-2">
           <div className="rounded-[2rem] bg-white p-5 shadow-sm">

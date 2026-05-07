@@ -21,8 +21,6 @@ import {
   getMedicineUnitProfile,
 } from '../../utils/medicineUnits';
 
-const quickSearches = ['8901234500001', 'Dolo 650', 'Mox 500', 'Alprax 0.25'];
-
 const expiryBadgeClasses: Record<string, string> = {
   EXPIRED: 'bg-rose-100 text-rose-700',
   EXPIRY_30: 'bg-amber-100 text-amber-800',
@@ -443,76 +441,23 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
           </div>
         )}
 
-        <section className="rounded-[2rem] border border-sky-200 bg-gradient-to-r from-sky-50 via-white to-emerald-50 p-6 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
-                Inventory Desk
-              </div>
-              <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                Beginner-friendly stock view for the branch team
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Search a medicine, open its live batches, and use the shortage table to decide what must be reordered.
-                It keeps stock, FIFO batches, and reorder risk in one place without overloading the branch staff.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {quickSearches.map((query) => (
-                  <button
-                    key={query}
-                    type="button"
-                    onClick={() => void handleSearch(query)}
-                    className="rounded-full border border-sky-200 bg-white px-3 py-2 text-sm font-medium text-sky-900"
-                  >
-                    {query}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Shortage Items</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageRows.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Below reorder level right now</div>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Selected Stock</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{visibleStockStrips}</div>
-                <div className="mt-1 text-sm text-slate-500">
-                  Visible {selectedUnitProfile?.primaryUnitLabel || 'packs'} in current batch list
-                </div>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Shortage Stock</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageStrips}</div>
-                <div className="mt-1 text-sm text-slate-500">Current on-hand pack units in shortage medicines</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-            <div className="text-sm font-semibold text-emerald-900">Step 1</div>
-            <div className="mt-2 text-lg font-semibold text-slate-950">Find the medicine</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Search by brand, generic, salt, or barcode just like the billing counter.
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Shortage Items</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageRows.length}</div>
+            <div className="mt-1 text-sm text-slate-500">Below reorder level</div>
+          </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Selected Stock</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{visibleStockStrips}</div>
+            <div className="mt-1 text-sm text-slate-500">
+              {selectedUnitProfile?.primaryUnitLabel || 'Pack'} quantity
             </div>
           </div>
-          <div className="rounded-3xl border border-sky-200 bg-sky-50 p-5">
-            <div className="text-sm font-semibold text-sky-900">Step 2</div>
-            <div className="mt-2 text-lg font-semibold text-slate-950">Inspect live batches</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Check pack quantity, loose units, expiry date, and which batch should move first.
-            </div>
-          </div>
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
-            <div className="text-sm font-semibold text-amber-900">Step 3</div>
-            <div className="mt-2 text-lg font-semibold text-slate-950">Act on shortage</div>
-            <div className="mt-1 text-sm text-slate-600">
-              Use the shortage table to raise a purchase or branch indent before stock runs out.
-            </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Shortage Stock</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageStrips}</div>
+            <div className="mt-1 text-sm text-slate-500">On-hand pack units</div>
           </div>
         </section>
 
@@ -839,23 +784,6 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
             Medicines currently below reorder level for this store.
           </p>
 
-          {shortageRows.length > 0 && (
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl bg-rose-50 p-4 text-sm text-rose-900">
-                <div className="font-semibold">Critical replenishment list</div>
-                <div className="mt-1">These items should be reviewed first for purchasing.</div>
-              </div>
-              <div className="rounded-2xl bg-sky-50 p-4 text-sm text-sky-900">
-                <div className="font-semibold">Branch action</div>
-                <div className="mt-1">Raise inward or transfer requests from this list.</div>
-              </div>
-              <div className="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900">
-                <div className="font-semibold">Manager insight</div>
-                <div className="mt-1">Use this view after counter work to confirm reorder-level automation.</div>
-              </div>
-            </div>
-          )}
-
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 text-slate-500">
@@ -1123,7 +1051,7 @@ const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ embedded = fals
             ? 'Add stock'
             : 'Remove stock'
         }
-        description="Use this operator action when physical stock does not match the system or when a batch needs to be blocked from sale."
+        description="Adjust the selected batch."
         footer={
           <>
             <button

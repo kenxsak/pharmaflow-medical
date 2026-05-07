@@ -10,24 +10,6 @@ const formatDateTime = (value: string) =>
     timeStyle: 'short',
   });
 
-const complianceSteps = [
-  {
-    title: 'Choose the reporting period',
-    summary: 'Start with the right month and schedule so the register shows only the exact compliance window.',
-    tone: 'border-sky-200 bg-sky-50 text-sky-900',
-  },
-  {
-    title: 'Check patient and doctor details',
-    summary: 'Make sure every controlled-drug sale still shows the people and prescription behind it.',
-    tone: 'border-amber-200 bg-amber-50 text-amber-900',
-  },
-  {
-    title: 'Export what the inspector needs',
-    summary: 'Download the filtered register or narcotic report directly when the review is complete.',
-    tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  },
-];
-
 interface ComplianceDashboardProps {
   embedded?: boolean;
 }
@@ -185,16 +167,6 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ embedded = fa
               </div>
             </div>
           </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {complianceSteps.map((step, index) => (
-            <div key={step.title} className={`rounded-3xl border p-5 ${step.tone}`}>
-              <div className="text-sm font-semibold">Step {index + 1}</div>
-              <div className="mt-2 text-lg font-semibold text-slate-950">{step.title}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{step.summary}</div>
-            </div>
-          ))}
         </section>
 
         <section className="rounded-3xl bg-white p-5 shadow-sm">

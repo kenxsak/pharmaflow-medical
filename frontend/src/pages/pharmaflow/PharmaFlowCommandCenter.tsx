@@ -195,12 +195,6 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
       description="Manage the active store, company branding, access model, and account configuration from one secure workspace."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Link
-            to="/medinone/help"
-            className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
-          >
-            Open help
-          </Link>
           {context.hasToken && (
             <button
               type="button"
@@ -377,12 +371,9 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
                 </div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                <div className="text-xs uppercase tracking-wide text-slate-400">Best next step</div>
+                <div className="text-xs uppercase tracking-wide text-slate-400">Workspace</div>
                 <div className="mt-2 text-lg font-semibold text-slate-950">
                   {context.platformOwner ? 'Open Platform or Users' : 'Open Billing or Users'}
-                </div>
-                <div className="mt-1 text-sm text-slate-500">
-                  Use Dashboard for daily operations and Support for setup notes and FAQs.
                 </div>
               </div>
             </div>
@@ -455,12 +446,6 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
                   className="rounded-2xl bg-sky-700 px-5 py-3 text-sm font-semibold text-white"
                 >
                   Open my workspace
-                </Link>
-                <Link
-                  to="/medinone/help"
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
-                >
-                  Help and FAQ
                 </Link>
               </div>
             </div>

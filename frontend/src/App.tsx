@@ -11,7 +11,6 @@ import DeliveryTrackingDashboard from './pages/delivery/DeliveryTrackingDashboar
 import InventoryDashboard from './pages/inventory/InventoryDashboard';
 import PharmaFlowCommandCenter from './pages/pharmaflow/PharmaFlowCommandCenter';
 import PharmaFlowEntry from './pages/pharmaflow/PharmaFlowEntry';
-import PharmaFlowHelpCenter from './pages/pharmaflow/PharmaFlowHelpCenter';
 import PharmaFlowLegacyHome from './pages/pharmaflow/PharmaFlowLegacyHome';
 import EnterpriseReadinessDashboard from './pages/pharmaflow/EnterpriseReadinessDashboard';
 import SaaSControlCenter from './pages/pharmaflow/SaaSControlCenter';
@@ -66,13 +65,13 @@ function App() {
   const canOpenPlatformControls = canAccessPlatformControls(pharmaFlowContext);
   const companyControlsFallback =
     pharmaFlowPersona === 'store-ops' || pharmaFlowPersona === 'delivery-staff'
-      ? '/medinone/help'
+      ? pharmaFlowHomePath
       : '/login';
   const platformControlsFallback =
     pharmaFlowPersona === 'company-admin'
       ? '/medinone/users'
       : pharmaFlowPersona === 'store-ops' || pharmaFlowPersona === 'delivery-staff'
-        ? '/medinone/help'
+        ? pharmaFlowHomePath
         : '/login';
 
   return (
@@ -96,7 +95,7 @@ function App() {
             )
           }
         />
-        <Route path='/medinone/help' element={<PharmaFlowHelpCenter />} />
+        <Route path='/medinone/help' element={<Navigate to={pharmaFlowHomePath} replace />} />
         <Route
           path='/medinone/enterprise'
           element={

@@ -20,24 +20,6 @@ const sectionStyles: Record<string, string> = {
   info: 'border-sky-200 bg-sky-50 text-sky-900',
 };
 
-const expirySteps = [
-  {
-    title: 'Stop unsafe stock first',
-    summary: 'Anything already expired should be blocked from billing before the next customer is served.',
-    tone: 'border-rose-200 bg-rose-50 text-rose-900',
-  },
-  {
-    title: 'Recover value while there is still time',
-    summary: 'Use the near-expiry queue to return stock to the supplier before it becomes dead loss.',
-    tone: 'border-amber-200 bg-amber-50 text-amber-900',
-  },
-  {
-    title: 'Reorder only after checking ageing stock',
-    summary: 'Compare shortages with expiry buckets so new inward does not pile up on old stock.',
-    tone: 'border-sky-200 bg-sky-50 text-sky-900',
-  },
-];
-
 const actionSeverityStyles: Record<string, string> = {
   HIGH: 'border-rose-200 bg-rose-50 text-rose-900',
   MEDIUM: 'border-amber-200 bg-amber-50 text-amber-900',
@@ -311,60 +293,33 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
       description="See what must leave sale now, what can go back to the supplier, and what needs closer watch in the active store."
     >
       <div className="space-y-5">
-        <section className="rounded-[2rem] border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-rose-50 p-6 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
-                Expiry Desk
-              </div>
-              <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                One clear place for expiry decisions
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Start with batches that should not stay on the billing counter. Then return recoverable stock to the
-                supplier, watch the next expiry window, and only reorder after you understand what is already ageing.
-              </p>
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Already expired</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">
+              {formatCurrency(alerts?.totalExpiredValue ?? 0)}
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Already expired</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">
-                  {formatCurrency(alerts?.totalExpiredValue ?? 0)}
-                </div>
-                <div className="mt-1 text-sm text-slate-500">Stock value that should not stay on sale</div>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Next 30 days</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">
-                  {formatCurrency(alerts?.totalAtRiskValue ?? 0)}
-                </div>
-                <div className="mt-1 text-sm text-slate-500">Value that may soon turn into loss</div>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Low stock items</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageItems.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Medicines that still need reorder attention</div>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Needs action today</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">
-                  {actionQueue?.immediateActionCount ?? 0}
-                </div>
-                <div className="mt-1 text-sm text-slate-500">Batches that need a staff decision right away</div>
-              </div>
-            </div>
+            <div className="mt-1 text-sm text-slate-500">Expired stock value</div>
           </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {expirySteps.map((step, index) => (
-            <div key={step.title} className={`rounded-3xl border p-5 ${step.tone}`}>
-              <div className="text-sm font-semibold">Step {index + 1}</div>
-              <div className="mt-2 text-lg font-semibold text-slate-950">{step.title}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{step.summary}</div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Next 30 days</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">
+              {formatCurrency(alerts?.totalAtRiskValue ?? 0)}
             </div>
-          ))}
+            <div className="mt-1 text-sm text-slate-500">Near-expiry value</div>
+          </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Low stock items</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{shortageItems.length}</div>
+            <div className="mt-1 text-sm text-slate-500">Below reorder level</div>
+          </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Needs action today</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">
+              {actionQueue?.immediateActionCount ?? 0}
+            </div>
+            <div className="mt-1 text-sm text-slate-500">Open action queue</div>
+          </div>
         </section>
 
         {error && (
@@ -390,10 +345,6 @@ const ExpiryAlertsDashboard: React.FC<ExpiryAlertsDashboardProps> = ({
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Today&apos;s action board</h2>
-                <p className="text-sm text-slate-500">
-                  Start with stock that should leave billing today. Then recover what you can from the supplier before
-                  it becomes a pure write-off.
-                </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">

@@ -16,10 +16,6 @@ const PharmaFlowLegacyHome: React.FC = () => {
             <div>
               <p className='text-sm uppercase tracking-[0.25em] text-slate-300'>Operations Dashboard</p>
               <h1 className='mt-2 text-3xl font-bold'>{branding.brandName} Home</h1>
-              <p className='mt-2 max-w-3xl text-sm leading-6 text-slate-200'>
-                A clean daily command center for billing, stock, purchases, compliance, delivery,
-                reports, stores, and admin control.
-              </p>
             </div>
 
             <div className='flex flex-wrap gap-3'>
@@ -34,12 +30,6 @@ const PharmaFlowLegacyHome: React.FC = () => {
                 className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
               >
                 Company Setup
-              </Link>
-              <Link
-                to='/medinone/help'
-                className='rounded-xl border border-slate-400 px-4 py-3 text-sm font-semibold text-white'
-              >
-                Help
               </Link>
             </div>
           </div>
@@ -61,7 +51,7 @@ const PharmaFlowLegacyHome: React.FC = () => {
             <div className='mt-2 text-lg font-semibold text-slate-900'>
               {context.storeCode || localStorage.getItem('pharmaflow_store_code') || 'Select branch in Company Setup'}
             </div>
-            <div className='mt-1 text-sm text-slate-500'>Use this as the daily starting point for branch work.</div>
+            <div className='mt-1 text-sm text-slate-500'>Branch workspace</div>
           </div>
 
           <div className='rounded-2xl bg-white p-5 shadow-sm'>

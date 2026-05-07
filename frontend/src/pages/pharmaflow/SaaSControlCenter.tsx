@@ -908,7 +908,7 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
               <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="text-sm font-semibold text-slate-950">Operating note</div>
                 <div className="mt-2 text-sm leading-6 text-slate-600">
-                  {tenantDraft.notes || 'Use notes for onboarding reminders, support promises, or deployment-specific context.'}
+                  {tenantDraft.notes || 'No note added.'}
                 </div>
               </div>
             </div>
@@ -1275,14 +1275,6 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
             </label>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-sm font-semibold text-slate-950">What this controls</div>
-            <div className="mt-3 grid gap-2 text-sm text-slate-600">
-              <div>Brand identity used across the workspace, receipts, and support-facing communication.</div>
-              <div>Commercial limits such as stores, active users, plan assignment, and renewal expectations.</div>
-                    <div>Support and billing contacts used during onboarding, renewal, and account follow-up.</div>
-            </div>
-          </div>
         </div>
       </LegacyModal>
 
@@ -1433,29 +1425,6 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
         </div>
       </LegacyModal>
 
-      <section className="rounded-[2rem] border border-slate-200/70 bg-slate-950 p-6 text-white shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">API Compatibility</div>
-            <h2 className="mt-3 text-xl font-semibold">MedInOne login now uses its own API base again</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              Compatibility routes now resolve against the correct backend base instead of accidentally borrowing the retail `/api/v1` base.
-            </p>
-          </div>
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Tenant Branding</div>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              Pick a tenant here, apply the branding, and the shell plus receipts will switch to that brand across the workspace.
-            </p>
-          </div>
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Commercial Story</div>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
-              Use Launch, Growth, Chain, and Enterprise Plus to explain how pricing, support, stores, and premium features scale across brands.
-            </p>
-          </div>
-        </div>
-      </section>
     </PharmaFlowShell>
   );
 };

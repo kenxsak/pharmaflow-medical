@@ -23,7 +23,7 @@ function MainManagerDashboard({
     branchName: localStorage.getItem('pharmaflow_store_code') || 'MedInOne Main Branch',
     branchAddress:
       localStorage.getItem('pharmaflow_brand_tagline') ||
-      'Use this workspace to open the full MedInOne business suite.',
+      'MedInOne business suite.',
     branchContact: localStorage.getItem('pharmaflow_brand_support_phone') || '-',
     branchEmail: localStorage.getItem('pharmaflow_brand_support_email') || '-',
     branchLocation: 'Tamil Nadu branch workspace',
@@ -77,19 +77,12 @@ function MainManagerDashboard({
         {/* Header Section */}
         <div className='bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg flex-shrink-0'>
           <h1 className='text-2xl font-bold text-white mb-2'>Manager Dashboard</h1>
-          <p className='text-blue-100 text-sm'>
-            Branch control with quick access to billing, inventory, compliance, reports, and SaaS controls.
-          </p>
         </div>
 
         <div className='bg-white rounded-xl p-6 shadow-md flex-shrink-0'>
           <div className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
             <div>
               <h2 className='text-xl font-semibold text-slate-900'>{branding.brandName} Business Workspace</h2>
-              <p className='mt-1 text-sm text-slate-500'>
-                Billing, stock, purchases, compliance, reports, cashier management, item master, supplier master,
-                orders, delivery, and platform controls are organized from one professional home.
-              </p>
             </div>
             {onOpenWorkspace ? (
               <button

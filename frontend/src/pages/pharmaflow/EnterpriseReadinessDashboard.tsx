@@ -554,9 +554,8 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
                   to={item.path}
                   className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white hover:shadow-sm"
                 >
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Step {index + 1}</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Workspace {index + 1}</div>
                   <div className="mt-2 text-lg font-semibold text-slate-950">{item.title}</div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
                 </Link>
               ) : null
             )}
@@ -579,9 +578,6 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
           <div>
             <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Question Matrix</div>
             <h2 className="mt-3 text-xl font-semibold text-slate-950">Question-by-question coverage</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Use this table when a requirement needs to map to the live product, account setup, or a support package.
-            </p>
           </div>
         </div>
 

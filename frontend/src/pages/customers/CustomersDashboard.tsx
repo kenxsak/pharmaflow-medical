@@ -17,24 +17,6 @@ const currency = (value: number) =>
     maximumFractionDigits: 2,
   });
 
-const customerSteps = [
-  {
-    title: 'Find the customer',
-    summary: 'Search by phone or name to open credit, loyalty, and linked patient activity.',
-    tone: 'border-sky-200 bg-sky-50 text-sky-900',
-  },
-  {
-    title: 'Review credit and loyalty',
-    summary: 'Show available credit, blocked status, and points without leaving the billing ecosystem.',
-    tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  },
-  {
-    title: 'Open patient history',
-    summary: 'Surface doctor name, prescription references, and recent medicine history for repeat customers.',
-    tone: 'border-violet-200 bg-violet-50 text-violet-900',
-  },
-];
-
 const emptyCustomerDraft: CustomerCreateRequest = {
   name: '',
   phone: '',
@@ -223,38 +205,21 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
       description="Search customer profiles, track credit and loyalty, and review linked patient history with prescription context."
     >
       <div className="space-y-5">
-        <section className="rounded-[2rem] border border-cyan-200 bg-gradient-to-r from-cyan-50 via-white to-emerald-50 p-6 shadow-sm">
-          <div className="grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
-                Customer Desk
-              </div>
-              <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-                Clean customer operations for repeat pharmacy business
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Open this after billing to show that the platform remembers the customer, monitors credit, tracks loyalty,
-                and preserves patient-facing prescription history in one operator-friendly page.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Loaded Customers</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{customers.length}</div>
-                <div className="mt-1 text-sm text-slate-500">Visible for this store search</div>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Available Credit</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{currency(totalAvailableCredit)}</div>
-                <div className="mt-1 text-sm text-slate-500">Combined available customer credit</div>
-              </div>
-              <div className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Loyalty + Blocked</div>
-                <div className="mt-2 text-3xl font-semibold text-slate-950">{totalLoyaltyPoints}</div>
-                <div className="mt-1 text-sm text-slate-500">{blockedCustomers} blocked customer(s)</div>
-              </div>
-            </div>
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Loaded Customers</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{customers.length}</div>
+            <div className="mt-1 text-sm text-slate-500">Current store list</div>
+          </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Available Credit</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{currency(totalAvailableCredit)}</div>
+            <div className="mt-1 text-sm text-slate-500">Customer credit balance</div>
+          </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Loyalty + Blocked</div>
+            <div className="mt-2 text-3xl font-semibold text-slate-950">{totalLoyaltyPoints}</div>
+            <div className="mt-1 text-sm text-slate-500">{blockedCustomers} blocked customer(s)</div>
           </div>
         </section>
 
@@ -269,16 +234,6 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
             {error || message}
           </div>
         )}
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {customerSteps.map((step, index) => (
-            <div key={step.title} className={`rounded-3xl border p-5 ${step.tone}`}>
-              <div className="text-sm font-semibold">Step {index + 1}</div>
-              <div className="mt-2 text-lg font-semibold text-slate-950">{step.title}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{step.summary}</div>
-            </div>
-          ))}
-        </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.05fr,0.95fr]">
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
@@ -373,28 +328,10 @@ const CustomersDashboard: React.FC<CustomersDashboardProps> = ({ embedded = fals
               </div>
             </div>
 
-              <div className="grid gap-3">
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm font-semibold text-slate-950">What this flow captures</div>
-                <div className="mt-3 grid gap-2 text-sm text-slate-600">
-                  <div>Customer identity and contact details</div>
-                  <div>Credit limit for branch-level credit control</div>
-                  <div>Default doctor and address for future patient history</div>
-                </div>
-              </div>
-              <div className="rounded-3xl border border-slate-200 bg-white p-4">
-                <div className="text-sm font-semibold text-slate-950">Recommended next step</div>
-                <div className="mt-2 text-sm leading-6 text-slate-600">
-                  Create a new customer from the popup, reopen the profile, then show credit, loyalty,
-                  and prescription-linked history on the same page.
-                </div>
-              </div>
-            </div>
-
             <button
               type="button"
               onClick={openCreateEditor}
-              className="mt-4 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white"
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white"
             >
               Add Customer
             </button>

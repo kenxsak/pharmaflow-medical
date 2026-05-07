@@ -198,7 +198,7 @@ const featureGroups: FeatureGroup[] = [
         path: '/medinone/customers',
         summary: 'View patient prescriptions and purchase history from one easy customer screen.',
         accent: 'border-blue-200 bg-blue-50',
-        cta: 'Open patient history',
+        cta: 'Open customers',
       },
       {
         title: 'Online Orders and Delivery',
@@ -384,13 +384,6 @@ const featureGroups: FeatureGroup[] = [
         summary: 'Manage SaaS plans, pricing, tenant entitlements, and revenue controls for the platform.',
         accent: 'border-blue-200 bg-blue-50',
         cta: 'Open SaaS tools',
-      },
-      {
-        title: 'Help and FAQ',
-        path: '/medinone/help',
-        summary: 'Role-based support, onboarding answers, and module help for admins and store logins.',
-        accent: 'border-slate-200 bg-slate-100',
-        cta: 'Open help',
       },
     ],
   },
@@ -660,7 +653,7 @@ const requirementGroups: RequirementCoverageGroup[] = [
       {
         code: 'Q35',
         title: 'Partial strip sales',
-        summary: 'Tablet and strip handling stays in the counter workflow for live selling.',
+        summary: 'Tablet and strip handling stays in the billing counter for live selling.',
         path: '/medinone/billing',
         workspace: 'Billing',
       },
@@ -724,16 +717,8 @@ const requirementGroups: RequirementCoverageGroup[] = [
   },
 ];
 
-const starterModuleTitles: Record<LegacyPersona, string[]> = {
-  guest: ['Billing Counter', 'Inventory Dashboard', 'Compliance Register', 'Help and FAQ'],
-  'saas-admin': ['Users and Permissions', 'Plans and Pricing', 'Stores and HO', 'White Label Branding'],
-  'company-admin': ['Billing Counter', 'Inventory Dashboard', 'Purchase Import', 'Compliance Register'],
-  'store-ops': ['Billing Counter', 'Customers and Loyalty', 'Inventory Dashboard', 'Compliance Register'],
-};
-
 const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
   title = 'MedInOne Dashboard',
-  description = 'A focused pharmacy operations dashboard for billing, stock, customers, compliance, purchases, delivery, and reports.',
   onOpenWorkspace,
   showRequirementCoverage = false,
 }) => {
@@ -762,7 +747,6 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
   const currentPersona = resolveLegacyPersona(currentRole, currentPlatformOwner);
   const currentStore = localStorage.getItem('pharmaflow_store_code') || 'No store selected';
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const allModules = featureGroups.flatMap((group) => group.modules);
 
   const filteredFeatureGroups = featureGroups
     .map((group) => ({
@@ -803,33 +787,18 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
     }))
     .filter((group) => group.items.length > 0);
 
-  const totalQuickLaunchCards = filteredFeatureGroups.reduce((sum, group) => sum + group.modules.length, 0);
-  const totalRequirementItems = filteredRequirementGroups.reduce((sum, group) => sum + group.items.length, 0);
-  const filteredRequirementCount = filteredRequirementGroups.reduce((sum, group) => sum + group.items.length, 0);
-  const visibleWorkAreas = filteredFeatureGroups.length;
-  const availableModulesLabel = showRequirementCoverage
-    ? `${filteredRequirementCount}/${totalRequirementItems} capabilities`
-    : `${totalQuickLaunchCards} modules ready`;
-  const starterModules = starterModuleTitles[currentPersona]
-    .map((moduleTitle) => allModules.find((module) => module.title === moduleTitle))
-    .filter((module): module is FeatureModule => Boolean(module))
-    .filter((module) => {
-      const workspaceKey = resolveLegacyWorkspaceKey(module.path);
-      return canOpenWorkspace(workspaceKey, currentPersona);
-    });
   const searchPlaceholder = showRequirementCoverage
-    ? 'Search barcode, GST, loyalty, doctor, audit, pricing, stores, or capabilities...'
-    : 'Search billing, stock, purchases, delivery, compliance, reports, pricing, stores, or support...';
+    ? 'Search capabilities'
+    : 'Search modules';
 
   return (
-    <div className='rounded-xl bg-white p-6 shadow-md'>
-      <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
+    <div className='rounded-xl bg-white p-5 shadow-md'>
+      <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
         <div>
           <h2 className='text-2xl font-bold text-slate-900'>{title}</h2>
-          <p className='mt-2 max-w-3xl text-sm leading-6 text-slate-600'>{description}</p>
         </div>
 
-        <div className='grid grid-cols-1 gap-3 sm:grid-cols-3'>
+        <div className='grid grid-cols-1 gap-2 sm:grid-cols-3'>
           <div className='rounded-xl bg-slate-50 px-4 py-3'>
             <div className='text-xs uppercase tracking-wide text-slate-400'>Brand</div>
             <div className='mt-1 font-semibold text-slate-900'>{branding.brandName}</div>
@@ -846,82 +815,9 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
         </div>
       </div>
 
-      <div className='mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4'>
-        <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Active Workflows</div>
-          <div className='mt-2 text-3xl font-bold text-slate-900'>{totalQuickLaunchCards}</div>
-          <div className='mt-1 text-sm text-slate-500'>Only workflows available to this role are shown here.</div>
-        </div>
-
-        <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Work Areas</div>
-          <div className='mt-2 text-3xl font-bold text-slate-900'>{visibleWorkAreas}</div>
-          <div className='mt-1 text-sm text-slate-500'>Grouped by counter work, stock control, compliance, and admin.</div>
-        </div>
-
-        <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Daily Operations</div>
-          <div className='mt-2 text-lg font-semibold text-slate-900'>Role-ready workspace</div>
-          <div className='mt-1 text-sm text-slate-500'>The dashboard opens the screens this user can safely operate.</div>
-        </div>
-
-        <div className='rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4'>
-          <div className='text-xs uppercase tracking-wide text-slate-400'>Search</div>
-          <div className='mt-2 text-lg font-semibold text-slate-900'>{availableModulesLabel}</div>
-          <div className='mt-1 text-sm text-slate-500'>
-            {showRequirementCoverage
-              ? 'Operational capabilities are searchable when needed.'
-              : 'Search keeps the dashboard fast without hiding important features.'}
-          </div>
-        </div>
-      </div>
-
-      <div className='mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4'>
-        <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
-          <div>
-            <div className='text-sm font-semibold text-slate-900'>Core operations</div>
-            <div className='mt-1 text-sm leading-6 text-slate-600'>
-              Fast access to the screens used most during a normal pharmacy day.
-            </div>
-          </div>
-        </div>
-
-        <div className='mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4'>
-          {starterModules.map((module) => {
-            const workspaceKey = resolveLegacyWorkspaceKey(module.path);
-            const shouldUseInlineOpen = Boolean(onOpenWorkspace) && !module.path.includes('/legacy-login');
-
-            if (shouldUseInlineOpen) {
-              return (
-                <button
-                  key={`starter-${module.title}`}
-                  type='button'
-                  onClick={() => onOpenWorkspace?.(workspaceKey)}
-                  className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${module.accent}`}
-                >
-                  <div className='text-base font-semibold text-slate-900'>{module.title}</div>
-                  <p className='mt-2 text-sm leading-6 text-slate-600'>{module.summary}</p>
-                </button>
-              );
-            }
-
-            return (
-              <Link
-                key={`starter-${module.title}`}
-                to={module.path}
-                className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${module.accent}`}
-              >
-                <div className='text-base font-semibold text-slate-900'>{module.title}</div>
-                <p className='mt-2 text-sm leading-6 text-slate-600'>{module.summary}</p>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className='mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4'>
-        <label htmlFor='legacy-feature-search' className='block text-sm font-semibold text-slate-900'>
-          Search workspace
+      <div className='mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4'>
+        <label htmlFor='legacy-feature-search' className='sr-only'>
+          Search
         </label>
         <input
           id='legacy-feature-search'
@@ -929,7 +825,7 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           placeholder={searchPlaceholder}
-          className='mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none ring-0 transition focus:border-slate-400'
+          className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none ring-0 transition focus:border-slate-400'
         />
       </div>
 
@@ -938,13 +834,12 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
           <section key={group.title}>
             <div className='mb-3'>
               <h3 className='text-lg font-semibold text-slate-900'>{group.title}</h3>
-              <p className='text-sm text-slate-500'>{group.summary}</p>
             </div>
 
             <div className='grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'>
               {group.modules.map((module) => {
                 const workspaceKey = resolveLegacyWorkspaceKey(module.path);
-                const cardClassName = `rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${module.accent}`;
+                const cardClassName = `flex min-h-[88px] items-center justify-between rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm ${module.accent}`;
                 const shouldUseInlineOpen =
                   Boolean(onOpenWorkspace) && !module.path.includes('/legacy-login');
 
@@ -957,7 +852,7 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
                       className={cardClassName}
                     >
                       <div className='text-lg font-semibold text-slate-900'>{module.title}</div>
-                      <p className='mt-2 text-sm leading-6 text-slate-600'>{module.summary}</p>
+                      <span className='text-sm font-medium text-slate-500'>Open</span>
                     </button>
                   );
                 }
@@ -965,7 +860,7 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
                 return (
                   <Link key={module.title} to={module.path} className={cardClassName}>
                     <div className='text-lg font-semibold text-slate-900'>{module.title}</div>
-                    <p className='mt-2 text-sm leading-6 text-slate-600'>{module.summary}</p>
+                    <span className='text-sm font-medium text-slate-500'>Open</span>
                   </Link>
                 );
               })}
@@ -978,11 +873,6 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
       <div className='mt-8 border-t border-slate-200 pt-8'>
         <div className='mb-4'>
           <h3 className='text-xl font-semibold text-slate-900'>Capability Coverage</h3>
-          <p className='mt-1 text-sm text-slate-500'>
-            {currentPersona === 'store-ops'
-              ? 'Store login only sees the operational capabilities needed for daily work.'
-              : 'Every major capability has a clear entry point for sales, onboarding, and operations.'}
-          </p>
         </div>
 
         <div className='space-y-6'>
@@ -990,7 +880,6 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
             <section key={group.title}>
               <div className='mb-3'>
                 <h4 className='text-lg font-semibold text-slate-900'>{group.title}</h4>
-                <p className='text-sm text-slate-500'>{group.summary}</p>
               </div>
 
               <div className='grid grid-cols-1 gap-3 xl:grid-cols-2'>
@@ -1018,7 +907,6 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
                               </span>
                             </div>
                             <div className='mt-3 text-base font-semibold text-slate-900'>{item.title}</div>
-                            <p className='mt-2 text-sm leading-6 text-slate-600'>{item.summary}</p>
                           </div>
 
                           <div className='shrink-0 text-sm font-medium text-slate-900'>Open</div>
@@ -1040,7 +928,6 @@ const LegacyFeatureHub: React.FC<LegacyFeatureHubProps> = ({
                             </span>
                           </div>
                           <div className='mt-3 text-base font-semibold text-slate-900'>{item.title}</div>
-                          <p className='mt-2 text-sm leading-6 text-slate-600'>{item.summary}</p>
                         </div>
 
                         <div className='shrink-0 text-sm font-medium text-slate-900'>Open</div>

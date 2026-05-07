@@ -36,21 +36,6 @@ interface SubstituteSuggestionGroup {
   substitutes: SubstituteResult[];
 }
 
-const counterHighlights = [
-  {
-    title: 'Scan or search',
-    summary: 'Type a name or scan a barcode, then press Enter to add the first stocked match quickly.',
-  },
-  {
-    title: 'Switch unit easily',
-    summary: 'Bill by strip, pack, bottle, tablet, capsule, or ml without leaving the billing screen.',
-  },
-  {
-    title: 'Controlled-drug checks',
-    summary: 'Patient, doctor, and prescription details are asked only when the selected medicine requires them.',
-  },
-];
-
 const formatPriceDifference = (priceDiffPct?: number) => {
   const diff = priceDiffPct ?? 0;
   if (Math.abs(diff) < 0.5) {
@@ -440,28 +425,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     >
       <div className="flex flex-col gap-6 xl:flex-row">
         <section className="flex-1">
-          <div className="rounded-3xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-sky-900">Counter workflow</div>
-                <div className="mt-1 text-sm text-sky-800">
-                  Search or scan a medicine, confirm the batch and unit, attach customer details when needed, and
-                  finish a GST-ready bill.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 lg:grid-cols-3">
-            {counterHighlights.map((highlight) => (
-              <div key={highlight.title} className="rounded-3xl bg-white p-4 shadow-sm">
-                <div className="text-sm font-semibold text-slate-900">{highlight.title}</div>
-                <div className="mt-2 text-sm leading-6 text-slate-500">{highlight.summary}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="relative mt-4 rounded-3xl bg-white p-4 shadow-sm">
+          <div className="relative rounded-3xl bg-white p-4 shadow-sm">
             <input
               ref={searchRef}
               type="text"

@@ -16,7 +16,6 @@ import BillingAuditDashboard from '../../../pages/billing/BillingAuditDashboard'
 import CustomersDashboard from '../../../pages/customers/CustomersDashboard';
 import InventoryDashboard from '../../../pages/inventory/InventoryDashboard';
 import DeliveryTrackingDashboard from '../../../pages/delivery/DeliveryTrackingDashboard';
-import PharmaFlowHelpCenter from '../../../pages/pharmaflow/PharmaFlowHelpCenter';
 import ComplianceDashboard from '../../../pages/compliance/ComplianceDashboard';
 import ProcurementDashboard from '../../../pages/procurement/ProcurementDashboard';
 import LegacyReportsWorkspace, {
@@ -46,7 +45,6 @@ const cashierWorkspacePath: Record<string, string> = {
   reports: '/cashier-dashboard/reports',
   'reports:profit': '/cashier-dashboard/reports/profit',
   'reports:expiry': '/cashier-dashboard/reports/expiry',
-  help: '/cashier-dashboard/support',
 };
 
 const resolveCashierWorkspaceFromPath = (pathname: string) => {
@@ -75,8 +73,6 @@ const resolveCashierWorkspaceFromPath = (pathname: string) => {
       return 'reports:profit';
     case 'reports/expiry':
       return 'reports:expiry';
-    case 'support':
-      return 'help';
     default:
       return 'home';
   }
@@ -217,8 +213,6 @@ const MainCashierDashboard = () => {
       ? 'Expiry Reports'
       : activeTable === 'reports'
       ? 'Reports'
-      : activeTable === 'help'
-      ? 'Help and FAQ'
       : activeTable.charAt(0).toUpperCase() + activeTable.slice(1);
 
   return (
@@ -293,11 +287,6 @@ const MainCashierDashboard = () => {
                 />
               </div>
             )}
-            {activeTable === 'help' && (
-              <div className='min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-100 p-6'>
-                <PharmaFlowHelpCenter embedded onOpenWorkspace={openCashierWorkspace} />
-              </div>
-            )}
             {![
               'home',
               'billing',
@@ -310,7 +299,6 @@ const MainCashierDashboard = () => {
               'reports',
               'reports:profit',
               'reports:expiry',
-              'help',
             ].includes(activeTable) &&
               renderComponent()}
           </PaymentContext.Provider>

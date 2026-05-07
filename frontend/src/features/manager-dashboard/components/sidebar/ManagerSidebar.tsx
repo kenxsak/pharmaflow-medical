@@ -127,14 +127,6 @@ const ManagerSidebar = ({ onItemClick, selectedItem }: Props) => {
           compact
         />
         <ButtonWithIconAndTextVertical
-          icon={<LuBookOpen size={24} />}
-          text='Help'
-          onClick={() => onItemClick(resolveItemKey('Help'))}
-          testid='help'
-          isActive={selectedItem === resolveItemKey('Help')}
-          compact
-        />
-        <ButtonWithIconAndTextVertical
           icon={<FaRegKeyboard size={24} />}
           text='Cashiers'
           onClick={() => onItemClick(resolveItemKey('Cashiers'))}

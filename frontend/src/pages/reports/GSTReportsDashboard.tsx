@@ -17,24 +17,6 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 2,
   });
 
-const reportSteps = [
-  {
-    title: 'Pick month and year',
-    summary: 'Change the reporting window first so GST and shortage data reflect the right period.',
-    tone: 'border-sky-200 bg-sky-50 text-sky-900',
-  },
-  {
-    title: 'Show GSTR summaries',
-    summary: 'Use the KPI cards and GSTR-3B summary to explain tax payable at a glance.',
-    tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  },
-  {
-    title: 'Export when needed',
-    summary: 'Download GSTR-1 or shortage CSV to show practical reporting output for operations.',
-    tone: 'border-violet-200 bg-violet-50 text-violet-900',
-  },
-];
-
 interface GSTReportsDashboardProps {
   embedded?: boolean;
 }
@@ -215,16 +197,6 @@ const GSTReportsDashboard: React.FC<GSTReportsDashboardProps> = ({ embedded = fa
             {error}
           </div>
         )}
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {reportSteps.map((step, index) => (
-            <div key={step.title} className={`rounded-3xl border p-5 ${step.tone}`}>
-              <div className="text-sm font-semibold">Step {index + 1}</div>
-              <div className="mt-2 text-lg font-semibold text-slate-950">{step.title}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{step.summary}</div>
-            </div>
-          ))}
-        </section>
 
         {gstr3b && (
           <section className="grid gap-4 md:grid-cols-3">

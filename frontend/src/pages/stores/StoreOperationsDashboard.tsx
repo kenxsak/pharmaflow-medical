@@ -269,12 +269,6 @@ const StoreOperationsDashboard: React.FC<StoreOperationsDashboardProps> = ({ emb
       actions={
         <div className="flex flex-wrap gap-3">
           <Link
-            to="/medinone/help"
-            className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
-          >
-            Open help center
-          </Link>
-          <Link
             to="/medinone/billing"
             className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white"
           >

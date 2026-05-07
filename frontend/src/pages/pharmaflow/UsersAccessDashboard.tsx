@@ -316,14 +316,8 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
-              to="/medinone/help"
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-            >
-              Open help center
-            </Link>
-            <Link
               to="/medinone/billing"
-              className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium text-slate-700"
+              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
             >
               Open billing
             </Link>
@@ -493,12 +487,6 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
               >
                 Create a user
               </button>
-              <Link
-                to="/medinone/help"
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
-              >
-                Open help and FAQ
-              </Link>
             </div>
           </section>
 

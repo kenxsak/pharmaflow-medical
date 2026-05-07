@@ -39,24 +39,6 @@ const createEmptyRow = (): PurchaseImportRow => ({
   gstRate: 12,
 });
 
-const procurementSteps = [
-  {
-    title: 'Choose the supplier first',
-    summary: 'Pick the distributor once so every inward invoice and return stays linked to the right party.',
-    tone: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-  },
-  {
-    title: 'Enter the invoice header',
-    summary: 'Add invoice number, PO number, and purchase date before you start entering line items.',
-    tone: 'border-sky-200 bg-sky-50 text-sky-900',
-  },
-  {
-    title: 'Receive stock your way',
-    summary: 'Use manual rows for quick entry or upload CSV when the distributor invoice is large.',
-    tone: 'border-violet-200 bg-violet-50 text-violet-900',
-  },
-];
-
 const formatDate = (value?: string) => {
   if (!value) {
     return '—';
@@ -724,16 +706,6 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           </section>
         )}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {procurementSteps.map((step, index) => (
-            <div key={step.title} className={`rounded-3xl border p-5 ${step.tone}`}>
-              <div className="text-sm font-semibold">Step {index + 1}</div>
-              <div className="mt-2 text-lg font-semibold text-slate-950">{step.title}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">{step.summary}</div>
-            </div>
-          ))}
-        </section>
-
         <section className="grid gap-5 lg:grid-cols-[1.1fr,0.9fr]">
           <div className="rounded-[2rem] bg-white p-6 shadow-sm">
             <div className="flex items-end justify-between gap-3">
@@ -748,14 +720,6 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
               </div>
             </div>
             <div className="mt-4 grid gap-3">
-              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-950">What gets saved here</div>
-                <div className="mt-3 grid gap-2 text-sm text-slate-600">
-                  <div>Distributor name, contact person, phone number, and GSTIN in one reusable supplier record.</div>
-                  <div>The same supplier can be reused for inward invoices, return notes, and follow-up history.</div>
-                  <div>Branch teams do not need to re-enter vendor details every time stock is received.</div>
-                </div>
-              </div>
               <div className="rounded-3xl border border-slate-200 bg-white p-4">
                 <div className="text-sm font-semibold text-slate-950">Current selection</div>
                 <div className="mt-2 text-sm leading-6 text-slate-600">
@@ -897,9 +861,6 @@ const ProcurementDashboard: React.FC<ProcurementDashboardProps> = ({ embedded = 
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-semibold">Enter invoice lines</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Use this for fast row entry when the invoice is small or staff are typing it directly.
-              </p>
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-2 text-sm text-slate-600">
               Preview subtotal: {formatCurrency(totalPreview)}
