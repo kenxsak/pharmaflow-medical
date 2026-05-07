@@ -40,6 +40,18 @@ import java.util.stream.Collectors;
 @Configuration
 public class CorsConfig {
 
+    private static final List<String> FIRST_PARTY_ORIGINS = Arrays.asList(
+            "https://medinone.wmart.in",
+            "https://pharmaflow-medical.netlify.app"
+    );
+
+    private static final List<String> FIRST_PARTY_ORIGIN_PATTERNS = Arrays.asList(
+            "https://*.wmart.in",
+            "https://*.netlify.app",
+            "https://*.onrender.com",
+            "https://*.koyeb.app"
+    );
+
     @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
@@ -75,6 +87,9 @@ public class CorsConfig {
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())
                 .collect(Collectors.toList());
+        FIRST_PARTY_ORIGINS.stream()
+                .filter(value -> !origins.contains(value))
+                .forEach(origins::add);
         if (!origins.isEmpty()) {
             configuration.setAllowedOrigins(origins);
         }
@@ -83,6 +98,9 @@ public class CorsConfig {
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())
                 .collect(Collectors.toList());
+        FIRST_PARTY_ORIGIN_PATTERNS.stream()
+                .filter(value -> !originPatterns.contains(value))
+                .forEach(originPatterns::add);
         if (!originPatterns.isEmpty()) {
             configuration.setAllowedOriginPatterns(originPatterns);
         }

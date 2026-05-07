@@ -6,6 +6,7 @@ import com.pharmaflow.tenant.TenantScopeFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -61,7 +62,9 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults()) // Uses CorsConfigurationSource from CorsConfig
                 .authorizeHttpRequests(req ->
-                        req.antMatchers("/lifepill/v1/auth/**",
+                        req.antMatchers(HttpMethod.OPTIONS, "/**")
+                                .permitAll()
+                                .antMatchers("/lifepill/v1/auth/**",
                                         "/lifepill/v1/session/**",
                                         "/swagger-ui/index.html#/",
                                         "/swagger-ui.html#/",

@@ -114,7 +114,7 @@ services:
       - key: PHARMAFLOW_SLOW_REQUEST_THRESHOLD_MS
         value: "1500"
       - key: CORS_ALLOWED_ORIGIN_PATTERNS
-        value: https://*.onrender.com,https://*.netlify.app,https://*.koyeb.app,http://localhost:3000,http://localhost:3001
+        value: https://*.wmart.in,https://*.netlify.app,https://*.onrender.com,https://*.koyeb.app,http://localhost:3000,http://localhost:3001
       - key: PHARMAFLOW_BRAND_NAME
         value: MedInOne
       - key: PHARMAFLOW_BRAND_TAGLINE
