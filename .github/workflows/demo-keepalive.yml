@@ -1,0 +1,16 @@
+name: Keep Demo Backend Warm
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping backend liveness endpoint
+        run: |
+          curl --fail --silent --show-error --max-time 45 \
+            "https://pharmaflow-backend-vr51.onrender.com/actuator/health/liveness"

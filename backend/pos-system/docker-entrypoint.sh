@@ -45,11 +45,20 @@ if [ -n "${DATABASE_PASSWORD:-}" ] && [ -z "${SPRING_DATASOURCE_PASSWORD:-}" ]; 
   export SPRING_DATASOURCE_PASSWORD="$DATABASE_PASSWORD"
 fi
 
-java $JAVA_OPTS -jar app.jar &
-app_pid=$!
-
-if [ "${PHARMAFLOW_MEDICINE_AUTO_IMPORT:-false}" = "true" ]; then
-  sh /app/run-medicine-import.sh &
+if [ -z "${SPRING_PROFILES_ACTIVE:-}" ]; then
+  export SPRING_PROFILES_ACTIVE=render
 fi
 
-wait "$app_pid"
+default_java_opts="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:TieredStopAtLevel=1 -XX:+UseStringDeduplication -Djava.security.egd=file:/dev/./urandom"
+JAVA_OPTS="${JAVA_OPTS:-$default_java_opts}"
+
+echo "Starting PharmaFlow backend with profile(s): ${SPRING_PROFILES_ACTIVE}"
+
+if [ "${PHARMAFLOW_MEDICINE_AUTO_IMPORT:-false}" = "true" ]; then
+  java $JAVA_OPTS -jar app.jar &
+  app_pid=$!
+  sh /app/run-medicine-import.sh &
+  wait "$app_pid"
+else
+  exec java $JAVA_OPTS -jar app.jar
+fi

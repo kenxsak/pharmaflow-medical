@@ -16,6 +16,8 @@
 # Build outputs
 target/
 !target/*.jar
+.m2/
+.m2-home/
 
 # Logs
 *.log
@@ -59,6 +61,8 @@ qodana.*
 # Data directories
 data/
 uploads/
+import-data/
+import-sql/
 
 # Other
 *.bak

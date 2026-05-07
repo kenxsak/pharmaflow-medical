@@ -11,6 +11,24 @@ services:
     envVars:
       - key: SERVER_PORT
         value: "10000"
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: SPRING_MAIN_LAZY_INITIALIZATION
+        value: "true"
+      - key: SPRING_JMX_ENABLED
+        value: "false"
+      - key: SPRINGDOC_API_DOCS_ENABLED
+        value: "false"
+      - key: SPRINGDOC_SWAGGER_UI_ENABLED
+        value: "false"
+      - key: SERVER_TOMCAT_THREADS_MAX
+        value: "32"
+      - key: SERVER_TOMCAT_THREADS_MIN_SPARE
+        value: "4"
+      - key: SERVER_TOMCAT_ACCEPT_COUNT
+        value: "80"
+      - key: SERVER_TOMCAT_MAX_CONNECTIONS
+        value: "200"
       - key: DATABASE_URL
         fromDatabase:
           name: pharmaflow-db
@@ -32,7 +50,7 @@ services:
       - key: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
         value: "1"
       - key: SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT
-        value: "15000"
+        value: "20000"
       - key: SPRING_DATASOURCE_CONNECT_TIMEOUT
         value: "10"
       - key: SPRING_DATASOURCE_SOCKET_TIMEOUT
@@ -84,6 +102,8 @@ services:
       - key: PHARMAFLOW_REDIS_ENABLED
         value: "false"
       - key: PROMETHEUS_METRICS_EXPORT
+        value: "false"
+      - key: PHARMAFLOW_DEMO_BOOTSTRAP_ENABLED
         value: "false"
       - key: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
         value: health,info
