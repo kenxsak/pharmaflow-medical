@@ -118,7 +118,7 @@ export const getPharmaFlowHomePath = (
     case 'delivery-staff':
       return '/medinone/delivery';
     default:
-      return '/legacy-login';
+      return '/login';
   }
 };
 

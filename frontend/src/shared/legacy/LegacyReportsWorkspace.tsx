@@ -48,14 +48,13 @@ const LegacyReportsWorkspace: React.FC<LegacyReportsWorkspaceProps> = ({
         <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
           <div>
             <div className='text-xs font-semibold uppercase tracking-[0.22em] text-slate-500'>
-              Legacy reports console
+              Reports console
             </div>
             <h2 className='mt-2 text-xl font-semibold text-slate-950'>
               Simple reporting flow for store teams and owners
             </h2>
             <p className='mt-1 max-w-3xl text-sm leading-6 text-slate-500'>
-              Keep tax, profitability, and expiry work under one easy legacy tab instead of
-              making the team jump across different screens.
+              Keep tax, profitability, and expiry work under one reporting area so the team can move quickly.
             </p>
           </div>
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Divider from '../../../shared/divider/Divider';
 import CashierNavBar from '../../../shared/navbar/CashierNavBar';
 import OrderDetailsSideBar from '../components/cashier_dashboard_order_details_sidebar/OrderDetailsSideBar';
@@ -14,6 +15,7 @@ import POSBilling from '../../../pages/billing/POSBilling';
 import BillingAuditDashboard from '../../../pages/billing/BillingAuditDashboard';
 import CustomersDashboard from '../../../pages/customers/CustomersDashboard';
 import InventoryDashboard from '../../../pages/inventory/InventoryDashboard';
+import DeliveryTrackingDashboard from '../../../pages/delivery/DeliveryTrackingDashboard';
 import PharmaFlowHelpCenter from '../../../pages/pharmaflow/PharmaFlowHelpCenter';
 import ComplianceDashboard from '../../../pages/compliance/ComplianceDashboard';
 import ProcurementDashboard from '../../../pages/procurement/ProcurementDashboard';
@@ -32,6 +34,54 @@ const PaymentContext = React.createContext<PaymentContextType | undefined>(
   undefined
 );
 
+const cashierWorkspacePath: Record<string, string> = {
+  home: '/cashier-dashboard',
+  billing: '/cashier-dashboard/billing',
+  bills: '/cashier-dashboard/bills',
+  customers: '/cashier-dashboard/customers',
+  inventory: '/cashier-dashboard/inventory',
+  purchases: '/cashier-dashboard/purchases',
+  compliance: '/cashier-dashboard/compliance',
+  delivery: '/cashier-dashboard/delivery',
+  reports: '/cashier-dashboard/reports',
+  'reports:profit': '/cashier-dashboard/reports/profit',
+  'reports:expiry': '/cashier-dashboard/reports/expiry',
+  help: '/cashier-dashboard/support',
+};
+
+const resolveCashierWorkspaceFromPath = (pathname: string) => {
+  const nestedPath = pathname.replace(/^\/cashier-dashboard\/?/, '').replace(/^\/+|\/+$/g, '');
+
+  switch (nestedPath) {
+    case '':
+      return 'home';
+    case 'billing':
+      return 'billing';
+    case 'bills':
+      return 'bills';
+    case 'customers':
+      return 'customers';
+    case 'inventory':
+      return 'inventory';
+    case 'purchases':
+      return 'purchases';
+    case 'compliance':
+      return 'compliance';
+    case 'delivery':
+      return 'delivery';
+    case 'reports':
+      return 'reports';
+    case 'reports/profit':
+      return 'reports:profit';
+    case 'reports/expiry':
+      return 'reports:expiry';
+    case 'support':
+      return 'help';
+    default:
+      return 'home';
+  }
+};
+
 export const usePaymentContext = () => {
   const context = React.useContext(PaymentContext);
   if (!context) {
@@ -41,6 +91,8 @@ export const usePaymentContext = () => {
 };
 
 const MainCashierDashboard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentComponent, setCurrentComponent] = useState(
     ComponentState.OrderDetails
   );
@@ -88,49 +140,63 @@ const MainCashierDashboard = () => {
     }
   };
 
-  const [activeTable, setActiveTable] = useState('home');
+  const [activeTable, setActiveTable] = useState(() =>
+    resolveCashierWorkspaceFromPath(location.pathname)
+  );
+
+  React.useEffect(() => {
+    setActiveTable(resolveCashierWorkspaceFromPath(location.pathname));
+  }, [location.pathname]);
+
+  const setActiveWorkspace = (workspace: string) => {
+    setActiveTable(workspace);
+    navigate(cashierWorkspacePath[workspace] || cashierWorkspacePath.home);
+  };
 
   const openCashierWorkspace = (workspaceKey: string) => {
     switch (workspaceKey) {
       case 'Billing':
-        setActiveTable('billing');
+        setActiveWorkspace('billing');
         break;
       case 'Bills':
-        setActiveTable('bills');
+        setActiveWorkspace('bills');
         break;
       case 'Customers':
-        setActiveTable('customers');
+        setActiveWorkspace('customers');
         break;
       case 'Inventory':
-        setActiveTable('inventory');
+        setActiveWorkspace('inventory');
         break;
       case 'Purchases':
-        setActiveTable('purchases');
+        setActiveWorkspace('purchases');
         break;
       case 'Compliance':
-        setActiveTable('compliance');
+        setActiveWorkspace('compliance');
+        break;
+      case 'Delivery':
+        setActiveWorkspace('delivery');
         break;
       case 'Reports':
-        setActiveTable('reports');
+        setActiveWorkspace('reports');
         break;
       case 'Reports:Profit':
-        setActiveTable('reports:profit');
+        setActiveWorkspace('reports:profit');
         break;
       case 'Reports:Expiry':
-        setActiveTable('reports:expiry');
+        setActiveWorkspace('reports:expiry');
         break;
       case 'Help':
-        setActiveTable('help');
+        setActiveWorkspace('help');
         break;
       default:
-        setActiveTable('home');
+        setActiveWorkspace('home');
         break;
     }
   };
 
   const activeTitle =
     activeTable === 'home'
-      ? 'Easy Pharmacy Home'
+      ? 'MedInOne Dashboard'
       : activeTable === 'billing'
       ? 'Billing Counter'
       : activeTable === 'bills'
@@ -143,6 +209,8 @@ const MainCashierDashboard = () => {
       ? 'Purchases'
       : activeTable === 'compliance'
       ? 'Compliance'
+      : activeTable === 'delivery'
+      ? 'Online & Delivery'
       : activeTable === 'reports:profit'
       ? 'Profit Reports'
       : activeTable === 'reports:expiry'
@@ -160,15 +228,17 @@ const MainCashierDashboard = () => {
           <CashierNavBar title={activeTitle} />
         </div>
 
-        <div className='flex min-h-0 flex-1 flex-row'>
-          <CashierSideBar setActiveTable={setActiveTable} activeTable={activeTable} />
-          <Divider />
+        <div className='flex min-h-0 flex-1 flex-col md:flex-row'>
+          <CashierSideBar setActiveTable={setActiveWorkspace} activeTable={activeTable} />
+          <div className='hidden md:block'>
+            <Divider />
+          </div>
           <PaymentContext.Provider value={contextValue}>
             {activeTable === 'home' && (
-              <div className='min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-100 p-6'>
+              <div className='min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-100 p-3 md:p-6'>
                 <LegacyFeatureHub
-                  title='Easy Pharmacy Home'
-                  description='Use this simple home screen to open billing, stock, compliance, customers, reports, and branch controls without learning the newer workspace.'
+                  title='MedInOne Dashboard'
+                  description='A focused branch command center for billing, stock, customers, purchases, compliance, delivery, and reporting.'
                   onOpenWorkspace={openCashierWorkspace}
                 />
               </div>
@@ -203,6 +273,11 @@ const MainCashierDashboard = () => {
                 <ComplianceDashboard embedded />
               </div>
             )}
+            {activeTable === 'delivery' && (
+              <div className='min-h-0 min-w-0 flex-1 overflow-y-auto bg-slate-100 p-6'>
+                <DeliveryTrackingDashboard embedded />
+              </div>
+            )}
             {(activeTable === 'reports' ||
               activeTable === 'reports:profit' ||
               activeTable === 'reports:expiry') && (
@@ -231,6 +306,7 @@ const MainCashierDashboard = () => {
               'inventory',
               'purchases',
               'compliance',
+              'delivery',
               'reports',
               'reports:profit',
               'reports:expiry',

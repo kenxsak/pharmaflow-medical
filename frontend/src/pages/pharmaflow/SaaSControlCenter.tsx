@@ -1436,10 +1436,10 @@ const SaaSControlCenter: React.FC<SaaSControlCenterProps> = ({ embedded = false 
       <section className="rounded-[2rem] border border-slate-200/70 bg-slate-950 p-6 text-white shadow-sm">
         <div className="grid gap-4 lg:grid-cols-3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Legacy Compatibility</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">API Compatibility</div>
             <h2 className="mt-3 text-xl font-semibold">MedInOne login now uses its own API base again</h2>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              The legacy compatibility route now resolves against its dedicated backend base instead of accidentally borrowing the retail `/api/v1` base.
+              Compatibility routes now resolve against the correct backend base instead of accidentally borrowing the retail `/api/v1` base.
             </p>
           </div>
           <div>

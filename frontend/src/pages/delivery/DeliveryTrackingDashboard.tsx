@@ -124,7 +124,11 @@ const buildMapUrl = (delivery: DeliveryOrderResponse) => {
   return `https://www.google.com/maps?q=${delivery.currentLatitude},${delivery.currentLongitude}`;
 };
 
-const DeliveryTrackingDashboard: React.FC = () => {
+interface DeliveryTrackingDashboardProps {
+  embedded?: boolean;
+}
+
+const DeliveryTrackingDashboard: React.FC<DeliveryTrackingDashboardProps> = ({ embedded = false }) => {
   const context = usePharmaFlowContext();
   const [deliveries, setDeliveries] = useState<DeliveryOrderResponse[]>([]);
   const [drivers, setDrivers] = useState<DeliveryDriverResponse[]>([]);
@@ -342,6 +346,7 @@ const DeliveryTrackingDashboard: React.FC = () => {
 
   return (
     <PharmaFlowShell
+      embedded={embedded}
       title="Online & Delivery"
       description="Create online or phone medicine deliveries, assign branch riders, and track delivery movement from the active store."
       actions={

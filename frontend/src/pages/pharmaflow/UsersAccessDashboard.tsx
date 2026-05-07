@@ -337,7 +337,7 @@ const UsersAccessDashboard: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     <PharmaFlowShell
       embedded={embedded}
       title="Users and Permissions"
-      description="Create company admins and store operators, assign them to stores, and manage role-based access from one legacy-style control screen."
+      description="Create company admins and store operators, assign them to stores, and manage role-based access from one control screen."
       actions={
         <button
           type="button"

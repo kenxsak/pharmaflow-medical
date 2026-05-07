@@ -5,7 +5,7 @@ import { PiPillLight } from 'react-icons/pi';
 import ButtonWithIconAndTextVertical from '../../../../shared/buttons/ButtonWithIconAndTextVertical';
 import { RiLogoutCircleLine } from 'react-icons/ri';
 import useAuthService from '../../services/AuthService';
-import { LuBoxes, LuUsers, LuShieldCheck, LuReceipt, LuClipboardList, LuBookOpen } from 'react-icons/lu';
+import { LuBoxes, LuUsers, LuShieldCheck, LuReceipt, LuClipboardList, LuTruck } from 'react-icons/lu';
 
 type Props = {
   //pass setactivetable
@@ -17,8 +17,8 @@ const CashierSideBar = (props: Props) => {
   const { logOutCashier, logging, temporaryLogOutCashier, temporayLogout } =
     useAuthService();
   return (
-    <div className='legacy-sidebar-scroll left-0 h-full min-h-0 w-[88px] shrink-0 overflow-y-auto overflow-x-hidden border-r border-gray-200 bg-gradient-to-b from-gray-50 to-white px-2 py-2 font-poppins shadow-sm'>
-      <div className='flex flex-col gap-0.5'>
+    <div className='legacy-sidebar-scroll left-0 h-auto min-h-0 w-full shrink-0 overflow-x-auto overflow-y-hidden border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white px-2 py-2 font-poppins shadow-sm md:h-full md:w-[88px] md:overflow-x-hidden md:overflow-y-auto md:border-b-0 md:border-r md:bg-gradient-to-b'>
+      <div className='flex min-w-max flex-row gap-0.5 md:min-w-0 md:flex-col'>
       <ButtonWithIconAndTextVertical
         icon={<AiFillHome size={25} />}
         text='Home'
@@ -84,16 +84,16 @@ const CashierSideBar = (props: Props) => {
         compact
       />
       <ButtonWithIconAndTextVertical
-        icon={<LuBookOpen size={25} />}
-        text='Help'
-        onClick={() => props.setActiveTable('help')}
-        testid='help'
-        isActive={props.activeTable === 'help'}
+        icon={<LuTruck size={25} />}
+        text='Delivery'
+        onClick={() => props.setActiveTable('delivery')}
+        testid='delivery'
+        isActive={props.activeTable === 'delivery'}
         compact
       />
       </div>
 
-      <div className='mt-2 border-t border-gray-200 pt-2'>
+      <div className='mt-0 flex min-w-max flex-row gap-0.5 border-l border-gray-200 pl-2 md:mt-2 md:min-w-0 md:flex-col md:border-l-0 md:border-t md:pl-0 md:pt-2'>
         <ButtonWithIconAndTextVertical
           icon={<BiTimeFive size={25} />}
           text={temporayLogout ? 'Wait ...' : 'Temporary Logout'}

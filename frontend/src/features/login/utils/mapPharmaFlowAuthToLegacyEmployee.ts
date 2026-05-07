@@ -10,7 +10,7 @@ const splitFullName = (fullName: string) => {
   const normalized = fullName.trim();
   if (!normalized) {
     return {
-      firstName: 'Legacy',
+      firstName: 'MedInOne',
       lastName: 'User',
     };
   }

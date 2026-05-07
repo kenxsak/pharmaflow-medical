@@ -36,9 +36,9 @@ export interface PharmaFlowNavItem {
 export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   {
     title: 'Home',
-    path: '/medinone/legacy-home',
-    summary: 'Simple legacy-style home that opens the main pharmacy workflows in a calmer, buyer-friendly order.',
-    shortSummary: 'Legacy pharmacy home',
+    path: '/medinone/home',
+    summary: 'Business home dashboard that opens the main pharmacy workflows in a calm, buyer-ready order.',
+    shortSummary: 'Business home',
     status: 'Live',
     icon: Home,
     group: 'Workspace',
@@ -77,7 +77,7 @@ export const pharmaFlowNavItems: PharmaFlowNavItem[] = [
   {
     title: 'Users & Access',
     path: '/medinone/users',
-    summary: 'Create company admins, store operators, assign stores, and control who can do what from one legacy-friendly screen.',
+    summary: 'Create company admins, store operators, assign stores, and control who can do what from one screen.',
     shortSummary: 'Users, roles, permissions',
     status: 'Live',
     icon: Users,

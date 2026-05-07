@@ -45,13 +45,6 @@ const sideLinkClasses = (isActive: boolean) =>
       : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50',
   ].join(' ');
 
-const demoRoutePaths = [
-  '/medinone/billing',
-  '/medinone/inventory',
-  '/medinone/procurement',
-  '/medinone/compliance',
-];
-
 const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   title,
   description,
@@ -113,10 +106,9 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
   const visibleNavItems =
     persona === 'guest'
       ? pharmaFlowNavItems.filter((item) =>
-          ['/medinone/legacy-home', '/medinone/help'].includes(item.path)
+          ['/medinone/home', '/medinone/help'].includes(item.path)
         )
       : pharmaFlowNavItems.filter((item) => item.access.includes(persona));
-  const demoRouteItems = visibleNavItems.filter((item) => demoRoutePaths.includes(item.path));
   const groupedNavItems = pharmaFlowNavGroups.map((group) => ({
     group,
     items: visibleNavItems.filter((item) => item.group === group),
@@ -151,7 +143,7 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
               <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                {branding.brandName} legacy module
+                {branding.brandName} module
               </div>
               <h1 className="mt-3 text-2xl font-semibold text-slate-950">{title}</h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{description}</p>
@@ -205,11 +197,11 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
               </div>
             </div>
             <div className="mt-4 text-2xl font-semibold leading-tight text-slate-950">
-              Legacy pharmacy workspace
+              MedInOne workspace
             </div>
             <div className="mt-2 text-sm leading-6 text-slate-600">
-              Simple screens for non-technical teams. Open billing first, then stock, purchases, compliance, reports,
-              stores, and admin controls in the same easy flow.
+              Focused screens for counter work, stock, purchases, compliance, delivery, reports, stores, and admin
+              controls in one professional flow.
             </div>
 
             <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -299,16 +291,16 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
 
             <div className="mt-4 grid gap-2">
               <Link
-                to="/legacy-login"
+                to="/login"
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700"
               >
-                Legacy login
+                Login
               </Link>
               <Link
-                to="/medinone/legacy-home"
+                to="/medinone/home"
                 className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700"
               >
-                Daily home
+                Dashboard
               </Link>
             </div>
           </div>
@@ -345,28 +337,6 @@ const PharmaFlowShell: React.FC<PharmaFlowShellProps> = ({
               </div>
             </div>
           ))}
-
-          <div className="rounded-xl border border-slate-300 bg-white p-5 shadow-sm">
-            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-              Suggested Start Path
-            </div>
-            <div className="mt-4 space-y-2">
-              {demoRouteItems.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <Link key={item.path} to={item.path} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
-                      <Icon size={16} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold">Step {index + 1}: {item.title}</div>
-                      <div className="text-xs text-slate-500">{item.shortSummary}</div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
         </aside>
 
         <main className="min-w-0 flex-1 space-y-4">

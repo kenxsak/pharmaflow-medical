@@ -73,7 +73,7 @@ const useAuthenticationService = () => {
       toast.success('Successfully logged out');
       setUser(null);
       setCookie(null);
-      navigate('/legacy-login');
+      navigate('/login');
       setLogging(false);
     }
   };

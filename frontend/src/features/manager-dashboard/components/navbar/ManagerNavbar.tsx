@@ -18,7 +18,7 @@ const ManagerNavbar = ({ title = 'Dashboard' }: ManagerNavbarProps) => {
 
         <div>
           <h2 className='font-medium text-lg'>{title}</h2>
-          <p className='text-xs text-slate-500'>Simple legacy workspace</p>
+          <p className='text-xs text-slate-500'>Business operations workspace</p>
         </div>
       </div>
 

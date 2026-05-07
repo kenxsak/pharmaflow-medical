@@ -23,7 +23,7 @@ function MainManagerDashboard({
     branchName: localStorage.getItem('pharmaflow_store_code') || 'MedInOne Main Branch',
     branchAddress:
       localStorage.getItem('pharmaflow_brand_tagline') ||
-      'Use this simple legacy workspace to open the full MedInOne business suite.',
+      'Use this workspace to open the full MedInOne business suite.',
     branchContact: localStorage.getItem('pharmaflow_brand_support_phone') || '-',
     branchEmail: localStorage.getItem('pharmaflow_brand_support_email') || '-',
     branchLocation: 'Tamil Nadu branch workspace',
@@ -40,31 +40,31 @@ function MainManagerDashboard({
     fetchBranchData();
   }, []);
 
-  const legacyBackOfficeModules = [
+  const backOfficeModules = [
     {
       title: 'Cashier Management',
       workspaceKey: 'Cashiers',
-      summary: 'Create, review, and update cashier accounts from the original legacy module.',
+      summary: 'Create, review, and update cashier accounts from the manager workspace.',
     },
     {
       title: 'Item Master',
       workspaceKey: 'Items',
-      summary: 'Maintain medicine catalog details, legacy item forms, and master data records.',
+      summary: 'Maintain medicine catalog details, item forms, and master data records.',
     },
     {
       title: 'Supplier Master',
       workspaceKey: 'Branches',
-      summary: 'Open the original supplier and company workspace that already exists in the legacy repo.',
+      summary: 'Open supplier, vendor, and company records for back-office control.',
     },
     {
       title: 'Orders Desk',
       workspaceKey: 'Orders',
-      summary: 'Review order workflows and transaction handling from the original legacy order screen.',
+      summary: 'Review order workflows and transaction handling from the order desk.',
     },
     {
       title: 'Sales View',
       workspaceKey: 'Summary',
-      summary: 'Use the earlier sales summary workspace when the buyer wants the original reporting flow.',
+      summary: 'Review sales summaries and branch performance from the manager dashboard.',
     },
   ];
 
@@ -78,18 +78,17 @@ function MainManagerDashboard({
         <div className='bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg flex-shrink-0'>
           <h1 className='text-2xl font-bold text-white mb-2'>Manager Dashboard</h1>
           <p className='text-blue-100 text-sm'>
-            Legacy-first branch control with quick access to billing, inventory, compliance, reports, and SaaS controls.
+            Branch control with quick access to billing, inventory, compliance, reports, and SaaS controls.
           </p>
         </div>
 
         <div className='bg-white rounded-xl p-6 shadow-md flex-shrink-0'>
           <div className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
             <div>
-              <h2 className='text-xl font-semibold text-slate-900'>{branding.brandName} Legacy Workspace</h2>
+              <h2 className='text-xl font-semibold text-slate-900'>{branding.brandName} Business Workspace</h2>
               <p className='mt-1 text-sm text-slate-500'>
                 Billing, stock, purchases, compliance, reports, cashier management, item master, supplier master,
-                orders, and platform controls now sit behind the same simpler legacy-style launcher.
-                Use this as the primary working home if the newer shell feels too busy.
+                orders, delivery, and platform controls are organized from one professional home.
               </p>
             </div>
             {onOpenWorkspace ? (
@@ -112,8 +111,8 @@ function MainManagerDashboard({
 
           <div className='mt-5'>
             <LegacyFeatureHub
-              title='Legacy-style feature launcher'
-              description='Counter operations, stock, purchases, compliance, reports, stores, platform controls, and legacy back-office tools are all available here with one-click access.'
+              title='MedInOne Dashboard'
+              description='Counter operations, stock, purchases, delivery, compliance, reports, stores, platform controls, and back-office tools are available here with one-click access.'
               onOpenWorkspace={onOpenWorkspace}
             />
           </div>
@@ -122,10 +121,10 @@ function MainManagerDashboard({
             <div className='mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4'>
               <div className='flex flex-col gap-2 md:flex-row md:items-start md:justify-between'>
                 <div>
-                  <h3 className='text-base font-semibold text-slate-900'>Original legacy back-office tools</h3>
+                  <h3 className='text-base font-semibold text-slate-900'>Back-office tools</h3>
                   <p className='mt-1 text-sm leading-6 text-slate-500'>
-                    These modules come from the original manager workspace and remain part of the same
-                    software for staffing, item master, supplier records, orders, and older sales review flows.
+                    These modules keep staffing, item master, supplier records, orders, and sales review flows
+                    close to the daily dashboard.
                   </p>
                 </div>
                 <button
@@ -138,7 +137,7 @@ function MainManagerDashboard({
               </div>
 
               <div className='mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5'>
-                {legacyBackOfficeModules.map((module) => (
+                {backOfficeModules.map((module) => (
                   <button
                     key={module.workspaceKey}
                     type='button'

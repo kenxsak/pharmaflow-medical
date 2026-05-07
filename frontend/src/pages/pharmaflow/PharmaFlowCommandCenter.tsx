@@ -44,7 +44,7 @@ const accessPresets: AccessPreset[] = [
     username: 'manager@medinone.in',
     password: 'Company@123',
     tenantSlug: 'pharmaflow',
-    routeHint: 'Opens the legacy company workspace',
+    routeHint: 'Opens the company workspace',
   },
   {
     mode: 'store-ops',
@@ -185,14 +185,14 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
   };
 
   if (!context.hasToken && !embedded) {
-    return <Navigate to="/legacy-login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
     <PharmaFlowShell
       embedded={embedded}
       title="Company Setup"
-      description="Manage the active store, company branding, access model, and account configuration from inside the same legacy workspace instead of maintaining a second login system."
+      description="Manage the active store, company branding, access model, and account configuration from one secure workspace."
       actions={
         <div className="flex flex-wrap gap-2">
           <Link
@@ -336,10 +336,10 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
                   {isLoggingIn ? 'Signing in...' : `Sign in as ${selectedPreset.title}`}
                 </button>
                 <Link
-                  to="/legacy-login"
+                  to="/login"
                   className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
                 >
-                  Legacy login
+                  Login
                 </Link>
               </div>
             </form>
@@ -358,10 +358,10 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
           </div>
         ) : (
           <div className="rounded-[2rem] border border-slate-200/70 bg-white p-6 shadow-sm">
-            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Legacy Access</div>
+            <div className="text-xs font-medium uppercase tracking-[0.22em] text-sky-700">Account Access</div>
             <h2 className="mt-3 text-xl font-semibold text-slate-950">MedInOne login is the main entry now</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Account switching happens from the legacy login screen. This setup page now stays inside the same
+              Account switching happens from the login screen. This setup page stays inside the same
                     software for store selection, branding, and operational control instead of acting like a second login
               portal.
             </p>
@@ -382,7 +382,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
                   {context.platformOwner ? 'Open Platform or Users' : 'Open Billing or Users'}
                 </div>
                 <div className="mt-1 text-sm text-slate-500">
-                  Use Home for the easy launcher and Help for setup notes and FAQs.
+                  Use Dashboard for daily operations and Support for setup notes and FAQs.
                 </div>
               </div>
             </div>
@@ -392,10 +392,10 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
                 to={getPharmaFlowHomePath(context)}
                 className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
               >
-                Open legacy workspace
+                Open workspace
               </Link>
               <Link
-                to="/legacy-login"
+                to="/login"
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700"
               >
                 Switch account
@@ -555,7 +555,7 @@ const PharmaFlowCommandCenter: React.FC<{ embedded?: boolean }> = ({ embedded = 
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
               <div className="font-semibold text-slate-950">Store Login</div>
-              Runs day-to-day branch operations from the legacy workspace without exposing platform or permission controls.
+              Runs day-to-day branch operations without exposing platform or permission controls.
             </div>
           </div>
         </div>

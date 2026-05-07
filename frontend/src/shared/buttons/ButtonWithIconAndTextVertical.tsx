@@ -17,7 +17,7 @@ const ButtonWithIconAndTextVertical: React.FC<
       <button
         type='button'
         className={`
-          relative w-full rounded-lg text-xs font-medium
+          relative min-w-[74px] w-full rounded-lg text-xs font-medium
           transition-all duration-200 ease-in-out
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50
           ${compact ? 'p-1.5' : 'p-2.5'}

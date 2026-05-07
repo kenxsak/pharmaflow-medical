@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LogInPage from './pages/login-page';
 import LogInCashierPasswordPage from './pages/cashier-password-page';
 import CashierTemporaryLogOutPage from './pages/temporary-logout-page';
@@ -67,20 +67,25 @@ function App() {
   const companyControlsFallback =
     pharmaFlowPersona === 'store-ops' || pharmaFlowPersona === 'delivery-staff'
       ? '/medinone/help'
-      : '/legacy-login';
+      : '/login';
   const platformControlsFallback =
     pharmaFlowPersona === 'company-admin'
       ? '/medinone/users'
       : pharmaFlowPersona === 'store-ops' || pharmaFlowPersona === 'delivery-staff'
         ? '/medinone/help'
-        : '/legacy-login';
+        : '/login';
 
   return (
     <Router>
       <Routes>
-        <Route path='/' element={<Navigate to='/legacy-login' replace />} />
+        <Route path='/' element={<Navigate to={pharmaFlowHomePath} replace />} />
+        <Route path='/login' element={<LogInPage />} />
+        <Route path='/legacy-login' element={<Navigate to='/login' replace />} />
         <Route path='/medinone' element={<PharmaFlowEntry />} />
-        <Route path='/medinone/legacy-home' element={<PharmaFlowLegacyHome />} />
+        <Route path='/medinone/home' element={<PharmaFlowLegacyHome />} />
+        <Route path='/medinone/legacy-home' element={<Navigate to='/medinone/home' replace />} />
+        <Route path='/dashboard' element={<Navigate to={pharmaFlowHomePath} replace />} />
+        <Route path='/home' element={<Navigate to={pharmaFlowHomePath} replace />} />
         <Route
           path='/medinone/setup'
           element={
@@ -123,8 +128,7 @@ function App() {
           }
         />
         <Route path='/medinone/dashboard' element={<Navigate to='/medinone' replace />} />
-        <Route path='/medinone/home' element={<Navigate to='/medinone/legacy-home' replace />} />
-        <Route path='/medinone/launchpad' element={<Navigate to='/legacy-login' replace />} />
+        <Route path='/medinone/launchpad' element={<Navigate to={pharmaFlowHomePath} replace />} />
         <Route path='/medinone/operations' element={<Navigate to='/medinone/billing' replace />} />
         <Route path='/medinone/stock' element={<Navigate to='/medinone/inventory' replace />} />
         <Route path='/medinone/reports' element={<Navigate to='/medinone/reports/gst' replace />} />
@@ -144,7 +148,6 @@ function App() {
         />
         <Route path='/medinone/customers' element={<CustomersDashboard />} />
         <Route path='/medinone/delivery' element={<DeliveryTrackingDashboard />} />
-        <Route path='/legacy-login' element={<LogInPage />} />
         <Route
           path='/login-cashier-password'
           element={<LogInCashierPasswordPage />}
@@ -192,7 +195,7 @@ function App() {
           <>
             {/* Routes for CASHIER */}
             <Route
-              path='/cashier-dashboard'
+              path='/cashier-dashboard/*'
               element={<CashierDashBoardPage />}
             />
             {/* Add more routes specific to CASHIER if needed */}

@@ -382,7 +382,7 @@ const buyerQuestionRows: BuyerQuestionRow[] = [
   },
 ];
 
-const demoRouteOrder = [
+const workspaceRouteOrder = [
   '/medinone/setup',
   '/medinone/enterprise',
   '/medinone/stores',
@@ -402,7 +402,7 @@ interface EnterpriseReadinessDashboardProps {
 
 const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> = ({ embedded = false }) => {
   const branding = useBranding();
-  const demoPath = demoRouteOrder
+  const workspacePath = workspaceRouteOrder
     .map((path) => pharmaFlowNavItems.find((item) => item.path === path))
     .filter(Boolean);
 
@@ -426,7 +426,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
   const exportBuyerCoverage = () => {
     downloadCsv(
       `${branding.brandName.toLowerCase().replace(/\s+/g, '-')}-buyer-coverage.csv`,
-      ['Q No', 'Question', 'Status', 'Current Answer', 'Best Demo Route'],
+      ['Q No', 'Question', 'Status', 'Current Answer', 'Best Workspace Route'],
       buyerQuestionRows.map((row) => [
         row.id,
         row.title,
@@ -547,7 +547,7 @@ const EnterpriseReadinessDashboard: React.FC<EnterpriseReadinessDashboardProps> 
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {demoPath.map((item, index) =>
+            {workspacePath.map((item, index) =>
               item ? (
                 <Link
                   key={item.path}

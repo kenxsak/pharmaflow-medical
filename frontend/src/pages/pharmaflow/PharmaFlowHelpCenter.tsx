@@ -157,7 +157,7 @@ const faqItems: HelpFaqItem[] = [
   {
     question: 'Where do I switch between company stores?',
     answer:
-      'Use the store selector in the legacy workspace shell. SaaS admins can switch across companies and stores, while company admins can switch only within their own company stores.',
+      'Use the store selector in the workspace shell. SaaS admins can switch across companies and stores, while company admins can switch only within their own company stores.',
     audiences: ['saas-admin', 'company-admin'],
   },
   {

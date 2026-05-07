@@ -21,7 +21,7 @@ const UseBranchService = () => {
     branchAddress:
       user.user?.employerAddress ||
       localStorage.getItem('pharmaflow_brand_tagline') ||
-      'Legacy workspace is ready for daily billing and store operations.',
+      'Workspace is ready for daily billing and store operations.',
     branchContact:
       user.user?.employerPhone ||
       localStorage.getItem('pharmaflow_brand_support_phone') ||

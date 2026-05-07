@@ -36,19 +36,6 @@ interface SubstituteSuggestionGroup {
   substitutes: SubstituteResult[];
 }
 
-const demoQuickAdds = [
-  { label: 'Crocin 500', query: '8901234500001' },
-  { label: 'Dolo 650', query: '8901234500002' },
-  { label: 'Mox 500', query: '8901234500003' },
-  { label: 'Alprax 0.25', query: '8901234500010' },
-];
-
-const demoCustomers = [
-  { label: 'Ramesh', phone: '9876000001' },
-  { label: 'Lakshmi', phone: '9876000002' },
-  { label: 'Mohammed', phone: '9876000003' },
-];
-
 const counterHighlights = [
   {
     title: 'Scan or search',
@@ -243,27 +230,6 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
       addToCart(results[0]);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to search medicines.');
-    }
-  };
-
-  const quickAddMedicine = async (query: string) => {
-    try {
-      const results = await MedicineAPI.search(query.trim());
-      const bestMatch =
-        results.find(
-          (medicine) =>
-            medicine.brandName.toLowerCase() === query.toLowerCase() ||
-            medicine.currentBatch?.batchNumber?.toLowerCase() === query.toLowerCase()
-        ) || results[0];
-
-      if (!bestMatch) {
-        setErrorMessage('No stocked medicine matched that starter shortcut in the selected store.');
-        return;
-      }
-
-      addToCart(bestMatch);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to add the selected medicine.');
     }
   };
 
@@ -477,23 +443,11 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
           <div className="rounded-3xl border border-sky-200 bg-sky-50 p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <div className="text-sm font-semibold text-sky-900">Counter starter flow</div>
+                <div className="text-sm font-semibold text-sky-900">Counter workflow</div>
                 <div className="mt-1 text-sm text-sky-800">
-                  Start with a scan, a search, or one of the stocked medicines below. Then adjust the unit, add a
-                  customer if needed, and finish the bill.
+                  Search or scan a medicine, confirm the batch and unit, attach customer details when needed, and
+                  finish a GST-ready bill.
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {demoQuickAdds.map((demoItem) => (
-                  <button
-                    key={demoItem.query}
-                    type="button"
-                    onClick={() => void quickAddMedicine(demoItem.query)}
-                    className="rounded-full border border-sky-200 bg-white px-3 py-2 text-sm font-medium text-sky-900"
-                  >
-                    {demoItem.label}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
@@ -786,19 +740,6 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
               >
                 Lookup
               </button>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {demoCustomers.map((demoCustomer) => (
-                <button
-                  key={demoCustomer.phone}
-                  type="button"
-                  onClick={() => void lookupCustomer(demoCustomer.phone)}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700"
-                >
-                  {demoCustomer.label} • {demoCustomer.phone}
-                </button>
-              ))}
             </div>
 
             {customer && (

@@ -5,7 +5,7 @@
   "author": "MedInOne",
   "author_email": "tharinduimalka915@gmail.com",
   "description": "MedInOne is a modern pharmacy workspace for billing, inventory, compliance, customer operations, and delivery tracking.",
-  "homepage": "./",
+  "homepage": "/",
   "main": "./src/electron/electron.js",
   "dependencies": {
     "@radix-ui/react-scroll-area": "^1.0.5",

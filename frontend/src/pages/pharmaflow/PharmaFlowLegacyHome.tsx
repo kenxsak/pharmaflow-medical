@@ -14,12 +14,11 @@ const PharmaFlowLegacyHome: React.FC = () => {
         <div className='rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 px-6 py-6 text-white shadow-lg'>
           <div className='flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between'>
             <div>
-              <p className='text-sm uppercase tracking-[0.25em] text-slate-300'>Simple Mode</p>
-              <h1 className='mt-2 text-3xl font-bold'>{branding.brandName} Pharmacy Home</h1>
+              <p className='text-sm uppercase tracking-[0.25em] text-slate-300'>Operations Dashboard</p>
+              <h1 className='mt-2 text-3xl font-bold'>{branding.brandName} Home</h1>
               <p className='mt-2 max-w-3xl text-sm leading-6 text-slate-200'>
-                This is the easy launcher for daily pharmacy work. Billing, stock, purchases,
-                compliance, reports, stores, and admin control are all available here without the
-                busier workspace flow.
+                A clean daily command center for billing, stock, purchases, compliance, delivery,
+                reports, stores, and admin control.
               </p>
             </div>
 
@@ -50,10 +49,10 @@ const PharmaFlowLegacyHome: React.FC = () => {
           <div className='rounded-2xl bg-white p-5 shadow-sm'>
             <div className='text-xs uppercase tracking-wide text-slate-400'>Current User</div>
             <div className='mt-2 text-lg font-semibold text-slate-900'>
-              {context.fullName || context.username || 'Legacy operator'}
+              {context.fullName || context.username || 'Store operator'}
             </div>
             <div className='mt-1 text-sm text-slate-500'>
-              {getPharmaFlowRoleLabel(context.role, context.platformOwner) || 'Legacy session'}
+              {getPharmaFlowRoleLabel(context.role, context.platformOwner) || 'Active session'}
             </div>
           </div>
 
@@ -77,8 +76,8 @@ const PharmaFlowLegacyHome: React.FC = () => {
         </div>
 
         <LegacyFeatureHub
-          title='Legacy-style feature launcher'
-          description='One-click access to billing, customers, inventory, purchases, compliance, GST, profit, stores, admin control, and setup.'
+          title='MedInOne Dashboard'
+          description='One-click access to billing, customers, inventory, purchases, delivery, compliance, GST, profit, stores, admin control, and setup.'
         />
       </div>
     </div>

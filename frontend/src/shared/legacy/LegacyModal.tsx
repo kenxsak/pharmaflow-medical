@@ -67,7 +67,7 @@ const LegacyModal: React.FC<LegacyModalProps> = ({
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
-              Legacy workspace flow
+              Workspace flow
             </div>
             <h2 id="legacy-modal-title" className="mt-2 text-2xl font-semibold text-slate-950">
               {title}

@@ -13,7 +13,7 @@ interface CashierNavBarProps {
   title?: string;
 }
 
-const CashierNavBar = ({ title = 'Easy Pharmacy Home' }: CashierNavBarProps) => {
+const CashierNavBar = ({ title = 'MedInOne Dashboard' }: CashierNavBarProps) => {
   const [showOnlineOrders, setShowOnlineOrders] = useState(false);
   const { prescriptions } = useWebSocket();
   const { user } = useUserContext();
@@ -23,13 +23,13 @@ const CashierNavBar = ({ title = 'Easy Pharmacy Home' }: CashierNavBarProps) => 
     setShowOnlineOrders(!showOnlineOrders);
   };
   return (
-    <div className='flex items-center justify-between w-full p-2 font-poppins shadow-md'>
+    <div className='flex w-full flex-wrap items-center justify-between gap-3 p-2 font-poppins shadow-md'>
       {/* Logo */}
       <div className='flex items-center gap-3'>
-        <BrandLogo variant='mark' className='ml-4' imageClassName='h-14 w-14' />
+        <BrandLogo variant='mark' className='ml-1 md:ml-4' imageClassName='h-11 w-11 md:h-14 md:w-14' />
         <div>
           <h2 className='text-lg font-semibold text-slate-900'>{title}</h2>
-          <p className='text-xs text-slate-500'>Simple legacy workspace</p>
+          <p className='text-xs text-slate-500'>Branch operations workspace</p>
         </div>
       </div>
 
@@ -58,11 +58,13 @@ const CashierNavBar = ({ title = 'Easy Pharmacy Home' }: CashierNavBarProps) => 
       </div>
       ) : (
       <div className='rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500'>
-        Online prescriptions available on branch legacy accounts
+        Online prescriptions available for branch accounts
       </div>
       )}
 
-      <Divider />
+      <div className='hidden md:block'>
+        <Divider />
+      </div>
 
       {/* Cashier name,number and profile picture */}
       <ProfileNameCard />

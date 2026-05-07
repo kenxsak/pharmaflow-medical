@@ -73,7 +73,7 @@ const createOpeningStockDraft = (
   return {
     supplierId,
     newSupplierName: supplierName || 'Opening Stock Supplier',
-    newSupplierContact: 'Demo inward supplier',
+  newSupplierContact: 'Primary inward supplier',
     invoiceNumber: `OPEN-${Date.now()}`,
     batchNumber: `BATCH-${Date.now().toString().slice(-6)}`,
     manufactureDate: '',

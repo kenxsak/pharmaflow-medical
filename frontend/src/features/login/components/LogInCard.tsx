@@ -31,7 +31,7 @@ const LogInCard = () => {
         readPharmaFlowContext()
       );
       navigate(
-        pharmaFlowHomePath !== '/legacy-login'
+        pharmaFlowHomePath !== '/login'
           ? pharmaFlowHomePath
           : user.role === 'OWNER'
             ? '/manager-dashboard/Dashboard'
@@ -41,7 +41,7 @@ const LogInCard = () => {
   };
 
   return (
-    <div className='font-poppins p-8 flex flex-col items-center justify-center space-y-8 shadow-lg rounded-lg w-96 md:w-[60vw] lg:w-[40vw] xl:w-[30vw] h-[80vh]'>
+    <div className='font-poppins flex min-h-[72vh] w-[min(92vw,30rem)] flex-col items-center justify-center space-y-8 rounded-2xl p-6 shadow-lg md:p-8'>
       <BrandLogo
         variant='wordmark'
         className='w-full justify-center'
@@ -55,8 +55,8 @@ const LogInCard = () => {
       </div>
 
       {/* input fields for username password */}
-      <div>
-        <div className='w-[400px] my-4'>
+      <div className='w-full'>
+        <div className='my-4 w-full'>
           <label
             htmlFor='username'
             className='block text-gray-800 font-semibold text-sm'
@@ -75,7 +75,7 @@ const LogInCard = () => {
             />
           </div>
         </div>
-        <div className='w-[400px] my-4'>
+        <div className='my-4 w-full'>
           <label
             htmlFor='password'
             className='block text-gray-800 font-semibold text-sm'
