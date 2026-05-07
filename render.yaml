@@ -2,7 +2,7 @@ services:
   - type: web
     name: pharmaflow-backend
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     dockerfilePath: ./backend/pos-system/Dockerfile
     dockerContext: ./backend/pos-system
@@ -125,39 +125,9 @@ services:
         value: +91 44 4000 9000
       - key: PHARMAFLOW_MEDICINE_AUTO_IMPORT
         value: "false"
-
-  - type: web
-    name: pharmaflow-frontend
-    runtime: static
-    buildCommand: cd frontend && npm ci --legacy-peer-deps && npm run build
-    staticPublishPath: ./frontend/build
-    autoDeployTrigger: commit
-    envVars:
-      - key: REACT_APP_BACKEND_URL
-        fromService:
-          type: web
-          name: pharmaflow-backend
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: REACT_APP_STORE_NAME
-        value: PharmaFlow
-      - key: REACT_APP_BRAND_NAME
-        value: PharmaFlow
-      - key: REACT_APP_BRAND_TAGLINE
-        value: Retail pharmacy operations, billing, and compliance workspace
-      - key: REACT_APP_BRAND_SUPPORT_EMAIL
-        value: support@pharmaflow.in
-      - key: REACT_APP_BRAND_SUPPORT_PHONE
-        value: +91 44 4000 9000
-      - key: REACT_APP_BRAND_DEPLOYMENT_MODE
-        value: Cloud demo on Render
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-
 databases:
   - name: pharmaflow-db
-    plan: basic-256mb
+    plan: free
     region: singapore
     databaseName: pharmaflow
     user: pharmaflow_user
