@@ -75,25 +75,36 @@ public class PrimaryDataSourceConfig {
             String pathAndQuery = matcher.group(3) != null ? matcher.group(3) : "";
 
             if (rawHost != null && rawHost.startsWith("dpg-") && !rawHost.contains(".")) {
-                isRenderInternalHost = true;
-                // Strip sslmode from internal host URLs - Render internal VPC does NOT use SSL
-                normalizedJdbcUrl = normalizedJdbcUrl
+                // Strip ssl first - we'll re-add if we end up on an external host
+                String strippedQuery = pathAndQuery
                         .replaceAll("[?&]sslmode=[^&]*", "")
-                        .replaceAll("[?&]ssl=[^&]*", "");
-                // Re-add '?' if we accidentally stripped it leaving orphaned '&'
-                normalizedJdbcUrl = normalizedJdbcUrl.replaceAll("\\?&", "?");
-                log.info("Render internal host detected ({}). Stripped SSL from URL.", rawHost);
+                        .replaceAll("[?&]ssl=[^&]*", "")
+                        .replaceAll("\\?&", "?");
 
                 String resolvedHost = resolveRenderDatabaseHost(rawHost);
-                if (!resolvedHost.equals(rawHost)) {
-                    normalizedJdbcUrl = "jdbc:postgresql://" + resolvedHost + port + pathAndQuery
-                            .replaceAll("[?&]sslmode=[^&]*", "")
-                            .replaceAll("[?&]ssl=[^&]*", "");
+
+                if (resolvedHost.equals(rawHost)) {
+                    // Resolved to same short host = truly internal VPC, no SSL needed
+                    isRenderInternalHost = true;
+                    normalizedJdbcUrl = "jdbc:postgresql://" + resolvedHost + port + strippedQuery;
+                    log.info("Using Render internal VPC host (no SSL): {}", resolvedHost);
+                } else if (resolvedHost.contains(".render.com")) {
+                    // Fell back to external FQDN - external Render hosts REQUIRE SSL
+                    isRenderInternalHost = false;
+                    String externalQuery = strippedQuery.isEmpty() ? "?sslmode=require"
+                            : (strippedQuery.contains("?") ? strippedQuery + "&sslmode=require"
+                                                           : strippedQuery + "?sslmode=require");
+                    normalizedJdbcUrl = "jdbc:postgresql://" + resolvedHost + port + externalQuery;
+                    log.warn("Internal host DNS failed, fell back to external Render FQDN (SSL required): {}", resolvedHost);
+                } else {
+                    // Some other resolution (e.g. render.internal)
+                    isRenderInternalHost = true;
+                    normalizedJdbcUrl = "jdbc:postgresql://" + resolvedHost + port + strippedQuery;
                 }
             }
         }
 
-        // External hosted domains that require SSL (skip for Render internal hosts)
+        // External hosted domains that require SSL (skip for truly internal Render hosts)
         if (!isRenderInternalHost && (
                 normalizedJdbcUrl.contains(".render.com") ||
                 normalizedJdbcUrl.contains("amazonaws.com") || normalizedJdbcUrl.contains("neon.tech") ||
