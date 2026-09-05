@@ -31,32 +31,18 @@ if [ -n "${DATABASE_URL:-}" ] && [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
         port_suffix=":5432"
       fi
 
-      case "$raw_host" in
-        dpg-*)
-          case "$raw_host" in
-            *.*)
-              jdbc_host="${raw_host}${port_suffix}"
-              ;;
-            *)
-              render_region="${RENDER_REGION:-singapore}"
-              jdbc_host="${raw_host}.${render_region}-postgres.render.com${port_suffix}"
-              ;;
-          esac
-          ;;
-        *)
-          jdbc_host="${raw_host}${port_suffix}"
-          ;;
-      esac
+      jdbc_host="${raw_host}${port_suffix}"
 
       case "$jdbc_host" in
-        localhost*|127.0.0.1*|postgres*|0.0.0.0*)
-          ;;
-        *)
+        *.render.com*|*amazonaws.com*|*neon.tech*|*supabase.co*)
           if [ -z "$query_string" ]; then
             query_string="?sslmode=require"
           elif ! echo "$query_string" | grep -q "sslmode"; then
             query_string="${query_string}&sslmode=require"
           fi
+          ;;
+        *)
+          # Internal Render network (dpg-*), localhost, and private hosts do not use SSL
           ;;
       esac
 
