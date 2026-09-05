@@ -31,37 +31,7 @@ if [ -n "${DATABASE_URL:-}" ] && [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
         port_suffix=":5432"
       fi
 
-      case "$raw_host" in
-        dpg-*)
-          if ! echo "$raw_host" | grep -q '\.'; then
-            if ! getent hosts "$raw_host" >/dev/null 2>&1; then
-              for r in "${RENDER_REGION:-singapore}" oregon frankfurt ohio virginia; do
-                candidate="${raw_host}.${r}-postgres.render.com"
-                if getent hosts "$candidate" >/dev/null 2>&1; then
-                  echo "Entrypoint: Resolved internal host ${raw_host} -> ${candidate}"
-                  raw_host="$candidate"
-                  break
-                fi
-              done
-            fi
-          fi
-          ;;
-      esac
-
       jdbc_host="${raw_host}${port_suffix}"
-
-      case "$jdbc_host" in
-        *.render.com*|*amazonaws.com*|*neon.tech*|*supabase.co*)
-          if [ -z "$query_string" ]; then
-            query_string="?sslmode=require"
-          elif ! echo "$query_string" | grep -q "sslmode"; then
-            query_string="${query_string}&sslmode=require"
-          fi
-          ;;
-        *)
-          # Internal Render network (dpg-*), localhost, and private hosts do not use SSL
-          ;;
-      esac
 
       export SPRING_DATASOURCE_URL="jdbc:postgresql://${jdbc_host}/${database_name}${query_string}"
       export DATABASE_URL="$SPRING_DATASOURCE_URL"
