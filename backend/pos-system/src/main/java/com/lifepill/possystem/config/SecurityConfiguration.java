@@ -187,6 +187,14 @@ public class SecurityConfiguration {
                                         PharmaRoleName.PHARMACIST.name(),
                                         PharmaRoleName.SALES_ASSISTANT.name()
                                 )
+                                .antMatchers("/api/v1/deliveries/**")
+                                .hasAnyRole(
+                                        PharmaRoleName.SUPER_ADMIN.name(),
+                                        PharmaRoleName.STORE_MANAGER.name(),
+                                        PharmaRoleName.DELIVERY_BOY.name(),
+                                        PharmaRoleName.PHARMACIST.name(),
+                                        PharmaRoleName.SALES_ASSISTANT.name()
+                                )
                                 .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
