@@ -56,8 +56,14 @@ public class PosSystemApplication {
 		} catch (Exception e) {
 			log.info("No .env file found, using environment variables directly");
 		}
-		SpringApplication.run(PosSystemApplication.class, args);
+		try {
+			SpringApplication.run(PosSystemApplication.class, args);
+		} catch (Throwable t) {
+			log.error("FATAL ERROR DURING SPRING BOOT STARTUP: ", t);
+			System.err.println("FATAL ERROR DURING SPRING BOOT STARTUP:");
+			t.printStackTrace(System.err);
+			throw t;
+		}
 	}
 
 }
-

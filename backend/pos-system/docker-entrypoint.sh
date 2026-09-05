@@ -32,6 +32,18 @@ if [ -n "${DATABASE_URL:-}" ] && [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
           ;;
       esac
 
+      case "$jdbc_host" in
+        localhost*|127.0.0.1*|postgres*|0.0.0.0*)
+          ;;
+        *)
+          if [ -z "$query_string" ]; then
+            query_string="?sslmode=require"
+          elif ! echo "$query_string" | grep -q "sslmode"; then
+            query_string="${query_string}&sslmode=require"
+          fi
+          ;;
+      esac
+
       export SPRING_DATASOURCE_URL="jdbc:postgresql://${jdbc_host}/${database_name}${query_string}"
       export DATABASE_URL="$SPRING_DATASOURCE_URL"
 
@@ -66,10 +78,12 @@ if [ -z "${SPRING_PROFILES_ACTIVE:-}" ]; then
   export SPRING_PROFILES_ACTIVE=render
 fi
 
-default_java_opts="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:TieredStopAtLevel=1 -XX:+UseStringDeduplication -Djava.security.egd=file:/dev/./urandom"
+default_java_opts="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:TieredStopAtLevel=1 -Djava.security.egd=file:/dev/./urandom"
 JAVA_OPTS="${JAVA_OPTS:-$default_java_opts}"
 
 echo "Starting PharmaFlow backend with profile(s): ${SPRING_PROFILES_ACTIVE}"
+echo "Configured Datasource URL: $(echo "${SPRING_DATASOURCE_URL:-$DATABASE_URL}" | sed -E 's/:[^@\/]+@/:****@/g')"
+echo "Configured Datasource Username: ${SPRING_DATASOURCE_USERNAME:-$DATABASE_USERNAME}"
 
 if [ "${PHARMAFLOW_MEDICINE_AUTO_IMPORT:-false}" = "true" ]; then
   java $JAVA_OPTS -jar app.jar &

@@ -2,6 +2,7 @@ package com.lifepill.possystem.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +12,7 @@ import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
+@Log4j2
 public class PrimaryDataSourceConfig {
 
     @Bean(name = "dataSource")
@@ -53,6 +55,17 @@ public class PrimaryDataSourceConfig {
                 }
             }
         }
+
+        if (normalizedJdbcUrl.contains("render.com") || normalizedJdbcUrl.contains("dpg-") ||
+            normalizedJdbcUrl.contains("amazonaws.com") || normalizedJdbcUrl.contains("neon.tech") ||
+            normalizedJdbcUrl.contains("supabase.co") || normalizedJdbcUrl.contains("koyeb.app")) {
+            if (!normalizedJdbcUrl.contains("sslmode") && !normalizedJdbcUrl.contains("ssl=")) {
+                normalizedJdbcUrl += (normalizedJdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
+            }
+        }
+
+        log.info("Configuring PrimaryDataSource with URL: {} and User: {}",
+                normalizedJdbcUrl.replaceAll(":[^/@]+@", ":****@"), username);
 
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(driverClassName);
