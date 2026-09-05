@@ -114,8 +114,9 @@ public class TenantAccessService {
                 .orElseGet(() -> TenantSubscription.builder()
                         .tenant(tenant)
                         .status(SubscriptionStatus.ACTIVE)
+                        .billingCycle(BillingCycle.MONTHLY)
                         .startDate(LocalDate.now().minusDays(1))
-                        .endDate(LocalDate.now().plusYears(1))
+                        .renewalDate(LocalDate.now().plusYears(1))
                         .autoRenew(true)
                         .build());
     }

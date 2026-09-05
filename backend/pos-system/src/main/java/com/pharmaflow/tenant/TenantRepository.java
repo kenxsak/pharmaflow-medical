@@ -15,6 +15,10 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
 
     Optional<Tenant> findByTenantCode(String tenantCode);
 
+    Optional<Tenant> findFirstByOrderByCreatedAtAsc();
+
+    Optional<Tenant> findFirstByOrderByBrandNameAsc();
+
     boolean existsBySlug(String slug);
 
     @Query("select t from Tenant t where (" +
