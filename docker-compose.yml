@@ -37,7 +37,7 @@ services:
       PHARMAFLOW_REDIS_ENABLED: "true"
       SERVER_PORT: 8080
       JWT_SECRET: PharmaFlowSuperSecretKey2024IndiaPharmacySaaS
-      HIBERNATE_DDL_AUTO: validate
+      HIBERNATE_DDL_AUTO: update
       SECURITY_LOG_LEVEL: INFO
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
       MANAGEMENT_HEALTH_READINESS_INCLUDE: readinessState,db,redis

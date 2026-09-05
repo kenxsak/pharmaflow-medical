@@ -92,6 +92,7 @@ CREATE TABLE public.credit_note_items (
     cn_item_id uuid NOT NULL,
     mrp numeric(10,2) NOT NULL,
     quantity numeric(10,3) NOT NULL,
+    unit_type character varying(20) DEFAULT 'TABLET'::character varying NOT NULL,
     reason character varying(200),
     batch_id uuid,
     cn_id uuid,
