@@ -34,7 +34,7 @@ services:
       - key: DATABASE_URL
         fromDatabase:
           name: pharmaflow-db
-          property: internalConnectionString
+          property: connectionString
       - key: DATABASE_USERNAME
         fromDatabase:
           name: pharmaflow-db
@@ -140,7 +140,6 @@ services:
     name: pharmaflow-frontend
     runtime: static
     plan: free
-    region: singapore
     buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
     staticPublishPath: ./frontend/build
     routes:
