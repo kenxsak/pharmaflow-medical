@@ -27,12 +27,18 @@ export const getBackendBaseUrl = () => {
     ? localStorage.getItem('pharmaflow_backend_url')?.trim()
     : null;
   if (customOverride) {
-    return stripTrailingSlash(customOverride);
+    const formatted = customOverride.startsWith('http://') || customOverride.startsWith('https://')
+      ? customOverride
+      : `https://${customOverride}`;
+    return stripTrailingSlash(formatted);
   }
 
   const configuredBaseUrl = process.env.REACT_APP_BACKEND_URL?.trim();
   if (configuredBaseUrl) {
-    return stripTrailingSlash(configuredBaseUrl);
+    const formatted = configuredBaseUrl.startsWith('http://') || configuredBaseUrl.startsWith('https://')
+      ? configuredBaseUrl
+      : `https://${configuredBaseUrl}`;
+    return stripTrailingSlash(formatted);
   }
 
   const hostedFallbackBaseUrl = getHostedFallbackBaseUrl();
