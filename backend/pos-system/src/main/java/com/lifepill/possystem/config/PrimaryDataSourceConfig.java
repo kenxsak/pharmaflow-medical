@@ -9,11 +9,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Configuration
 @Log4j2
 public class PrimaryDataSourceConfig {
+
+    private static final Pattern JDBC_HOST_PATTERN = Pattern.compile("jdbc:postgresql://([^:/\\?]+)(?::(\\d+))?(/.*)?");
 
     @Bean(name = "dataSource")
     @Primary
@@ -56,6 +65,21 @@ public class PrimaryDataSourceConfig {
             }
         }
 
+        // Detect and resolve Render internal short hostnames (e.g. dpg-d7u5nt1kh4rs738gqpg0-a)
+        Matcher matcher = JDBC_HOST_PATTERN.matcher(normalizedJdbcUrl);
+        if (matcher.find()) {
+            String rawHost = matcher.group(1);
+            String port = matcher.group(2) != null ? ":" + matcher.group(2) : ":5432";
+            String pathAndQuery = matcher.group(3) != null ? matcher.group(3) : "";
+
+            if (rawHost != null && rawHost.startsWith("dpg-") && !rawHost.contains(".")) {
+                String resolvedHost = resolveRenderDatabaseHost(rawHost);
+                if (!resolvedHost.equals(rawHost)) {
+                    normalizedJdbcUrl = "jdbc:postgresql://" + resolvedHost + port + pathAndQuery;
+                }
+            }
+        }
+
         // Only require SSL for external domains (e.g. *.render.com, AWS, Neon, Supabase).
         // Render internal private network hosts (dpg-*) connect directly without SSL.
         if (normalizedJdbcUrl.contains(".render.com") ||
@@ -81,6 +105,7 @@ public class PrimaryDataSourceConfig {
         config.setIdleTimeout(idleTimeout);
         config.setMaxLifetime(maxLifetime);
         config.setPoolName(poolName);
+        config.setInitializationFailTimeout(30000);
 
         if (keepaliveTime > 0) {
             config.setKeepaliveTime(keepaliveTime);
@@ -94,5 +119,50 @@ public class PrimaryDataSourceConfig {
         config.setDataSourceProperties(dataSourceProperties);
 
         return new HikariDataSource(config);
+    }
+
+    private String resolveRenderDatabaseHost(String rawHost) {
+        // First try direct resolution (internal private network)
+        try {
+            InetAddress addr = InetAddress.getByName(rawHost);
+            log.info("Direct DNS resolution succeeded for internal host: {} ({})", rawHost, addr.getHostAddress());
+            return rawHost;
+        } catch (UnknownHostException e) {
+            log.warn("Direct DNS resolution failed for short host '{}'. Trying regional Render FQDN candidates...", rawHost);
+        }
+
+        List<String> regions = new ArrayList<>();
+        String envRegion = System.getenv("RENDER_REGION");
+        if (envRegion != null && !envRegion.trim().isEmpty()) {
+            regions.add(envRegion.trim().toLowerCase());
+        }
+        for (String r : Arrays.asList("singapore", "oregon", "frankfurt", "ohio", "virginia")) {
+            if (!regions.contains(r)) {
+                regions.add(r);
+            }
+        }
+
+        for (String region : regions) {
+            String candidate = rawHost + "." + region + "-postgres.render.com";
+            try {
+                InetAddress addr = InetAddress.getByName(candidate);
+                log.info("Successfully resolved Render database FQDN: {} -> {}", candidate, addr.getHostAddress());
+                return candidate;
+            } catch (UnknownHostException ignored) {
+                // Try next region
+            }
+        }
+
+        String internalCandidate = rawHost + ".render.internal";
+        try {
+            InetAddress addr = InetAddress.getByName(internalCandidate);
+            log.info("Successfully resolved internal FQDN: {} -> {}", internalCandidate, addr.getHostAddress());
+            return internalCandidate;
+        } catch (UnknownHostException ignored) {
+            // Keep original
+        }
+
+        log.warn("Could not resolve regional FQDNs for host '{}', proceeding with original", rawHost);
+        return rawHost;
     }
 }

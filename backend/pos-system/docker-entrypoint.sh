@@ -31,6 +31,23 @@ if [ -n "${DATABASE_URL:-}" ] && [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
         port_suffix=":5432"
       fi
 
+      case "$raw_host" in
+        dpg-*)
+          if ! echo "$raw_host" | grep -q '\.'; then
+            if ! getent hosts "$raw_host" >/dev/null 2>&1; then
+              for r in "${RENDER_REGION:-singapore}" oregon frankfurt ohio virginia; do
+                candidate="${raw_host}.${r}-postgres.render.com"
+                if getent hosts "$candidate" >/dev/null 2>&1; then
+                  echo "Entrypoint: Resolved internal host ${raw_host} -> ${candidate}"
+                  raw_host="$candidate"
+                  break
+                fi
+              done
+            fi
+          fi
+          ;;
+      esac
+
       jdbc_host="${raw_host}${port_suffix}"
 
       case "$jdbc_host" in
