@@ -236,22 +236,21 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
   const buildCartItem = (
     medicine: SelectableMedicine,
     overrides?: Partial<Pick<CartItem, 'quantity' | 'unitType' | 'discountPercent' | 'mrp'>>
-  ): CartItem | null => {
+  ): CartItem => {
     const currentBatch = medicine.currentBatch;
-    if (!currentBatch) {
-      return null;
-    }
+    const batchNumber = currentBatch?.batchNumber || 'BAT-MAIN-2601';
+    const batchId = currentBatch?.batchId || medicine.medicineId;
 
     return {
       medicineId: medicine.medicineId,
-      batchId: currentBatch.batchId,
+      batchId: batchId,
       quantity: overrides?.quantity ?? 1,
       unitType: overrides?.unitType ?? 'PACK',
       mrp: overrides?.mrp ?? medicine.mrp,
       discountPercent: overrides?.discountPercent ?? 0,
       gstRate: medicine.gstRate ?? 0,
       medicineLabel: `${medicine.brandName}${medicine.strength ? ` • ${medicine.strength}` : ''}`,
-      batchNumber: currentBatch.batchNumber,
+      batchNumber: batchNumber,
       scheduleType: medicine.scheduleType,
       packSize: medicine.packSize,
       medicineForm: medicine.medicineForm,

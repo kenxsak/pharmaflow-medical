@@ -9,8 +9,12 @@ import com.pharmaflow.store.Store;
 import com.pharmaflow.store.StoreRepository;
 import com.pharmaflow.inventory.InventoryBatch;
 import com.pharmaflow.inventory.InventoryBatchRepository;
+import com.pharmaflow.medicine.Manufacturer;
+import com.pharmaflow.medicine.ManufacturerRepository;
 import com.pharmaflow.medicine.Medicine;
 import com.pharmaflow.medicine.MedicineRepository;
+import com.pharmaflow.medicine.SaltComposition;
+import com.pharmaflow.medicine.SaltCompositionRepository;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -44,6 +48,8 @@ public class TenantBootstrap implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final MedicineRepository medicineRepository;
     private final InventoryBatchRepository inventoryBatchRepository;
+    private final ManufacturerRepository manufacturerRepository;
+    private final SaltCompositionRepository saltCompositionRepository;
 
     @Override
     @Transactional
@@ -259,41 +265,138 @@ public class TenantBootstrap implements CommandLineRunner {
                 true,
                 null
         );
+        seedCoreMedicinesAndBatches();
+    }
 
-        if (inventoryBatchRepository.count() == 0) {
-            List<Medicine> sampleMedicines = medicineRepository.findAll(org.springframework.data.domain.PageRequest.of(0, 500)).getContent();
-            List<Store> demoStores = storeRepository.findAllByIsActiveTrueOrderByStoreNameAsc();
-            List<InventoryBatch> initialBatches = new ArrayList<>();
-            for (Store store : demoStores) {
-                if ("STORE".equalsIgnoreCase(store.getStoreType()) || "WAREHOUSE".equalsIgnoreCase(store.getStoreType())) {
-                    for (Medicine med : sampleMedicines) {
-                        BigDecimal mrp = med.getMrp() != null && med.getMrp().compareTo(BigDecimal.ZERO) > 0 ? med.getMrp() : BigDecimal.valueOf(50.0);
-                        BigDecimal purchaseRate = mrp.multiply(BigDecimal.valueOf(0.70)).setScale(2, java.math.RoundingMode.HALF_UP);
-                        String brand = med.getBrandName() != null ? med.getBrandName().replaceAll("[^a-zA-Z0-9]", "").toUpperCase(Locale.ROOT) : "MED";
-                        String batchNo = "BAT-" + (brand.length() > 4 ? brand.substring(0, 4) : brand) + "-2601";
-                        initialBatches.add(
-                                InventoryBatch.builder()
-                                        .store(store)
-                                        .medicine(med)
-                                        .batchNumber(batchNo)
-                                        .manufactureDate(LocalDate.now().minusMonths(3))
-                                        .expiryDate(LocalDate.now().plusMonths(18))
-                                        .quantityStrips(75)
-                                        .quantityLoose(0)
-                                        .purchaseRate(purchaseRate)
-                                        .mrp(mrp)
-                                        .isActive(true)
-                                        .inventoryState("SELLABLE")
-                                        .createdAt(java.time.LocalDateTime.now())
-                                        .build()
-                        );
-                    }
+    private void seedCoreMedicinesAndBatches() {
+        Manufacturer gsk = ensureManufacturer("GSK", "GlaxoSmithKline Pharmaceuticals Ltd");
+        Manufacturer microLabs = ensureManufacturer("MICRO", "Micro Labs Ltd");
+        Manufacturer alkem = ensureManufacturer("ALKEM", "Alkem Laboratories Ltd");
+        Manufacturer alembic = ensureManufacturer("ALEMBIC", "Alembic Pharmaceuticals Ltd");
+        Manufacturer cipla = ensureManufacturer("CIPLA", "Cipla Ltd");
+        Manufacturer sanofi = ensureManufacturer("SANOFI", "Sanofi India Ltd");
+        Manufacturer drReddy = ensureManufacturer("DRREDDY", "Dr. Reddy's Laboratories Ltd");
+        Manufacturer sunPharma = ensureManufacturer("SUN", "Sun Pharmaceutical Industries Ltd");
+
+        SaltComposition paracetamol650 = ensureSalt("Paracetamol 650mg", "Paracetamol", "Analgesic & Antipyretic");
+        SaltComposition paracetamol500 = ensureSalt("Paracetamol 500mg", "Paracetamol", "Analgesic & Antipyretic");
+        SaltComposition pantoDom = ensureSalt("Pantoprazole 40mg + Domperidone 30mg", "Pantoprazole + Domperidone", "Antacid & Antiemetic");
+        SaltComposition panto40 = ensureSalt("Pantoprazole 40mg", "Pantoprazole", "Proton Pump Inhibitor");
+        SaltComposition amoxClav = ensureSalt("Amoxycillin 500mg + Clavulanic Acid 125mg", "Amoxycillin + Clavulanic Acid", "Antibiotic");
+        SaltComposition azithromycin = ensureSalt("Azithromycin 500mg", "Azithromycin", "Macrolide Antibiotic");
+        SaltComposition cetirizine = ensureSalt("Cetirizine 10mg", "Cetirizine Hydrochloride", "Antihistamine");
+        SaltComposition ibuprofenPara = ensureSalt("Ibuprofen 400mg + Paracetamol 325mg", "Ibuprofen + Paracetamol", "NSAID Analgesic");
+
+        ensureMedicine("Crocin 650 Advance Tablet", "Paracetamol 650mg", paracetamol650, gsk, "TABLET", "650mg", 15, "8901030000001", "300490", new BigDecimal("12.00"), new BigDecimal("32.50"), "OTC", false, false, false, "15 Tablets / Strip");
+        ensureMedicine("Crocin 500 Advance Tablet", "Paracetamol 500mg", paracetamol500, gsk, "TABLET", "500mg", 15, "8901030000002", "300490", new BigDecimal("12.00"), new BigDecimal("25.00"), "OTC", false, false, false, "15 Tablets / Strip");
+        ensureMedicine("Dolo 650 Tablet", "Paracetamol 650mg", paracetamol650, microLabs, "TABLET", "650mg", 15, "8901030000003", "300490", new BigDecimal("12.00"), new BigDecimal("30.91"), "OTC", false, false, false, "15 Tablets / Strip");
+        ensureMedicine("Pan-D Capsule", "Pantoprazole 40mg + Domperidone 30mg", pantoDom, alkem, "CAPSULE", "40mg/30mg", 15, "8901030000004", "300490", new BigDecimal("12.00"), new BigDecimal("199.00"), "SCHEDULE_H", false, false, true, "15 Capsules / Strip");
+        ensureMedicine("Pan 40 Tablet", "Pantoprazole 40mg", panto40, alkem, "TABLET", "40mg", 15, "8901030000005", "300490", new BigDecimal("12.00"), new BigDecimal("155.00"), "SCHEDULE_H", false, false, true, "15 Tablets / Strip");
+        ensureMedicine("Augmentin 625 Duo Tablet", "Amoxycillin 500mg + Clavulanic Acid 125mg", amoxClav, gsk, "TABLET", "625mg", 10, "8901030000006", "300490", new BigDecimal("12.00"), new BigDecimal("204.35"), "SCHEDULE_H1", false, false, true, "10 Tablets / Strip");
+        ensureMedicine("Azithral 500 Tablet", "Azithromycin 500mg", azithromycin, alembic, "TABLET", "500mg", 5, "8901030000007", "300490", new BigDecimal("12.00"), new BigDecimal("119.50"), "SCHEDULE_H1", false, false, true, "5 Tablets / Strip");
+        ensureMedicine("Combiflam Tablet", "Ibuprofen 400mg + Paracetamol 325mg", ibuprofenPara, sanofi, "TABLET", "400mg/325mg", 20, "8901030000008", "300490", new BigDecimal("12.00"), new BigDecimal("45.20"), "OTC", false, false, false, "20 Tablets / Strip");
+        ensureMedicine("Cetrizine 10mg Tablet", "Cetirizine 10mg", cetirizine, cipla, "TABLET", "10mg", 10, "8901030000009", "300490", new BigDecimal("12.00"), new BigDecimal("18.00"), "OTC", false, false, false, "10 Tablets / Strip");
+
+        List<Medicine> allMeds = medicineRepository.findAll(org.springframework.data.domain.PageRequest.of(0, 500)).getContent();
+        List<Store> demoStores = storeRepository.findAllByIsActiveTrueOrderByStoreNameAsc();
+        List<InventoryBatch> initialBatches = new ArrayList<>();
+
+        for (Store store : demoStores) {
+            for (Medicine med : allMeds) {
+                if (inventoryBatchRepository.findSellableBatches(store.getStoreId(), med.getMedicineId(), LocalDate.now()).isEmpty()) {
+                    BigDecimal mrp = med.getMrp() != null && med.getMrp().compareTo(BigDecimal.ZERO) > 0 ? med.getMrp() : BigDecimal.valueOf(50.0);
+                    BigDecimal purchaseRate = mrp.multiply(BigDecimal.valueOf(0.70)).setScale(2, java.math.RoundingMode.HALF_UP);
+                    String brand = med.getBrandName() != null ? med.getBrandName().replaceAll("[^a-zA-Z0-9]", "").toUpperCase(Locale.ROOT) : "MED";
+                    String batchNo = "BAT-" + (brand.length() > 4 ? brand.substring(0, 4) : brand) + "-2601";
+                    initialBatches.add(
+                            InventoryBatch.builder()
+                                    .store(store)
+                                    .medicine(med)
+                                    .batchNumber(batchNo)
+                                    .manufactureDate(LocalDate.now().minusMonths(2))
+                                    .expiryDate(LocalDate.now().plusMonths(24))
+                                    .quantityStrips(150)
+                                    .quantityLoose(0)
+                                    .purchaseRate(purchaseRate)
+                                    .mrp(mrp)
+                                    .isActive(true)
+                                    .inventoryState("SELLABLE")
+                                    .createdAt(java.time.LocalDateTime.now())
+                                    .build()
+                    );
                 }
             }
-            if (!initialBatches.isEmpty()) {
-                inventoryBatchRepository.saveAll(initialBatches);
-            }
         }
+        if (!initialBatches.isEmpty()) {
+            inventoryBatchRepository.saveAll(initialBatches);
+        }
+    }
+
+    private Manufacturer ensureManufacturer(String shortCode, String name) {
+        return manufacturerRepository.findFirstByShortCodeIgnoreCase(shortCode)
+                .orElseGet(() -> manufacturerRepository.save(
+                        Manufacturer.builder()
+                                .shortCode(shortCode)
+                                .name(name)
+                                .isActive(true)
+                                .build()
+                ));
+    }
+
+    private SaltComposition ensureSalt(String saltName, String genericName, String drugClass) {
+        return saltCompositionRepository.findFirstBySaltNameIgnoreCase(saltName)
+                .orElseGet(() -> saltCompositionRepository.save(
+                        SaltComposition.builder()
+                                .saltName(saltName)
+                                .genericName(genericName)
+                                .drugClass(drugClass)
+                                .isActive(true)
+                                .build()
+                ));
+    }
+
+    private Medicine ensureMedicine(
+            String brandName,
+            String genericName,
+            SaltComposition salt,
+            Manufacturer manufacturer,
+            String medicineForm,
+            String strength,
+            int packSize,
+            String barcode,
+            String hsnCode,
+            BigDecimal gstRate,
+            BigDecimal mrp,
+            String scheduleType,
+            boolean isNarcotic,
+            boolean isPsychotropic,
+            boolean requiresRx,
+            String packSizeLabel
+    ) {
+        return medicineRepository.findFirstByBrandNameIgnoreCase(brandName)
+                .orElseGet(() -> medicineRepository.save(
+                        Medicine.builder()
+                                .brandName(brandName)
+                                .genericName(genericName)
+                                .saltComposition(salt)
+                                .manufacturer(manufacturer)
+                                .medicineForm(medicineForm)
+                                .strength(strength)
+                                .packSize(packSize)
+                                .barcode(barcode)
+                                .hsnCode(hsnCode)
+                                .gstRate(gstRate)
+                                .mrp(mrp)
+                                .scheduleType(scheduleType)
+                                .isNarcotic(isNarcotic)
+                                .isPsychotropic(isPsychotropic)
+                                .requiresRx(requiresRx)
+                                .packSizeLabel(packSizeLabel)
+                                .searchKeywords(brandName + " " + genericName + " " + (salt != null ? salt.getSaltName() : ""))
+                                .catalogSource("CORE_BOOTSTRAP")
+                                .isActive(true)
+                                .build()
+                ));
     }
 
     private SubscriptionPlan ensurePlan(
