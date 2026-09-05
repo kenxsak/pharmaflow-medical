@@ -16,7 +16,7 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: render
       - key: SPRING_MAIN_LAZY_INITIALIZATION
-        value: "true"
+        value: "false"
       - key: SPRING_JMX_ENABLED
         value: "false"
       - key: SPRINGDOC_API_DOCS_ENABLED

@@ -10,20 +10,22 @@ COPY src ./src
 
 RUN mvn clean package -DskipTests -B
 
-FROM eclipse-temurin:17-jre-alpine AS runtime
+FROM eclipse-temurin:17-jre AS runtime
 
 LABEL maintainer="LifePill Development Team"
 LABEL version="1.0.0"
 LABEL description="LifePill POS System Backend Service"
 
-RUN apk add --no-cache postgresql-client wget
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends postgresql-client wget && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/sh -m appuser
 
 WORKDIR /app
 
-RUN mkdir -p /app/uploads /app/logs && \
+RUN mkdir -p /app/uploads /app/logs /app/import-data /app/import-sql && \
     chown -R appuser:appgroup /app
 
 COPY --from=builder --chown=appuser:appgroup /build/target/*.jar app.jar
@@ -41,6 +43,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider "http://localhost:${PORT:-8080}/actuator/health/liveness" || exit 1
 
 ENV SPRING_PROFILES_ACTIVE=render
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:TieredStopAtLevel=1 -XX:+UseStringDeduplication -Djava.security.egd=file:/dev/./urandom"
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:TieredStopAtLevel=1 -Djava.security.egd=file:/dev/./urandom"
 
 ENTRYPOINT ["sh", "/app/docker-entrypoint.sh"]

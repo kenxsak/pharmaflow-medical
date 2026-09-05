@@ -56,12 +56,23 @@ public class PrimaryDataSourceConfig {
             }
         }
 
-        if (normalizedJdbcUrl.matches(".*//dpg-[^:/.]+(:[0-9]+)?(/.*)?")) {
-            String region = System.getenv("RENDER_REGION");
-            if (region == null || region.trim().isEmpty()) {
-                region = "singapore";
+        if (normalizedJdbcUrl.contains("//dpg-")) {
+            int schemeIndex = normalizedJdbcUrl.indexOf("//") + 2;
+            int slashIndex = normalizedJdbcUrl.indexOf('/', schemeIndex);
+            String hostAndPort = slashIndex > 0 ? normalizedJdbcUrl.substring(schemeIndex, slashIndex) : normalizedJdbcUrl.substring(schemeIndex);
+            String host = hostAndPort.contains(":") ? hostAndPort.substring(0, hostAndPort.indexOf(':')) : hostAndPort;
+            String port = hostAndPort.contains(":") ? hostAndPort.substring(hostAndPort.indexOf(':')) : ":5432";
+
+            if (host.startsWith("dpg-") && !host.contains(".")) {
+                String region = System.getenv("RENDER_REGION");
+                if (region == null || region.trim().isEmpty()) {
+                    region = "singapore";
+                }
+                String fqdn = host + "." + region.trim() + "-postgres.render.com";
+                String remainder = slashIndex > 0 ? normalizedJdbcUrl.substring(slashIndex) : "";
+                normalizedJdbcUrl = normalizedJdbcUrl.substring(0, schemeIndex) + fqdn + port + remainder;
+                log.info("Converted short Render host '{}' to FQDN '{}'", host, fqdn);
             }
-            normalizedJdbcUrl = normalizedJdbcUrl.replaceFirst("//(dpg-[^:/.]+)", "//$1." + region.trim() + "-postgres.render.com");
         }
 
         if (normalizedJdbcUrl.contains("render.com") || normalizedJdbcUrl.contains("dpg-") ||
