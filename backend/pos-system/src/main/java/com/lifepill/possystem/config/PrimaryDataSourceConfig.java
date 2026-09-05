@@ -105,7 +105,7 @@ public class PrimaryDataSourceConfig {
         config.setIdleTimeout(idleTimeout);
         config.setMaxLifetime(maxLifetime);
         config.setPoolName(poolName);
-        config.setInitializationFailTimeout(30000);
+        config.setInitializationFailTimeout(-1);
 
         if (keepaliveTime > 0) {
             config.setKeepaliveTime(keepaliveTime);
