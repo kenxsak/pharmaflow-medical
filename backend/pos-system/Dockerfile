@@ -31,9 +31,10 @@ RUN mkdir -p /app/uploads /app/logs /app/import-data /app/import-sql && \
 COPY --from=builder --chown=appuser:appgroup /build/target/*.jar app.jar
 COPY --chown=appuser:appgroup docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY --chown=appuser:appgroup run-medicine-import.sh /app/run-medicine-import.sh
+COPY --chown=appuser:appgroup import-data /app/import-data
+COPY --chown=appuser:appgroup import-sql /app/import-sql
 
-RUN chmod +x /app/docker-entrypoint.sh /app/run-medicine-import.sh && \
-    mkdir -p /app/import-data /app/import-sql
+RUN chmod +x /app/docker-entrypoint.sh /app/run-medicine-import.sh
 
 USER appuser
 
