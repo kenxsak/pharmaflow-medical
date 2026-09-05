@@ -70,7 +70,7 @@ services:
       - key: HIBERNATE_DDL_AUTO
         value: "none"
       - key: FLYWAY_ENABLED
-        value: "false"
+        value: "true"
       - key: FLYWAY_BASELINE_ON_MIGRATE
         value: "true"
       - key: HIBERNATE_OPEN_IN_VIEW
