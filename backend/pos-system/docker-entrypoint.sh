@@ -34,6 +34,15 @@ if [ -n "${DATABASE_URL:-}" ] && [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
       jdbc_host="${raw_host}${port_suffix}"
 
       export SPRING_DATASOURCE_URL="jdbc:postgresql://${jdbc_host}/${database_name}${query_string}"
+
+      # Strip sslmode for Render internal hosts (dpg-*) - internal VPC does not use SSL
+      case "$raw_host" in
+        dpg-*)
+          SPRING_DATASOURCE_URL=$(echo "$SPRING_DATASOURCE_URL" | sed -E 's/[?&]sslmode=[^&]*//g; s/[?&]ssl=[^&]*//g; s/\?&/?/g')
+          export SPRING_DATASOURCE_URL
+          ;;
+      esac
+
       export DATABASE_URL="$SPRING_DATASOURCE_URL"
 
       user_pass="${normalized_url%@*}"

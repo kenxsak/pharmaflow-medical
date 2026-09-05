@@ -68,23 +68,36 @@ public class PrimaryDataSourceConfig {
 
         // Detect and resolve Render internal short hostnames (e.g. dpg-d7u5nt1kh4rs738gqpg0-a)
         Matcher matcher = JDBC_HOST_PATTERN.matcher(normalizedJdbcUrl);
+        boolean isRenderInternalHost = false;
         if (matcher.find()) {
             String rawHost = matcher.group(1);
             String port = matcher.group(2) != null ? ":" + matcher.group(2) : ":5432";
             String pathAndQuery = matcher.group(3) != null ? matcher.group(3) : "";
 
             if (rawHost != null && rawHost.startsWith("dpg-") && !rawHost.contains(".")) {
+                isRenderInternalHost = true;
+                // Strip sslmode from internal host URLs - Render internal VPC does NOT use SSL
+                normalizedJdbcUrl = normalizedJdbcUrl
+                        .replaceAll("[?&]sslmode=[^&]*", "")
+                        .replaceAll("[?&]ssl=[^&]*", "");
+                // Re-add '?' if we accidentally stripped it leaving orphaned '&'
+                normalizedJdbcUrl = normalizedJdbcUrl.replaceAll("\\?&", "?");
+                log.info("Render internal host detected ({}). Stripped SSL from URL.", rawHost);
+
                 String resolvedHost = resolveRenderDatabaseHost(rawHost);
                 if (!resolvedHost.equals(rawHost)) {
-                    normalizedJdbcUrl = "jdbc:postgresql://" + resolvedHost + port + pathAndQuery;
+                    normalizedJdbcUrl = "jdbc:postgresql://" + resolvedHost + port + pathAndQuery
+                            .replaceAll("[?&]sslmode=[^&]*", "")
+                            .replaceAll("[?&]ssl=[^&]*", "");
                 }
             }
         }
 
-        // External hosted domains that require SSL
-        if (normalizedJdbcUrl.contains(".render.com") ||
-            normalizedJdbcUrl.contains("amazonaws.com") || normalizedJdbcUrl.contains("neon.tech") ||
-            normalizedJdbcUrl.contains("supabase.co") || normalizedJdbcUrl.contains("koyeb.app")) {
+        // External hosted domains that require SSL (skip for Render internal hosts)
+        if (!isRenderInternalHost && (
+                normalizedJdbcUrl.contains(".render.com") ||
+                normalizedJdbcUrl.contains("amazonaws.com") || normalizedJdbcUrl.contains("neon.tech") ||
+                normalizedJdbcUrl.contains("supabase.co") || normalizedJdbcUrl.contains("koyeb.app"))) {
             if (!normalizedJdbcUrl.contains("sslmode") && !normalizedJdbcUrl.contains("ssl=")) {
                 normalizedJdbcUrl += (normalizedJdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
             }
