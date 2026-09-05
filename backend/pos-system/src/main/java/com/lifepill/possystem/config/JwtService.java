@@ -20,6 +20,7 @@ import java.util.function.Function;
  * Service class for handling JWT token generation and validation.
  */
 @Service
+@SuppressWarnings("deprecation")
 public class JwtService {
 
     @Value("${jwt.secret}")

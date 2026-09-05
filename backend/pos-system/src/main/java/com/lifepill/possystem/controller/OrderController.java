@@ -1,6 +1,5 @@
 package com.lifepill.possystem.controller;
 
-import com.lifepill.possystem.dto.requestDTO.RequestOrderSMSDTO;
 import com.lifepill.possystem.dto.requestDTO.RequestOrderSaveDTO;
 import com.lifepill.possystem.dto.responseDTO.OrderResponseDTO;
 import com.lifepill.possystem.service.OrderService;

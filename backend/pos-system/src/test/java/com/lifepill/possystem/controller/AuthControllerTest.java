@@ -3,8 +3,6 @@ package com.lifepill.possystem.controller;
 import com.lifepill.possystem.dto.requestDTO.AuthenticationRequestDTO;
 import com.lifepill.possystem.dto.requestDTO.RegisterRequestDTO;
 import com.lifepill.possystem.dto.responseDTO.AuthenticationResponseDTO;
-import com.lifepill.possystem.dto.responseDTO.EmployerAuthDetailsResponseDTO;
-import com.lifepill.possystem.entity.enums.Role;
 import com.lifepill.possystem.exception.AuthenticationException;
 import com.lifepill.possystem.service.AuthService;
 import com.lifepill.possystem.util.StandardResponse;
@@ -17,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import javax.servlet.http.HttpServletResponse;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

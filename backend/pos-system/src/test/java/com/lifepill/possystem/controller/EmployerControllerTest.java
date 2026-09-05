@@ -1,7 +1,6 @@
 package com.lifepill.possystem.controller;// EmployerControllerTest.java
 import com.lifepill.possystem.dto.*;
 import com.lifepill.possystem.dto.requestDTO.EmployerUpdate.*;
-import com.lifepill.possystem.entity.EmployerBankDetails;
 import com.lifepill.possystem.exception.NotFoundException;
 import com.lifepill.possystem.service.EmployerService;
 import com.lifepill.possystem.util.StandardResponse;
@@ -11,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -179,7 +177,6 @@ class EmployerControllerTest {
         EmployerUpdateBankAccountDTO employerUpdateBankAccountDTO = new EmployerUpdateBankAccountDTO();
         EmployerWithBankDTO expectedEmployerWithBankDTO = new EmployerWithBankDTO();
         EmployerBankDetailsDTO expectedBankDetailsDTO = new EmployerBankDetailsDTO();
-        EmployerBankDetails bankDetails = new EmployerBankDetails();
 
         when(employerService.updateEmployerBankAccountDetails(employerUpdateBankAccountDTO)).thenReturn(expectedEmployerWithBankDTO);
         when(employerService.getEmployerBankDetailsById(employerId)).thenReturn(expectedBankDetailsDTO);

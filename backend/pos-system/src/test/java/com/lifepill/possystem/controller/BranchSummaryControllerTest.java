@@ -10,8 +10,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,17 +29,16 @@ public class BranchSummaryControllerTest {
     @InjectMocks
     private BranchSummaryController branchSummaryController;
 
-    private MockMvc mockMvc;
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(branchSummaryController).build();
     }
 
     /**
      * Test method for getAllBranchesWithSales().
      */
     @Test
+    @SuppressWarnings("unchecked")
     void getAllBranchesWithSales() {
         // Mock data
         List<PharmacyBranchResponseDTO> mockResponseDTOList = new ArrayList<>();

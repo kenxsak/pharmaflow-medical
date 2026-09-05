@@ -31,8 +31,16 @@ public class InventoryMovementService {
     @Transactional(readOnly = true)
     public List<InventoryMovementResponse> listMovements(UUID storeId, UUID batchId, UUID medicineId, int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 200));
-        return inventoryMovementRepository.searchByStore(storeId, batchId, medicineId, PageRequest.of(0, safeLimit))
-                .stream()
+        org.springframework.data.domain.Pageable pageable = PageRequest.of(0, safeLimit);
+        List<InventoryMovement> movements;
+        if (batchId != null) {
+            movements = inventoryMovementRepository.findByStoreAndBatch(storeId, batchId, pageable);
+        } else if (medicineId != null) {
+            movements = inventoryMovementRepository.findByStoreAndMedicine(storeId, medicineId, pageable);
+        } else {
+            movements = inventoryMovementRepository.findByStore(storeId, pageable);
+        }
+        return movements.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }

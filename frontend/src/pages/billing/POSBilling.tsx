@@ -168,7 +168,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     const normalizedQuery = query.trim();
-    if (normalizedQuery.length < 3) {
+    if (normalizedQuery.length < 2) {
       setSearchResults([]);
       return;
     }

@@ -371,7 +371,6 @@ public class ItemServiceIMPL implements ItemService {
         itemRepository.save(item);
         return "Item saved successfully with category and supplier";
 
-        //TODO: Need to get response of real item id now it shows in zero
     }
 
     /**

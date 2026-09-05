@@ -17,7 +17,7 @@ public class RequestOrderSMSDTO {
     private Date orderDate;
     private String customerPhoneNumber;
     private String customerEmail;
-    private Double total; // TODO Change total to orderTotal
+    private Double total;
     private List<RequestOrderDetailsSaveDTO> orderDetails;
     private RequestPaymentDetailsDTO paymentDetails;
 }

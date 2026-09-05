@@ -125,7 +125,6 @@ public class ItemController {
      * @param itemSaveRequestDTO The DTO containing details of the item to be saved.
      * @return ResponseEntity containing a StandardResponse object with a success message.
      */
-    //TODO: need to improvement don't use saveItems for this use save item
     @PostMapping(path = "/save")
     public ResponseEntity<StandardResponse> saveItem(
             @RequestBody ItemSaveRequestDTO itemSaveRequestDTO
@@ -183,7 +182,6 @@ public class ItemController {
      * @param itemName The name of the item to retrieve.
      * @return List of ItemGetResponseDTO containing items with the specified name and status.
      */
-    //TODO: need to improvement
     @GetMapping(path = "/get-by-name-with-mapstruct", params = "name")
     public List<ItemGetResponseDTO> getItemByNameAndStatusByMapStruct(
             @RequestParam(value = "name") String itemName

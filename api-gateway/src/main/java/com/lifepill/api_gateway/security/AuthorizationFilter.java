@@ -14,8 +14,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 
 /**
  * Global Authorization Filter for API Gateway.

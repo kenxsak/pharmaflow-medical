@@ -2,8 +2,7 @@ package com.pharmaflow.inventory;
 
 import com.pharmaflow.billing.dto.BillingItemRequest;
 import com.pharmaflow.common.BusinessRuleException;
-import com.pharmaflow.medicine.Medicine;
-import com.pharmaflow.medicine.MedicineRepository;
+
 import com.pharmaflow.inventory.dto.StockBatchResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +21,6 @@ import java.util.stream.Collectors;
 public class InventoryService {
 
     private final InventoryBatchRepository inventoryBatchRepository;
-    private final MedicineRepository medicineRepository;
     private final InventoryMovementService inventoryMovementService;
 
     public List<StockBatchResponse> getStock(UUID storeId, UUID medicineId) {
@@ -142,31 +139,4 @@ public class InventoryService {
         return "OK";
     }
 
-    private int toLooseUnits(BigDecimal quantity, String unitType, Integer packSize) {
-        if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Quantity must be greater than zero");
-        }
-        if (!isPackUnitType(unitType)) {
-            return quantity.setScale(0, RoundingMode.HALF_UP).intValueExact();
-        }
-        return quantity.multiply(BigDecimal.valueOf(safePackSize(packSize)))
-                .setScale(0, RoundingMode.HALF_UP)
-                .intValueExact();
-    }
-
-    private boolean isPackUnitType(String unitType) {
-        return "PACK".equalsIgnoreCase(unitType) || "STRIP".equalsIgnoreCase(unitType);
-    }
-
-    private int safePackSize(Medicine medicine) {
-        return safePackSize(medicine != null ? medicine.getPackSize() : null);
-    }
-
-    private int safePackSize(Integer packSize) {
-        return packSize == null || packSize <= 0 ? 1 : packSize;
-    }
-
-    private Integer safe(Integer value) {
-        return value == null ? 0 : value;
-    }
 }

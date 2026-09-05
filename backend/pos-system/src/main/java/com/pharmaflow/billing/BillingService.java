@@ -273,7 +273,7 @@ public class BillingService {
         }
 
         validateCreditLimit(customer, request.getPaymentMode(), totalAmount);
-        if ("CREDIT".equalsIgnoreCase(request.getPaymentMode())) {
+        if ("CREDIT".equalsIgnoreCase(request.getPaymentMode()) && customer != null) {
             customer.setCurrentBalance(safe(customer.getCurrentBalance()).add(totalAmount));
             customerRepository.save(customer);
         }
@@ -621,10 +621,6 @@ public class BillingService {
         }
 
         return allocations;
-    }
-
-    private BigDecimal resolveLineMrp(BillingItemRequest itemRequest, Medicine medicine, InventoryBatch batch) {
-        return resolveLineMrp(itemRequest, medicine, batch, itemRequest.getQuantity());
     }
 
     private BigDecimal resolveLineMrp(BillingItemRequest itemRequest, Medicine medicine, InventoryBatch batch, BigDecimal quantity) {

@@ -166,8 +166,7 @@ public class BranchSummaryController {
      * @return ResponseEntity containing StandardResponse with status 200 (OK) and AllPharmacySummaryResponseDTO
      */
     @GetMapping("/all-branches-summary")
-    public ResponseEntity getAllPharmacySummary() {
-        // Call service method to retrieve total details of all pharmacy branches
+    public ResponseEntity<StandardResponse> getAllPharmacySummary() {
         AllPharmacySummaryResponseDTO summary = branchSummaryService.getAllPharmacySummary();
         return new ResponseEntity<>(
                 new StandardResponse(

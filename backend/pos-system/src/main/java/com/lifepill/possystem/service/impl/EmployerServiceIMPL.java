@@ -9,7 +9,6 @@ import com.lifepill.possystem.dto.responseDTO.ChangeManagerResponseDTO;
 import com.lifepill.possystem.entity.Branch;
 import com.lifepill.possystem.entity.EmployerBankDetails;
 import com.lifepill.possystem.entity.Employer;
-import com.lifepill.possystem.entity.enums.Gender;
 import com.lifepill.possystem.entity.enums.Role;
 import com.lifepill.possystem.exception.EntityDuplicationException;
 import com.lifepill.possystem.exception.EntityNotFoundException;
@@ -31,7 +30,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -515,6 +513,12 @@ public class EmployerServiceIMPL implements EmployerService {
 
             // Map the employer and bank details to DTOs by model mappers
             EmployerWithBankDTO employerWithBankDTO = modelMapper.map(employer, EmployerWithBankDTO.class);
+            if (bankDetails != null) {
+                employerWithBankDTO.setEmployerBankDetails(bankDetails);
+            }
+            if (employer.getBranch() != null) {
+                employerWithBankDTO.setBranchId(employer.getBranch().getBranchId());
+            }
 
             // Add the employer with bank details DTO to the list
             employersWithBankDetails.add(employerWithBankDTO);
@@ -529,6 +533,7 @@ public class EmployerServiceIMPL implements EmployerService {
      * @return EmployerWithBankDTO containing the details of the specified employer along with their bank details.
      * @throws NotFoundException if no employer is found with the given ID.
      */
+    @Override
     public EmployerWithBankDTO getEmployerWithBankDetailsById(long employerId) {
         // Retrieve the employer data by ID
         Employer employerDTO = employerRepository.findById(employerId)

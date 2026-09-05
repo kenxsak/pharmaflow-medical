@@ -49,103 +49,111 @@ public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
             "order by m.brandName asc")
     Page<Medicine> searchCatalogFast(@Param("query") String query, Pageable pageable);
 
-    @Query(value = "select m.* " +
-            "from (" +
-            "select distinct ib.medicine_id " +
+    @Query(value = "select m.* from medicines m " +
+            "left join (" +
+            "select ib.medicine_id, sum(coalesce(ib.quantity_strips, 0)) as total_strips " +
             "from inventory_batches ib " +
             "where ib.store_id = :storeId " +
             "and ib.is_active = true " +
             "and upper(coalesce(ib.inventory_state, 'SELLABLE')) = 'SELLABLE' " +
             "and ib.expiry_date > :today " +
-            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0)" +
-            ") stocked " +
-            "join medicines m on m.medicine_id = stocked.medicine_id " +
-            "where m.is_active = true and (" +
-            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:query), '%') " +
-            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%')" +
-            ") " +
+            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0) " +
+            "group by ib.medicine_id" +
+            ") st on st.medicine_id = m.medicine_id " +
+            "where m.is_active = true " +
+            "and lower(m.brand_name || ' ' || coalesce(m.generic_name, '') || ' ' || coalesce(m.barcode, '') || ' ' || coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%') " +
             "order by " +
             "case " +
             "when lower(coalesce(m.barcode, '')) = lower(:query) then 0 " +
-            "when lower(coalesce(m.brand_name, '')) = lower(:query) then 1 " +
-            "when lower(coalesce(m.brand_name, '')) like concat(lower(:query), '%') then 2 " +
-            "else 3 end, " +
+            "when lower(m.brand_name) = lower(:query) then 1 " +
+            "when lower(m.brand_name) like concat(lower(:query), ' %') then 2 " +
+            "when lower(m.brand_name) like concat(lower(:query), '%') then 3 " +
+            "when lower(coalesce(m.generic_name, '')) like concat(lower(:query), '%') then 4 " +
+            "when lower(m.brand_name) like concat('%', lower(:query), '%') then 5 " +
+            "when lower(coalesce(m.generic_name, '')) like concat('%', lower(:query), '%') then 6 " +
+            "when lower(coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%') then 7 " +
+            "else 8 end, " +
+            "case when coalesce(st.total_strips, 0) > 0 then 0 else 1 end, " +
             "m.brand_name asc " +
             "limit :limit",
             nativeQuery = true)
-    List<Medicine> searchStockedFast(@Param("storeId") UUID storeId,
-                                     @Param("query") String query,
-                                     @Param("today") LocalDate today,
-                                     @Param("limit") int limit);
+    List<Medicine> searchCatalogWithStore(@Param("storeId") UUID storeId,
+                                          @Param("query") String query,
+                                          @Param("today") LocalDate today,
+                                          @Param("limit") int limit);
 
-    @Query(value = "select m.* " +
-            "from (" +
-            "select distinct ib.medicine_id " +
+    @Query(value = "select m.* from medicines m " +
+            "where m.is_active = true " +
+            "and lower(m.brand_name || ' ' || coalesce(m.generic_name, '') || ' ' || coalesce(m.barcode, '') || ' ' || coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%') " +
+            "order by " +
+            "case " +
+            "when lower(coalesce(m.barcode, '')) = lower(:query) then 0 " +
+            "when lower(m.brand_name) = lower(:query) then 1 " +
+            "when lower(m.brand_name) like concat(lower(:query), ' %') then 2 " +
+            "when lower(m.brand_name) like concat(lower(:query), '%') then 3 " +
+            "when lower(coalesce(m.generic_name, '')) like concat(lower(:query), '%') then 4 " +
+            "when lower(m.brand_name) like concat('%', lower(:query), '%') then 5 " +
+            "when lower(coalesce(m.generic_name, '')) like concat('%', lower(:query), '%') then 6 " +
+            "when lower(coalesce(m.search_keywords, '')) like concat('%', lower(:query), '%') then 7 " +
+            "else 8 end, " +
+            "m.brand_name asc " +
+            "limit :limit",
+            nativeQuery = true)
+    List<Medicine> searchCatalogWithoutStore(@Param("query") String query,
+                                             @Param("limit") int limit);
+
+    @Query(value = "select m.* from medicines m " +
+            "left join (" +
+            "select ib.medicine_id, sum(coalesce(ib.quantity_strips, 0)) as total_strips " +
             "from inventory_batches ib " +
             "where ib.store_id = :storeId " +
             "and ib.is_active = true " +
             "and upper(coalesce(ib.inventory_state, 'SELLABLE')) = 'SELLABLE' " +
             "and ib.expiry_date > :today " +
-            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0)" +
-            ") stocked " +
-            "join medicines m on m.medicine_id = stocked.medicine_id " +
+            "and (coalesce(ib.quantity_strips, 0) > 0 or coalesce(ib.quantity_loose, 0) > 0) " +
+            "group by ib.medicine_id" +
+            ") st on st.medicine_id = m.medicine_id " +
             "where m.is_active = true and (" +
-            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:prefix), '%')" +
+            "similarity(lower(m.brand_name), lower(:query)) > 0.3 " +
+            "or similarity(lower(coalesce(m.generic_name, '')), lower(:query)) > 0.3 " +
+            "or word_similarity(lower(:query), lower(m.brand_name)) > 0.4 " +
+            "or word_similarity(lower(:query), lower(coalesce(m.generic_name, ''))) > 0.4" +
             ") " +
             "order by " +
             "greatest(" +
-            "similarity(lower(coalesce(m.brand_name, '')), lower(:query)), " +
+            "similarity(lower(m.brand_name), lower(:query)), " +
             "similarity(lower(coalesce(m.generic_name, '')), lower(:query)), " +
-            "word_similarity(lower(:query), lower(coalesce(m.brand_name, ''))), " +
-            "word_similarity(lower(:query), lower(coalesce(m.search_keywords, '')))" +
+            "word_similarity(lower(:query), lower(m.brand_name)), " +
+            "word_similarity(lower(:query), lower(coalesce(m.generic_name, '')))" +
             ") desc, " +
+            "case when coalesce(st.total_strips, 0) > 0 then 0 else 1 end, " +
             "m.brand_name asc " +
             "limit :limit",
             nativeQuery = true)
-    List<Medicine> searchStockedFuzzy(@Param("storeId") UUID storeId,
-                                      @Param("query") String query,
-                                      @Param("prefix") String prefix,
-                                      @Param("today") LocalDate today,
-                                      @Param("limit") int limit);
+    List<Medicine> searchCatalogFuzzyWithStore(@Param("storeId") UUID storeId,
+                                               @Param("query") String query,
+                                               @Param("today") LocalDate today,
+                                               @Param("limit") int limit);
 
-    @Query(value = "select m.* " +
-            "from medicines m " +
-            "left join salt_compositions s on s.salt_id = m.salt_id " +
-            "left join manufacturers mf on mf.manufacturer_id = m.manufacturer_id " +
+    @Query(value = "select m.* from medicines m " +
             "where m.is_active = true and (" +
-            "lower(coalesce(m.brand_name, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(m.generic_name, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(m.barcode, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(s.salt_name, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(m.composition_summary, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(m.search_keywords, '')) like concat('%', lower(:prefix), '%') " +
-            "or lower(coalesce(mf.name, '')) like concat('%', lower(:prefix), '%')" +
+            "similarity(lower(m.brand_name), lower(:query)) > 0.3 " +
+            "or similarity(lower(coalesce(m.generic_name, '')), lower(:query)) > 0.3 " +
+            "or word_similarity(lower(:query), lower(m.brand_name)) > 0.4 " +
+            "or word_similarity(lower(:query), lower(coalesce(m.generic_name, ''))) > 0.4" +
             ") " +
             "order by " +
-            "case " +
-            "when lower(coalesce(m.barcode, '')) = lower(:query) then 0 " +
-            "when lower(coalesce(m.brand_name, '')) = lower(:query) then 1 " +
-            "when lower(coalesce(m.brand_name, '')) like concat(lower(:query), '%') then 2 " +
-            "when lower(coalesce(m.brand_name, '')) like concat('%', lower(:query), '%') then 3 " +
-            "when lower(coalesce(m.brand_name, '')) like concat(lower(:prefix), '%') then 4 " +
-            "else 5 end, " +
             "greatest(" +
-            "similarity(lower(coalesce(m.brand_name, '')), lower(:query)), " +
+            "similarity(lower(m.brand_name), lower(:query)), " +
             "similarity(lower(coalesce(m.generic_name, '')), lower(:query)), " +
-            "similarity(lower(coalesce(s.salt_name, '')), lower(:query)), " +
-            "word_similarity(lower(:query), lower(coalesce(m.brand_name, ''))), " +
-            "word_similarity(lower(:query), lower(coalesce(m.generic_name, ''))), " +
-            "word_similarity(lower(:query), lower(coalesce(m.search_keywords, '')))" +
+            "word_similarity(lower(:query), lower(m.brand_name)), " +
+            "word_similarity(lower(:query), lower(coalesce(m.generic_name, '')))" +
             ") desc, " +
             "m.brand_name asc " +
             "limit :limit",
             nativeQuery = true)
-    List<Medicine> searchCatalogFuzzy(@Param("query") String query, @Param("prefix") String prefix, @Param("limit") int limit);
+    List<Medicine> searchCatalogFuzzyWithoutStore(@Param("query") String query,
+                                                  @Param("limit") int limit);
 
     Optional<Medicine> findFirstByBarcodeIgnoreCase(String barcode);
 

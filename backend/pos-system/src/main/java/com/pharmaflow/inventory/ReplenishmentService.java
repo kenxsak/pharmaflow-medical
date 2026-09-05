@@ -487,7 +487,6 @@ public class ReplenishmentService {
                 )
                 .orElse(null);
 
-        int transferredLooseUnits = toLooseUnits(transfer.getQuantityStrips(), transfer.getQuantityLoose(), sourceBatch.getMedicine());
         if (destinationBatch == null) {
             destinationBatch = InventoryBatch.builder()
                     .store(transfer.getToStore())
@@ -610,14 +609,6 @@ public class ReplenishmentService {
         return medicine == null || medicine.getPackSize() == null || medicine.getPackSize() <= 0
                 ? 1
                 : medicine.getPackSize();
-    }
-
-    private void applyLooseUnits(InventoryBatch batch, int totalLooseUnits) {
-        int packSize = safePackSize(batch.getMedicine());
-        int normalizedTotal = Math.max(totalLooseUnits, 0);
-        batch.setQuantityStrips(normalizedTotal / packSize);
-        batch.setQuantityLoose(normalizedTotal % packSize);
-        batch.setIsActive(normalizedTotal > 0);
     }
 
     private StockTransferResponse toTransferResponse(StockTransfer transfer) {
@@ -1161,10 +1152,6 @@ public class ReplenishmentService {
         return 2;
     }
 
-    private boolean isShortage(StoreMedicineSnapshot snapshot) {
-        return snapshot.reorderLevel > 0 && snapshot.totalStrips < snapshot.reorderLevel;
-    }
-
     private String resolveScopeLevel(PharmaUser currentUser) {
         if (currentUser.isPlatformOwner()) {
             return "SAAS_ADMIN";
@@ -1208,7 +1195,6 @@ public class ReplenishmentService {
     }
 
     private static final class StoreMedicineSnapshot {
-        private final Store store;
         private final Medicine medicine;
         private final int reorderLevel;
         private int totalStrips = 0;
@@ -1216,7 +1202,6 @@ public class ReplenishmentService {
         private final List<InventoryBatch> sellableBatches = new ArrayList<>();
 
         private StoreMedicineSnapshot(Store store, Medicine medicine) {
-            this.store = store;
             this.medicine = medicine;
             this.reorderLevel = medicine.getReorderLevel() == null ? 0 : medicine.getReorderLevel();
         }
@@ -1256,6 +1241,7 @@ public class ReplenishmentService {
     private static final class SupplierMetrics {
         private int leadTimeSampleCount;
         private int leadTimeDayTotal;
+        @SuppressWarnings("unused")
         private Integer lastLeadTimeDays;
 
         private Integer getObservedLeadTimeDays() {

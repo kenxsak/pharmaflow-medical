@@ -202,10 +202,10 @@ public class BranchSummaryServiceIMPL implements BranchSummaryService {
         // Fetch all orders for the given month and year from the repository
         List<Order> ordersForMonth = orderRepository.findByOrderDateBetween(
                 // Start of the given month
-                DateUtils.truncate(new Date(year - 1900, month - 1, 1), Calendar.MONTH),
+                Date.from(LocalDate.of(year, month, 1).atStartOfDay(ZoneId.systemDefault()).toInstant()),
                 // End of the given month
                 DateUtils.addMilliseconds(
-                        DateUtils.ceiling(new Date(year - 1900, month - 1, 1), Calendar.MONTH),
+                        Date.from(LocalDate.of(year, month, 1).plusMonths(1).atStartOfDay(ZoneId.systemDefault()).toInstant()),
                         -1
                 )
         );
@@ -248,10 +248,10 @@ public class BranchSummaryServiceIMPL implements BranchSummaryService {
         // Fetch all orders for the given year from the repository
         List<Order> ordersForYear = orderRepository.findByOrderDateBetween(
                 // Start of the given year
-                DateUtils.truncate(new Date(year - 1900, 0, 1), Calendar.YEAR),
+                Date.from(LocalDate.of(year, 1, 1).atStartOfDay(ZoneId.systemDefault()).toInstant()),
                 // End of the given year
                 DateUtils.addMilliseconds(
-                        DateUtils.ceiling(new Date(year - 1900, 0, 1), Calendar.YEAR),
+                        Date.from(LocalDate.of(year + 1, 1, 1).atStartOfDay(ZoneId.systemDefault()).toInstant()),
                         -1
                 )
         );

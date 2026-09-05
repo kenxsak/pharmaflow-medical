@@ -152,19 +152,23 @@ public class SecurityConfiguration {
                                 .hasAnyRole(
                                         PharmaRoleName.SUPER_ADMIN.name(),
                                         PharmaRoleName.STORE_MANAGER.name(),
-                                        PharmaRoleName.PHARMACIST.name()
+                                        PharmaRoleName.PHARMACIST.name(),
+                                        PharmaRoleName.SALES_ASSISTANT.name(),
+                                        PharmaRoleName.WAREHOUSE_MGR.name()
                                 )
                                 .antMatchers("/api/v1/compliance/**")
                                 .hasAnyRole(
                                         PharmaRoleName.SUPER_ADMIN.name(),
                                         PharmaRoleName.STORE_MANAGER.name(),
-                                        PharmaRoleName.PHARMACIST.name()
+                                        PharmaRoleName.PHARMACIST.name(),
+                                        PharmaRoleName.SALES_ASSISTANT.name()
                                 )
                                 .antMatchers("/api/v1/reports/**")
                                 .hasAnyRole(
                                         PharmaRoleName.SUPER_ADMIN.name(),
                                         PharmaRoleName.STORE_MANAGER.name(),
                                         PharmaRoleName.PHARMACIST.name(),
+                                        PharmaRoleName.SALES_ASSISTANT.name(),
                                         PharmaRoleName.WAREHOUSE_MGR.name()
                                 )
                                 .antMatchers("/api/v1/audit/**")
@@ -172,6 +176,7 @@ public class SecurityConfiguration {
                                         PharmaRoleName.SUPER_ADMIN.name(),
                                         PharmaRoleName.STORE_MANAGER.name(),
                                         PharmaRoleName.PHARMACIST.name(),
+                                        PharmaRoleName.SALES_ASSISTANT.name(),
                                         PharmaRoleName.WAREHOUSE_MGR.name()
                                 )
                                 .antMatchers("/api/v1/purchases/**")
@@ -179,7 +184,8 @@ public class SecurityConfiguration {
                                         PharmaRoleName.SUPER_ADMIN.name(),
                                         PharmaRoleName.STORE_MANAGER.name(),
                                         PharmaRoleName.WAREHOUSE_MGR.name(),
-                                        PharmaRoleName.PHARMACIST.name()
+                                        PharmaRoleName.PHARMACIST.name(),
+                                        PharmaRoleName.SALES_ASSISTANT.name()
                                 )
                                 .anyRequest().authenticated()
                 )

@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 public class TestConfiguration {
 
 
+    @Bean
     public EmployerMapper employerMapper() {
         return new EmployerMapper();
     }

@@ -23,9 +23,18 @@ public class MedicineController {
     @GetMapping("/search")
     public List<MedicineSearchResponse> search(
             @RequestHeader(value = "X-Store-ID", required = false) String storeIdHeader,
-            @RequestParam("q") String query
+            @RequestParam("q") String query,
+            @RequestParam(value = "limit", defaultValue = "20") int limit
     ) {
-        return medicineService.search(parseUuid(storeIdHeader), query);
+        return medicineService.searchCatalog(parseUuid(storeIdHeader), query, limit);
+    }
+
+    @GetMapping("/{medicineId}")
+    public MedicineSearchResponse getById(
+            @RequestHeader(value = "X-Store-ID", required = false) String storeIdHeader,
+            @PathVariable UUID medicineId
+    ) {
+        return medicineService.getById(parseUuid(storeIdHeader), medicineId);
     }
 
     @GetMapping("/barcode/{barcode}")

@@ -1193,8 +1193,13 @@ export interface UploadedDocumentResponse {
 }
 
 export const MedicineAPI = {
-  search: (query: string): Promise<MedicineSearchResult[]> =>
-    fetchJson(`${BASE_URL}/medicines/search?q=${encodeURIComponent(query)}`, {
+  search: (query: string, limit = 20): Promise<MedicineSearchResult[]> =>
+    fetchJson(`${BASE_URL}/medicines/search?q=${encodeURIComponent(query)}&limit=${limit}`, {
+      headers: getHeaders(),
+    }),
+
+  getById: (medicineId: string): Promise<MedicineSearchResult> =>
+    fetchJson(`${BASE_URL}/medicines/${medicineId}`, {
       headers: getHeaders(),
     }),
 

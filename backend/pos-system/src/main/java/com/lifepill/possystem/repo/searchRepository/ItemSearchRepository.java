@@ -1,6 +1,5 @@
 package com.lifepill.possystem.repo.searchRepository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lifepill.possystem.config.OpenSearchConfig;
 import com.lifepill.possystem.dto.requestDTO.ItemSearchDocument;
 import com.lifepill.possystem.dto.requestDTO.ItemSearchRequestDTO;
@@ -13,9 +12,6 @@ import org.opensearch.client.opensearch.core.*;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.ExistsRequest;
-import org.opensearch.client.opensearch._types.mapping.*;
-import org.opensearch.client.opensearch.indices.IndexSettings;
-import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +20,8 @@ import org.springframework.stereotype.Repository;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -41,13 +36,11 @@ public class ItemSearchRepository {
 
     private final OpenSearchClient client;
     private final OpenSearchConfig config;
-    private final ObjectMapper objectMapper;
 
     @Autowired
-    public ItemSearchRepository(@org.springframework.beans.factory.annotation.Autowired(required = false) OpenSearchClient client, OpenSearchConfig config, ObjectMapper objectMapper) {
+    public ItemSearchRepository(@org.springframework.beans.factory.annotation.Autowired(required = false) OpenSearchClient client, OpenSearchConfig config) {
         this.client = client;
         this.config = config;
-        this.objectMapper = objectMapper;
     }
 
     /**
@@ -410,8 +403,10 @@ public class ItemSearchRepository {
             );
 
             return response.hits().hits().stream()
-                    .map(hit -> hit.source() != null ? hit.source().getItemName() : null)
-                    .filter(name -> name != null)
+                    .map(Hit::source)
+                    .filter(Objects::nonNull)
+                    .map(ItemSearchDocument::getItemName)
+                    .filter(Objects::nonNull)
                     .distinct()
                     .collect(Collectors.toList());
 
@@ -426,6 +421,9 @@ public class ItemSearchRepository {
         if (source == null) {
             return null;
         }
+
+        Double hitScore = hit.score();
+        double finalScore = hitScore != null ? hitScore : 0.0;
 
         return ItemSearchResponseDTO.ItemSearchHit.builder()
                 .itemId(source.getItemId())
@@ -442,7 +440,7 @@ public class ItemSearchRepository {
                 .supplierName(source.getSupplierName())
                 .itemImage(source.getItemImage())
                 .branchId(source.getBranchId())
-                .score(hit.score() != null ? hit.score() : 0.0)
+                .score(finalScore)
                 .build();
     }
 }

@@ -1,7 +1,6 @@
 package com.lifepill.possystem.dto.requestDTO;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.lifepill.possystem.entity.enums.MeasuringUnitType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

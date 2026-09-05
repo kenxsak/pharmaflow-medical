@@ -1,6 +1,5 @@
 package com.lifepill.possystem.service;
 
-import com.lifepill.possystem.dto.requestDTO.ItemSearchDocument;
 import com.lifepill.possystem.dto.requestDTO.ItemSearchRequestDTO;
 import com.lifepill.possystem.dto.responseDTO.ItemSearchResponseDTO;
 

@@ -7,6 +7,11 @@ import com.pharmaflow.auth.RoleEntity;
 import com.pharmaflow.auth.RoleRepository;
 import com.pharmaflow.store.Store;
 import com.pharmaflow.store.StoreRepository;
+import com.pharmaflow.inventory.InventoryBatch;
+import com.pharmaflow.inventory.InventoryBatchRepository;
+import com.pharmaflow.medicine.Medicine;
+import com.pharmaflow.medicine.MedicineRepository;
+import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
@@ -37,6 +42,8 @@ public class TenantBootstrap implements CommandLineRunner {
     private final PharmaUserRepository pharmaUserRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MedicineRepository medicineRepository;
+    private final InventoryBatchRepository inventoryBatchRepository;
 
     @Override
     @Transactional
@@ -252,6 +259,41 @@ public class TenantBootstrap implements CommandLineRunner {
                 true,
                 null
         );
+
+        if (inventoryBatchRepository.count() == 0) {
+            List<Medicine> sampleMedicines = medicineRepository.findAll(org.springframework.data.domain.PageRequest.of(0, 500)).getContent();
+            List<Store> demoStores = storeRepository.findAllByIsActiveTrueOrderByStoreNameAsc();
+            List<InventoryBatch> initialBatches = new ArrayList<>();
+            for (Store store : demoStores) {
+                if ("STORE".equalsIgnoreCase(store.getStoreType()) || "WAREHOUSE".equalsIgnoreCase(store.getStoreType())) {
+                    for (Medicine med : sampleMedicines) {
+                        BigDecimal mrp = med.getMrp() != null && med.getMrp().compareTo(BigDecimal.ZERO) > 0 ? med.getMrp() : BigDecimal.valueOf(50.0);
+                        BigDecimal purchaseRate = mrp.multiply(BigDecimal.valueOf(0.70)).setScale(2, java.math.RoundingMode.HALF_UP);
+                        String brand = med.getBrandName() != null ? med.getBrandName().replaceAll("[^a-zA-Z0-9]", "").toUpperCase(Locale.ROOT) : "MED";
+                        String batchNo = "BAT-" + (brand.length() > 4 ? brand.substring(0, 4) : brand) + "-2601";
+                        initialBatches.add(
+                                InventoryBatch.builder()
+                                        .store(store)
+                                        .medicine(med)
+                                        .batchNumber(batchNo)
+                                        .manufactureDate(LocalDate.now().minusMonths(3))
+                                        .expiryDate(LocalDate.now().plusMonths(18))
+                                        .quantityStrips(75)
+                                        .quantityLoose(0)
+                                        .purchaseRate(purchaseRate)
+                                        .mrp(mrp)
+                                        .isActive(true)
+                                        .inventoryState("SELLABLE")
+                                        .createdAt(java.time.LocalDateTime.now())
+                                        .build()
+                        );
+                    }
+                }
+            }
+            if (!initialBatches.isEmpty()) {
+                inventoryBatchRepository.saveAll(initialBatches);
+            }
+        }
     }
 
     private SubscriptionPlan ensurePlan(

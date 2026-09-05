@@ -3,7 +3,6 @@ package com.lifepill.possystem.dto.responseDTO;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Getter
 @Setter

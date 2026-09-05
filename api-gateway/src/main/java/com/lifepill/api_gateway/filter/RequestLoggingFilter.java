@@ -56,9 +56,8 @@ public class RequestLoggingFilter implements GlobalFilter, Ordered {
 
     private void logResponse(ServerWebExchange exchange, String requestId, long startTime) {
         long duration = System.currentTimeMillis() - startTime;
-        int statusCode = exchange.getResponse().getStatusCode() != null 
-                ? exchange.getResponse().getStatusCode().value() 
-                : 0;
+        var httpStatus = exchange.getResponse().getStatusCode();
+        int statusCode = httpStatus != null ? httpStatus.value() : 0;
         
         log.info("<== Response: {} | Status: {} | Duration: {}ms | RequestId: {}",
                 exchange.getRequest().getPath(),

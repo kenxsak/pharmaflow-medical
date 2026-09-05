@@ -6,7 +6,6 @@ import com.pharmaflow.medicine.dto.BatchSnapshotResponse;
 import com.pharmaflow.medicine.dto.MedicineSearchResponse;
 import com.pharmaflow.medicine.dto.SubstituteResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,19 +41,14 @@ public class MedicineService {
         List<Medicine> medicines;
 
         if (storeId != null) {
-            medicines = medicineRepository.searchStockedFast(storeId, normalizedQuery, today, safeLimit);
+            medicines = medicineRepository.searchCatalogWithStore(storeId, normalizedQuery, today, safeLimit);
             if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
-                String fuzzyPrefix = normalizedQuery.substring(0, Math.min(3, normalizedQuery.length()));
-                medicines = medicineRepository.searchStockedFuzzy(storeId, normalizedQuery, fuzzyPrefix, today, safeLimit);
+                medicines = medicineRepository.searchCatalogFuzzyWithStore(storeId, normalizedQuery, today, safeLimit);
             }
         } else {
-            medicines = medicineRepository.searchCatalogFast(normalizedQuery, PageRequest.of(0, safeLimit))
-                    .stream()
-                    .collect(Collectors.toList());
-
+            medicines = medicineRepository.searchCatalogWithoutStore(normalizedQuery, safeLimit);
             if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
-                String fuzzyPrefix = normalizedQuery.substring(0, Math.min(4, normalizedQuery.length()));
-                medicines = medicineRepository.searchCatalogFuzzy(normalizedQuery, fuzzyPrefix, safeLimit);
+                medicines = medicineRepository.searchCatalogFuzzyWithoutStore(normalizedQuery, safeLimit);
             }
         }
 
@@ -71,6 +65,15 @@ public class MedicineService {
         }
         Medicine medicine = medicineRepository.findFirstByBarcodeIgnoreCase(barcode.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Medicine not found for barcode " + barcode));
+        return toSearchResponse(medicine, resolveCurrentBatch(storeId, medicine.getMedicineId()));
+    }
+
+    public MedicineSearchResponse getById(UUID storeId, UUID medicineId) {
+        if (medicineId == null) {
+            throw new IllegalArgumentException("Medicine ID is required");
+        }
+        Medicine medicine = medicineRepository.findById(medicineId)
+                .orElseThrow(() -> new IllegalArgumentException("Medicine not found with ID " + medicineId));
         return toSearchResponse(medicine, resolveCurrentBatch(storeId, medicine.getMedicineId()));
     }
 

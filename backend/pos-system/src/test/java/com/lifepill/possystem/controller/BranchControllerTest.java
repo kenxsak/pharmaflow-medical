@@ -1,7 +1,6 @@
 package com.lifepill.possystem.controller;
 
 import com.lifepill.possystem.dto.BranchDTO;
-import com.lifepill.possystem.dto.EmployerDTO;
 import com.lifepill.possystem.service.BranchService;
 import com.lifepill.possystem.service.EmployerService;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,8 +13,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Collections;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -45,7 +42,7 @@ class BranchControllerTest {
      */
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(branchController).build();
     }
 

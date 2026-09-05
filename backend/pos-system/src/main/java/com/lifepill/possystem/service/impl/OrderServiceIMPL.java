@@ -12,7 +12,6 @@ import com.lifepill.possystem.entity.OrderDetails;
 import com.lifepill.possystem.entity.PaymentDetails;
 import com.lifepill.possystem.exception.InsufficientItemQuantityException;
 import com.lifepill.possystem.exception.NotFoundException;
-import com.lifepill.possystem.repo.branchRepository.BranchRepository;
 import com.lifepill.possystem.repo.employerRepository.EmployerRepository;
 import com.lifepill.possystem.repo.itemRepository.ItemRepository;
 import com.lifepill.possystem.repo.orderRepository.OrderDetailsRepository;
@@ -49,8 +48,6 @@ public class OrderServiceIMPL implements OrderService {
     private EmployerRepository employerRepository;
     private OrderDetailsRepository orderDetailsRepo;
     private ItemRepository itemRepository;
-    private BranchRepository branchRepository;
-    private OrderDetailsRepository orderDetailsRepository;
     private PaymentRepository paymentRepository;
     private OrderMapper orderMapper;
 //    private SMSService smsService;
@@ -72,7 +69,7 @@ public class OrderServiceIMPL implements OrderService {
         updateItemQuantities(requestOrderSaveDTO);
 
         Order order = new Order();
-        order.setEmployer(employerRepository.getById(requestOrderSaveDTO.getEmployerId()));
+        order.setEmployer(employerRepository.findById(requestOrderSaveDTO.getEmployerId()).orElse(null));
         order.setOrderDate(requestOrderSaveDTO.getOrderDate());
         order.setTotal(requestOrderSaveDTO.getTotal());
         order.setBranchId(requestOrderSaveDTO.getBranchId());
@@ -86,11 +83,7 @@ public class OrderServiceIMPL implements OrderService {
                     );
             for (int i = 0; i < orderDetails.size(); i++) {
                 orderDetails.get(i).setOrders(order);
-                orderDetails.get(i).setItems(itemRepository
-                        .getById(requestOrderSaveDTO
-                                .getOrderDetails().get(i).getId()
-                        )
-                );
+                orderDetails.get(i).setItems(itemRepository.findById(requestOrderSaveDTO.getOrderDetails().get(i).getId()).orElse(null));
             }
             if (!orderDetails.isEmpty()) {
                 orderDetailsRepo.saveAll(orderDetails);
@@ -112,7 +105,7 @@ public class OrderServiceIMPL implements OrderService {
         String customerEmail = requestOrderSaveDTO.getCustomerEmail();
 
         Order order = new Order();
-        order.setEmployer(employerRepository.getById(requestOrderSaveDTO.getEmployerId()));
+        order.setEmployer(employerRepository.findById(requestOrderSaveDTO.getEmployerId()).orElse(null));
         order.setOrderDate(requestOrderSaveDTO.getOrderDate());
         order.setTotal(requestOrderSaveDTO.getTotal());
         order.setBranchId(requestOrderSaveDTO.getBranchId());
@@ -127,11 +120,7 @@ public class OrderServiceIMPL implements OrderService {
                     );
             for (int i = 0; i < orderDetails.size(); i++) {
                 orderDetails.get(i).setOrders(order);
-                orderDetails.get(i).setItems(itemRepository
-                        .getById(requestOrderSaveDTO
-                                .getOrderDetails().get(i).getId()
-                        )
-                );
+                orderDetails.get(i).setItems(itemRepository.findById(requestOrderSaveDTO.getOrderDetails().get(i).getId()).orElse(null));
             }
             if (!orderDetails.isEmpty()) {
                 orderDetailsRepo.saveAll(orderDetails);
@@ -170,27 +159,6 @@ public class OrderServiceIMPL implements OrderService {
         }
 
       //  emailService.sendEmail(customerEmail, "Your Order Confirmation", message.toString());
-    }
-
-    private void sendOrderDetailsSms(String customerPhoneNumber, Order order) {
-        StringBuilder message = new StringBuilder();
-        message.append("Thank you for your order!\n\n");
-        message.append("Order ID: ").append(order.getOrderId()).append("\n");
-        message.append("Date: ").append(order.getOrderDate()).append("\n");
-        message.append("Total: ").append(order.getTotal()).append("\n\n");
-        message.append("Items:\n");
-
-        // Check if order.getOrderDetails() is not null
-        if (order.getOrderDetails() != null) {
-            for (OrderDetails orderDetails : order.getOrderDetails()) {
-                message.append(orderDetails.getName()).append(" - ").append(orderDetails.getAmount()).append("\n");
-            }
-        } else {
-            // Handle the case when order.getOrderDetails() is null
-            message.append("No order details found.");
-        }
-
-//        smsService.sendSms(customerPhoneNumber, message.toString());
     }
 
     /**
