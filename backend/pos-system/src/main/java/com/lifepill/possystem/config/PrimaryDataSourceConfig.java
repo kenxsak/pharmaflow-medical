@@ -56,6 +56,14 @@ public class PrimaryDataSourceConfig {
             }
         }
 
+        if (normalizedJdbcUrl.matches(".*//dpg-[^:/.]+(:[0-9]+)?(/.*)?")) {
+            String region = System.getenv("RENDER_REGION");
+            if (region == null || region.trim().isEmpty()) {
+                region = "singapore";
+            }
+            normalizedJdbcUrl = normalizedJdbcUrl.replaceFirst("//(dpg-[^:/.]+)", "//$1." + region.trim() + "-postgres.render.com");
+        }
+
         if (normalizedJdbcUrl.contains("render.com") || normalizedJdbcUrl.contains("dpg-") ||
             normalizedJdbcUrl.contains("amazonaws.com") || normalizedJdbcUrl.contains("neon.tech") ||
             normalizedJdbcUrl.contains("supabase.co") || normalizedJdbcUrl.contains("koyeb.app")) {

@@ -23,12 +23,28 @@ if [ -n "${DATABASE_URL:-}" ] && [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
         query_string="?${database_and_query#*\?}"
       fi
 
-      case "$host_port" in
-        *:*)
-          jdbc_host="$host_port"
+      raw_host="${host_port%%:*}"
+      port_suffix=""
+      if [ "$raw_host" != "$host_port" ]; then
+        port_suffix=":${host_port#*:}"
+      else
+        port_suffix=":5432"
+      fi
+
+      case "$raw_host" in
+        dpg-*)
+          case "$raw_host" in
+            *.*)
+              jdbc_host="${raw_host}${port_suffix}"
+              ;;
+            *)
+              render_region="${RENDER_REGION:-singapore}"
+              jdbc_host="${raw_host}.${render_region}-postgres.render.com${port_suffix}"
+              ;;
+          esac
           ;;
         *)
-          jdbc_host="${host_port}:5432"
+          jdbc_host="${raw_host}${port_suffix}"
           ;;
       esac
 
