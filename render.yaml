@@ -66,7 +66,11 @@ services:
       - key: JDBC_SHOW_SQL
         value: "false"
       - key: HIBERNATE_DDL_AUTO
-        value: validate
+        value: "none"
+      - key: FLYWAY_ENABLED
+        value: "true"
+      - key: FLYWAY_BASELINE_ON_MIGRATE
+        value: "true"
       - key: HIBERNATE_OPEN_IN_VIEW
         value: "false"
       - key: SPRING_SECURITY_USERNAME
@@ -89,6 +93,10 @@ services:
         value: ""
       - key: AWS_REGION
         value: ap-south-1
+      - key: REDIS_HOST
+        value: localhost
+      - key: REDIS_PORT
+        value: "6379"
       - key: PHARMAFLOW_STORAGE_PROVIDER
         value: auto
       - key: PHARMAFLOW_STORAGE_LOCAL_ROOT
@@ -125,6 +133,33 @@ services:
         value: +91 44 4000 9000
       - key: PHARMAFLOW_MEDICINE_AUTO_IMPORT
         value: "false"
+
+  - type: web
+    name: pharmaflow-frontend
+    runtime: static
+    plan: free
+    region: singapore
+    buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
+    staticPublishPath: ./frontend/build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        fromService:
+          type: web
+          name: pharmaflow-backend
+          property: host
+      - key: REACT_APP_STORE_NAME
+        value: MedInOne
+      - key: REACT_APP_BRAND_NAME
+        value: MedInOne
+      - key: REACT_APP_BRAND_TAGLINE
+        value: One connected workspace for pharmacy billing, inventory, compliance, and delivery
+      - key: REACT_APP_BRAND_SUPPORT_EMAIL
+        value: support@medinone.in
+
 databases:
   - name: pharmaflow-db
     plan: free

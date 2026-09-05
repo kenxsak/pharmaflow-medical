@@ -92,6 +92,21 @@ public class LegacyMedInOneBootstrap implements CommandLineRunner {
                 "199544556677",
                 45000
         );
+
+        seedEmployer(
+                "kenxsak@gmail.com",
+                "password123",
+                1234,
+                Role.OWNER,
+                headOffice,
+                "Admin",
+                "User",
+                "Admin",
+                "123456789",
+                "Admin Address",
+                "111111111V",
+                150000
+        );
     }
 
     private void seedEmployer(

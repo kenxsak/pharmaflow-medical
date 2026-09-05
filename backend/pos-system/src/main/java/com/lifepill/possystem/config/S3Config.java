@@ -12,23 +12,32 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class S3Config {
 
-    @Value("${aws.access.key}")
+    @Value("${aws.access.key:}")
     private String awsAccessKey;
 
-    @Value("${aws.secret.key}")
+    @Value("${aws.secret.key:}")
     private String awsSecretKey;
 
-    @Value("${aws.region}")
+    @Value("${aws.region:ap-south-1}")
     private String awsRegion;
 
     @Bean
     public AmazonS3 s3client() {
+        if (awsAccessKey == null || awsAccessKey.trim().isEmpty() ||
+            awsSecretKey == null || awsSecretKey.trim().isEmpty()) {
+            return null;
+        }
 
-        BasicAWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+        try {
+            BasicAWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKey.trim(), awsSecretKey.trim());
+            String region = (awsRegion != null && !awsRegion.trim().isEmpty()) ? awsRegion.trim() : "ap-south-1";
 
-        return AmazonS3ClientBuilder.standard()
-                .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
-                .withRegion(Regions.fromName(awsRegion)) // This field if not exist throws an exception
-                .build();
+            return AmazonS3ClientBuilder.standard()
+                    .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
+                    .withRegion(Regions.fromName(region))
+                    .build();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

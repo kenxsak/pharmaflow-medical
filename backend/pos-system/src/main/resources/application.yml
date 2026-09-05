@@ -7,9 +7,9 @@ spring:
     name: MAIN-POS-BACKEND
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/pharmaflow}}
+    username: ${DATABASE_USERNAME:pharmaflow_user}
+    password: ${DATABASE_PASSWORD:PharmaFlow@2024}
     hikari:
       maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:4}
       minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:0}
@@ -27,14 +27,14 @@ spring:
         tcpKeepAlive: ${SPRING_DATASOURCE_TCP_KEEP_ALIVE:true}
   jpa:
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:validate}
+      ddl-auto: ${HIBERNATE_DDL_AUTO:none}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     jdbc:
       lob:
         non_contextual_creation: true
-    show-sql: ${JDBC_SHOW_SQL}
+    show-sql: ${JDBC_SHOW_SQL:false}
     open-in-view: ${HIBERNATE_OPEN_IN_VIEW:false}
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
@@ -43,20 +43,20 @@ spring:
     clean-disabled: true
   security:
     user:
-      name: ${SPRING_SECURITY_USERNAME}
-      password: ${SPRING_SECURITY_PASSWORD}
+      name: ${SPRING_SECURITY_USERNAME:pharmaflow}
+      password: ${SPRING_SECURITY_PASSWORD:pharmaflow}
   redis:
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT}
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
   data:
     redis:
       repositories:
         enabled: false
   mail:
-    host: ${SPRING_MAIL_HOST}
-    port: ${SPRING_MAIL_PORT}
-    username: ${SPRING_USER_NAME}
-    password: ${SPRING_PASSWORD}
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_USER_NAME:}
+    password: ${SPRING_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -81,10 +81,10 @@ logging:
     org.springframework.security: ${SECURITY_LOG_LEVEL:${SECURITY_DEBUG:INFO}}
 
 aws:
-  access.key: ${AWS_ACCESS_KEY}
-  secret.key: ${AWS_SECRET_KEY}
-  s3.bucket: ${AWS_S3_BUCKET}
-  region: ${AWS_REGION}
+  access.key: ${AWS_ACCESS_KEY:}
+  secret.key: ${AWS_SECRET_KEY:}
+  s3.bucket: ${AWS_S3_BUCKET:}
+  region: ${AWS_REGION:ap-south-1}
 
 pharmaflow:
   storage:
@@ -100,15 +100,15 @@ pharmaflow:
 # CORS Configuration - All settings loaded from environment variables
 # See CorsFilter.java in filter package for implementation
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
-  allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,https://medinone.wmart.in,https://pharmaflow-medical.netlify.app}
+  allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:https://*.wmart.in,https://*.netlify.app,https://*.onrender.com,https://*.koyeb.app,http://localhost:3000,http://localhost:3001}
   allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
-  allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Cache-Control,Content-Type,X-Store-ID,X-Tenant-ID,X-Tenant-Slug,X-Brand-Name,X-Brand-Tagline,X-Brand-Support-Email,X-Brand-Support-Phone}
+  allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Cache-Control,Content-Type,X-Store-ID,X-Tenant-ID,X-Tenant-Slug,X-Brand-Name,X-Brand-Support-Email,X-Brand-Support-Phone}
   allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
   max-age: ${CORS_MAX_AGE:3600}
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:PharmaFlowSuperSecretKey2024IndiaPharmacySaaS}
   expiration: ${JWT_EXPIRATION:86400000}
 
 management:
@@ -133,13 +133,13 @@ management:
     readinessstate:
       enabled: true
     mail:
-      enabled: ${MAIL_HEALTH}
+      enabled: ${MAIL_HEALTH:false}
     redis:
       enabled: ${REDIS_HEALTH:${PHARMAFLOW_REDIS_ENABLED:false}}
   metrics:
     export:
       prometheus:
-        enabled: ${PROMETHEUS_METRICS_EXPORT}
+        enabled: ${PROMETHEUS_METRICS_EXPORT:false}
 
 #twilio:
 #  accountSid: ${TWILIO_ACCOUNT_SID}

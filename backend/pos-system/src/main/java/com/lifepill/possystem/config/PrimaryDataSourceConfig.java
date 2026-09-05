@@ -17,8 +17,8 @@ public class PrimaryDataSourceConfig {
     @Primary
     public DataSource dataSource(
             @Value("${spring.datasource.url}") String jdbcUrl,
-            @Value("${spring.datasource.username}") String username,
-            @Value("${spring.datasource.password}") String password,
+            @Value("${spring.datasource.username:${DATABASE_USERNAME:pharmaflow_user}}") String username,
+            @Value("${spring.datasource.password:${DATABASE_PASSWORD:PharmaFlow@2024}}") String password,
             @Value("${spring.datasource.driver-class-name:org.postgresql.Driver}") String driverClassName,
             @Value("${spring.datasource.hikari.maximum-pool-size:4}") int maximumPoolSize,
             @Value("${spring.datasource.hikari.minimum-idle:0}") int minimumIdle,
@@ -33,9 +33,30 @@ public class PrimaryDataSourceConfig {
             @Value("${spring.datasource.hikari.data-source-properties.socketTimeout:30}") int socketTimeoutSeconds,
             @Value("${spring.datasource.hikari.data-source-properties.tcpKeepAlive:true}") boolean tcpKeepAlive
     ) {
+        String normalizedJdbcUrl = jdbcUrl != null ? jdbcUrl.trim() : "";
+        if (normalizedJdbcUrl.startsWith("postgres://")) {
+            normalizedJdbcUrl = "jdbc:postgresql://" + normalizedJdbcUrl.substring("postgres://".length());
+        } else if (normalizedJdbcUrl.startsWith("postgresql://")) {
+            normalizedJdbcUrl = "jdbc:postgresql://" + normalizedJdbcUrl.substring("postgresql://".length());
+        }
+
+        if (normalizedJdbcUrl.startsWith("jdbc:postgresql://") && normalizedJdbcUrl.contains("@")) {
+            int atIndex = normalizedJdbcUrl.indexOf('@');
+            int schemeEnd = "jdbc:postgresql://".length();
+            String userInfo = normalizedJdbcUrl.substring(schemeEnd, atIndex);
+            String hostAndRest = normalizedJdbcUrl.substring(atIndex + 1);
+            normalizedJdbcUrl = "jdbc:postgresql://" + hostAndRest;
+            if ((username == null || username.isEmpty()) && userInfo.contains(":")) {
+                username = userInfo.substring(0, userInfo.indexOf(':'));
+                if (password == null || password.isEmpty()) {
+                    password = userInfo.substring(userInfo.indexOf(':') + 1);
+                }
+            }
+        }
+
         HikariConfig config = new HikariConfig();
         config.setDriverClassName(driverClassName);
-        config.setJdbcUrl(jdbcUrl);
+        config.setJdbcUrl(normalizedJdbcUrl);
         config.setUsername(username);
         config.setPassword(password);
         config.setMaximumPoolSize(maximumPoolSize);

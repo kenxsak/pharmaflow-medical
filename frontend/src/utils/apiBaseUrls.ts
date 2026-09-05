@@ -1,7 +1,9 @@
 const stripTrailingSlash = (value: string) =>
   value.endsWith('/') ? value.slice(0, -1) : value;
 
-const DEFAULT_HOSTED_BACKEND_URL = 'https://pharmaflow-backend-fou9.onrender.com';
+const DEFAULT_HOSTED_BACKEND_URL =
+  process.env.REACT_APP_DEFAULT_HOSTED_BACKEND_URL ||
+  'https://pharmaflow-backend.onrender.com';
 
 const getHostedFallbackBaseUrl = () => {
   if (typeof window === 'undefined') {
@@ -21,6 +23,13 @@ const getHostedFallbackBaseUrl = () => {
 };
 
 export const getBackendBaseUrl = () => {
+  const customOverride = typeof window !== 'undefined'
+    ? localStorage.getItem('pharmaflow_backend_url')?.trim()
+    : null;
+  if (customOverride) {
+    return stripTrailingSlash(customOverride);
+  }
+
   const configuredBaseUrl = process.env.REACT_APP_BACKEND_URL?.trim();
   if (configuredBaseUrl) {
     return stripTrailingSlash(configuredBaseUrl);

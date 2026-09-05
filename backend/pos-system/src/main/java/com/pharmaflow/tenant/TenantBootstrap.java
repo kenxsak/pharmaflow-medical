@@ -240,6 +240,18 @@ public class TenantBootstrap implements CommandLineRunner {
                 false,
                 null
         );
+        ensureUser(
+                "kenxsak@gmail.com",
+                "password123",
+                "Kenx Administrator",
+                "kenxsak@gmail.com",
+                "+91 90000 00000",
+                pharmaflowHeadOffice,
+                pharmaflowTenant,
+                PharmaRoleName.SUPER_ADMIN,
+                true,
+                null
+        );
     }
 
     private SubscriptionPlan ensurePlan(

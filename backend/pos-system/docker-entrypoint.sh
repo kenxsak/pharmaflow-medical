@@ -33,6 +33,23 @@ if [ -n "${DATABASE_URL:-}" ] && [ -z "${SPRING_DATASOURCE_URL:-}" ]; then
       esac
 
       export SPRING_DATASOURCE_URL="jdbc:postgresql://${jdbc_host}/${database_name}${query_string}"
+      export DATABASE_URL="$SPRING_DATASOURCE_URL"
+
+      if [ -z "${DATABASE_USERNAME:-}" ] && [ -z "${SPRING_DATASOURCE_USERNAME:-}" ]; then
+        user_pass="${normalized_url%@*}"
+        if [ "$user_pass" != "$normalized_url" ]; then
+          db_user="${user_pass%%:*}"
+          db_pass="${user_pass#*:}"
+          if [ -n "$db_user" ]; then
+            export DATABASE_USERNAME="$db_user"
+            export SPRING_DATASOURCE_USERNAME="$db_user"
+          fi
+          if [ -n "$db_pass" ] && [ "$db_pass" != "$user_pass" ]; then
+            export DATABASE_PASSWORD="$db_pass"
+            export SPRING_DATASOURCE_PASSWORD="$db_pass"
+          fi
+        fi
+      fi
       ;;
   esac
 fi
