@@ -37,10 +37,7 @@ RUN chmod +x /app/docker-entrypoint.sh /app/run-medicine-import.sh && \
 
 USER appuser
 
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider "http://localhost:${PORT:-8080}/actuator/health/liveness" || exit 1
+EXPOSE 10000 8080
 
 ENV SPRING_PROFILES_ACTIVE=render
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:TieredStopAtLevel=1 -Djava.security.egd=file:/dev/./urandom"
