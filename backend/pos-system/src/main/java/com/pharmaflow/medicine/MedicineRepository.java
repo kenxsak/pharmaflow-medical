@@ -40,13 +40,6 @@ public interface MedicineRepository extends JpaRepository<Medicine, UUID> {
             "order by m.brandName asc")
     Page<Medicine> searchCatalog(@Param("query") String query, Pageable pageable);
 
-    @Query("select distinct m from Medicine m " +
-            "where m.isActive = true and (" +
-            "lower(coalesce(m.brandName, '')) like lower(concat('%', :query, '%')) " +
-            "or lower(coalesce(m.genericName, '')) like lower(concat('%', :query, '%')) " +
-            "or lower(coalesce(m.barcode, '')) like lower(concat('%', :query, '%')) " +
-            "or lower(coalesce(m.searchKeywords, '')) like lower(concat('%', :query, '%'))) " +
-            "order by m.brandName asc")
     @Query(value = "SELECT m.* FROM medicines m " +
             "WHERE m.is_active = true AND (" +
             "m.brand_name ILIKE CONCAT('%', :query, '%') " +
