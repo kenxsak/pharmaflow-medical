@@ -3,7 +3,7 @@ const stripTrailingSlash = (value: string) =>
 
 const DEFAULT_HOSTED_BACKEND_URL =
   process.env.REACT_APP_DEFAULT_HOSTED_BACKEND_URL ||
-  'https://pharmaflow-backend.onrender.com';
+  'https://pharmaflow-backend-lui4.onrender.com';
 
 const getHostedFallbackBaseUrl = () => {
   if (typeof window === 'undefined') {
