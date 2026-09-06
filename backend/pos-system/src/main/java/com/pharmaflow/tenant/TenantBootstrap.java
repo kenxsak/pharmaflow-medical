@@ -350,7 +350,6 @@ public class TenantBootstrap implements CommandLineRunner {
                                 .saltName(saltName)
                                 .genericName(genericName)
                                 .drugClass(drugClass)
-                                .isActive(true)
                                 .build()
                 ));
     }
