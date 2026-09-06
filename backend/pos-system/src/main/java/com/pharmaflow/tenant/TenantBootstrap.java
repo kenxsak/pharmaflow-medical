@@ -254,6 +254,30 @@ public class TenantBootstrap implements CommandLineRunner {
                 null
         );
         ensureUser(
+                "manager@pharmaflow.com",
+                "Manager@123",
+                "PharmaFlow Manager",
+                "manager@pharmaflow.com",
+                "+91 90000 00006",
+                pharmaflowHeadOffice,
+                pharmaflowTenant,
+                PharmaRoleName.SUPER_ADMIN,
+                true,
+                null
+        );
+        ensureUser(
+                "admin@pharmaflow.com",
+                "Admin@123",
+                "PharmaFlow Admin",
+                "admin@pharmaflow.com",
+                "+91 90000 00007",
+                pharmaflowHeadOffice,
+                pharmaflowTenant,
+                PharmaRoleName.SUPER_ADMIN,
+                true,
+                null
+        );
+        ensureUser(
                 "kenxsak@gmail.com",
                 "password123",
                 "Kenx Administrator",
