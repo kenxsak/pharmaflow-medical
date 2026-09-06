@@ -66,6 +66,7 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
   const [substitutesByMedicineId, setSubstitutesByMedicineId] = useState<Record<string, SubstituteResult[]>>({});
   const searchRef = useRef<HTMLInputElement>(null);
   const searchRequestSeq = useRef(0);
+  const searchTimeoutRef = useRef<number | null>(null);
   const userRole = localStorage.getItem('pharmaflow_role') || '';
   const canEditPrice = userRole === 'SUPER_ADMIN' || userRole === 'STORE_MANAGER';
 
@@ -165,34 +166,39 @@ const POSBilling: React.FC<POSBillingProps> = ({ embedded = false }) => {
     }
   };
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = (query: string) => {
     setSearchQuery(query);
     const normalizedQuery = query.trim();
     if (normalizedQuery.length < 2) {
+      if (searchTimeoutRef.current) {
+        window.clearTimeout(searchTimeoutRef.current);
+      }
       setSearchResults([]);
       return;
     }
 
-    const requestSeq = searchRequestSeq.current + 1;
-    searchRequestSeq.current = requestSeq;
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
-    if (requestSeq !== searchRequestSeq.current) {
-      return;
+    if (searchTimeoutRef.current) {
+      window.clearTimeout(searchTimeoutRef.current);
     }
 
-    try {
-      const results = await MedicineAPI.search(normalizedQuery);
-      if (requestSeq !== searchRequestSeq.current) {
-        return;
+    const requestSeq = searchRequestSeq.current + 1;
+    searchRequestSeq.current = requestSeq;
+
+    searchTimeoutRef.current = window.setTimeout(async () => {
+      try {
+        const results = await MedicineAPI.search(normalizedQuery);
+        if (requestSeq !== searchRequestSeq.current) {
+          return;
+        }
+        setSearchResults(results);
+        setErrorMessage(null);
+      } catch (error) {
+        if (requestSeq !== searchRequestSeq.current) {
+          return;
+        }
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to search medicines.');
       }
-      setSearchResults(results);
-      setErrorMessage(null);
-    } catch (error) {
-      if (requestSeq !== searchRequestSeq.current) {
-        return;
-      }
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to search medicines.');
-    }
+    }, 200);
   };
 
   const handleSearchSubmit = async () => {
