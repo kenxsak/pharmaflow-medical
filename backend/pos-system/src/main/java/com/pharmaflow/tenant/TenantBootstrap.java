@@ -286,6 +286,7 @@ public class TenantBootstrap implements CommandLineRunner {
         SaltComposition azithromycin = ensureSalt("Azithromycin 500mg", "Azithromycin", "Macrolide Antibiotic");
         SaltComposition cetirizine = ensureSalt("Cetirizine 10mg", "Cetirizine Hydrochloride", "Antihistamine");
         SaltComposition ibuprofenPara = ensureSalt("Ibuprofen 400mg + Paracetamol 325mg", "Ibuprofen + Paracetamol", "NSAID Analgesic");
+        SaltComposition omeprazole = ensureSalt("Omeprazole 20mg", "Omeprazole", "Proton Pump Inhibitor");
 
         ensureMedicine("Crocin 650 Advance Tablet", "Paracetamol 650mg", paracetamol650, gsk, "TABLET", "650mg", 15, "8901030000001", "300490", new BigDecimal("12.00"), new BigDecimal("32.50"), "OTC", false, false, false, "15 Tablets / Strip");
         ensureMedicine("Crocin 500 Advance Tablet", "Paracetamol 500mg", paracetamol500, gsk, "TABLET", "500mg", 15, "8901030000002", "300490", new BigDecimal("12.00"), new BigDecimal("25.00"), "OTC", false, false, false, "15 Tablets / Strip");
@@ -296,6 +297,8 @@ public class TenantBootstrap implements CommandLineRunner {
         ensureMedicine("Azithral 500 Tablet", "Azithromycin 500mg", azithromycin, alembic, "TABLET", "500mg", 5, "8901030000007", "300490", new BigDecimal("12.00"), new BigDecimal("119.50"), "SCHEDULE_H1", false, false, true, "5 Tablets / Strip");
         ensureMedicine("Combiflam Tablet", "Ibuprofen 400mg + Paracetamol 325mg", ibuprofenPara, sanofi, "TABLET", "400mg/325mg", 20, "8901030000008", "300490", new BigDecimal("12.00"), new BigDecimal("45.20"), "OTC", false, false, false, "20 Tablets / Strip");
         ensureMedicine("Cetrizine 10mg Tablet", "Cetirizine 10mg", cetirizine, cipla, "TABLET", "10mg", 10, "8901030000009", "300490", new BigDecimal("12.00"), new BigDecimal("18.00"), "OTC", false, false, false, "10 Tablets / Strip");
+        ensureMedicine("Omez 20 Capsule", "Omeprazole 20mg", omeprazole, drReddy, "CAPSULE", "20mg", 15, "8901030000010", "300490", new BigDecimal("12.00"), new BigDecimal("72.50"), "OTC", false, false, false, "15 Capsules / Strip");
+        ensureMedicine("Pantocid 40 Tablet", "Pantoprazole 40mg", panto40, sunPharma, "TABLET", "40mg", 15, "8901030000011", "300490", new BigDecimal("12.00"), new BigDecimal("165.00"), "SCHEDULE_H", false, false, true, "15 Tablets / Strip");
 
         List<Medicine> allMeds = medicineRepository.findAll(org.springframework.data.domain.PageRequest.of(0, 500)).getContent();
         List<Store> demoStores = storeRepository.findAllByIsActiveTrueOrderByStoreNameAsc();
