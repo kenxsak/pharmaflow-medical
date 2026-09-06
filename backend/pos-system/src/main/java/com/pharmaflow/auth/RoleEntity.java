@@ -70,4 +70,28 @@ public class RoleEntity {
             canManageInventory = false;
         }
     }
+
+    public Integer getRoleId() { return roleId; }
+    public void setRoleId(Integer roleId) { this.roleId = roleId; }
+
+    public PharmaRoleName getRoleName() { return roleName; }
+    public void setRoleName(PharmaRoleName roleName) { this.roleName = roleName; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public Boolean getCanEditPrice() { return canEditPrice; }
+    public void setCanEditPrice(Boolean canEditPrice) { this.canEditPrice = canEditPrice; }
+
+    public Boolean getCanEditBills() { return canEditBills; }
+    public void setCanEditBills(Boolean canEditBills) { this.canEditBills = canEditBills; }
+
+    public Boolean getCanSellScheduleH() { return canSellScheduleH; }
+    public void setCanSellScheduleH(Boolean canSellScheduleH) { this.canSellScheduleH = canSellScheduleH; }
+
+    public Boolean getCanViewReports() { return canViewReports; }
+    public void setCanViewReports(Boolean canViewReports) { this.canViewReports = canViewReports; }
+
+    public Boolean getCanManageInventory() { return canManageInventory; }
+    public void setCanManageInventory(Boolean canManageInventory) { this.canManageInventory = canManageInventory; }
 }
