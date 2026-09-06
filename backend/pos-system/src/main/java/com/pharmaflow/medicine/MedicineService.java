@@ -37,22 +37,27 @@ public class MedicineService {
 
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String normalizedQuery = query.trim();
-        LocalDate today = LocalDate.now();
-        List<Medicine> medicines;
-
-        if (storeId != null) {
-            medicines = medicineRepository.searchCatalogWithStore(storeId, normalizedQuery, today, safeLimit);
-            if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
-                medicines = medicineRepository.searchCatalogFuzzyWithStore(storeId, normalizedQuery, today, safeLimit);
-            }
-        } else {
-            medicines = medicineRepository.searchCatalogWithoutStore(normalizedQuery, safeLimit);
-            if (medicines.isEmpty() && normalizedQuery.length() >= 4) {
-                medicines = medicineRepository.searchCatalogFuzzyWithoutStore(normalizedQuery, safeLimit);
-            }
+        List<Medicine> medicines = medicineRepository.searchCatalogFast(normalizedQuery, safeLimit);
+        if (medicines.isEmpty() && normalizedQuery.length() >= 3) {
+            medicines = medicineRepository.searchCatalogFuzzyFast(normalizedQuery, safeLimit);
         }
 
         Map<UUID, InventoryBatch> currentBatchByMedicine = resolveCurrentBatches(storeId, medicines);
+
+        if (storeId != null && medicines.size() > 1) {
+            medicines = medicines.stream()
+                    .sorted((m1, m2) -> {
+                        InventoryBatch b1 = currentBatchByMedicine.get(m1.getMedicineId());
+                        InventoryBatch b2 = currentBatchByMedicine.get(m2.getMedicineId());
+                        boolean has1 = b1 != null && hasAvailableQuantity(b1);
+                        boolean has2 = b2 != null && hasAvailableQuantity(b2);
+                        if (has1 != has2) {
+                            return has1 ? -1 : 1;
+                        }
+                        return 0;
+                    })
+                    .collect(Collectors.toList());
+        }
 
         return medicines.stream()
                 .map(medicine -> toSearchResponse(medicine, currentBatchByMedicine.get(medicine.getMedicineId())))
